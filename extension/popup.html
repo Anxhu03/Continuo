@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continuo Companion</title>
+  <link rel="stylesheet" href="popup.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="popup-shell">
+    <!-- Header -->
+    <div class="popup-header">
+      <div class="brand-group">
+        <div class="brand-ring">
+          <span class="brand-dot"></span>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">CONTINUO</span>
+          <span class="brand-sub">Context Layer</span>
+        </div>
+      </div>
+      <div class="connection-status">
+        <span class="status-indicator" id="status-indicator"></span>
+        <span class="status-label" id="status-label">Live</span>
+      </div>
+    </div>
+
+    <!-- Active Tab Detection -->
+    <div class="detection-pill" id="detection-pill">
+      <span class="pill-icon" id="pill-icon">⚡</span>
+      <span class="pill-text" id="pill-text">Detecting active AI...</span>
+    </div>
+
+    <!-- Project Selector -->
+    <div class="field-box">
+      <label for="ext-project-select" class="field-label">Target Project Memory</label>
+      <select id="ext-project-select" class="field-select">
+        <option value="" disabled selected>Loading projects...</option>
+      </select>
+    </div>
+
+    <!-- Main Action Button -->
+    <button class="capture-btn" id="btn-ext-capture" type="button">
+      <span class="btn-icon">📦</span>
+      <span id="btn-ext-capture-text">Capture Conversation Context</span>
+    </button>
+
+    <!-- Context Status / Progress -->
+    <div class="progress-box" id="progress-box" style="display: none;">
+      <div class="progress-header">
+        <span class="progress-title" id="progress-title">Extracting State...</span>
+        <span class="progress-score" id="progress-score">--%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+      </div>
+      <p class="progress-sub" id="progress-sub">Parsing decisions, constraints, and files...</p>
+    </div>
+
+    <!-- Quick Handoff Action (Shows after capture) -->
+    <div class="handoff-card" id="handoff-card" style="display: none;">
+      <div class="handoff-title">Ready for Handoff</div>
+      <div class="handoff-buttons">
+        <button class="ho-btn primary" id="btn-quick-claude" type="button">
+          <span>Continue in Claude</span>
+          <span>→</span>
+        </button>
+        <button class="ho-btn secondary" id="btn-copy-raw" type="button">
+          <span>Copy Context</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer Links -->
+    <div class="popup-footer">
+      <a href="http://localhost:3000/#hero" target="_blank" class="footer-link">
+        <span>Open Continuo Workspace</span>
+        <span>↗</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

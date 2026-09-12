@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Continuo — Context Continuity Companion",
+  "version": "1.0.0",
+  "description": "Capture project context across ChatGPT, Claude, and Gemini with one click. Never re-explain your work.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Continuo Context Companion"
+  },
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "http://127.0.0.1:8008/*",
+    "http://localhost:8008/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
