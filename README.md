@@ -118,7 +118,7 @@ A native browser companion located in `extension/` that parses conversation bubb
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-org/continuo.git
+git clone https://github.com/Anxhu03/continuo.git
 cd continuo
 ```
 
