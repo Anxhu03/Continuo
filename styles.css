@@ -48,7 +48,28 @@ img {
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto !important;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 body {
@@ -144,7 +165,7 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 2;
-  will-change: transform;
+  overflow: hidden;
 }
 
 .aura-layer {
@@ -165,10 +186,9 @@ body {
 .aura-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(120px);
+  filter: blur(48px);
   pointer-events: none;
   mix-blend-mode: screen;
-  will-change: transform;
 }
 
 /* Hero Auras: Deep Indigo, Electric Sky & Radiant Violet */
@@ -444,51 +464,51 @@ body.scrolled .header-container {
   animation: slideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 1. Left: Brand Link (Logo + Wordmark) */
+/* 1. Left: Brand Link (Unboxed Floating Logo Mark + Wordmark) */
 .brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
   outline: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
+.brand-mark,
+.logo-btn,
 .glass-logo {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.45);
-  overflow: hidden;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-reflection-dome {
-  position: absolute;
-  top: 0;
-  left: 15%;
-  right: 15%;
-  height: 48%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32) 0%, transparent 100%);
-  border-radius: 50% 50% 100% 100%;
-  pointer-events: none;
+  display: none !important;
 }
 
+.brand-link:hover .brand-mark,
 .brand-link:hover .glass-logo {
-  transform: translateY(-1px) scale(1.06);
-  border-color: rgba(56, 189, 248, 0.65);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px) scale(1.05);
 }
 
+.brand-link:active .brand-mark,
 .brand-link:active .glass-logo {
   transform: scale(0.96);
 }
@@ -506,22 +526,23 @@ body.scrolled .header-container {
 
 .brand-link:hover .brand-wordmark {
   color: #ffffff;
-  text-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
 }
 
 .logo-img {
-  width: 68%;
-  height: 68%;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
   display: block;
   z-index: 1;
-  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(56, 189, 248, 0.7));
+  /* Pure glowing white mark with soft, emitted luminosity */
+  filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.35));
   transition: filter 0.3s ease, transform 0.3s ease;
 }
 
 .brand-link:hover .logo-img {
-  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(56, 189, 248, 0.95));
-  transform: scale(1.08) rotate(15deg);
+  filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.55));
+  transform: scale(1.06);
 }
 
 /* 2. Center: Floating Glass Navigation Pill */
@@ -3075,11 +3096,13 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .footer-logo img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #ffffff;
-  padding: 4px;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.75));
 }
 
 .footer-name {
@@ -3512,6 +3535,14 @@ body.menu-open .burger-bar:nth-child(3) {
     flex-direction: column;
     gap: 16px;
     text-align: center;
+  }
+
+  .aura-glow {
+    filter: blur(28px);
+  }
+
+  .ambient-video-layer {
+    opacity: 0.15 !important;
   }
 }
 

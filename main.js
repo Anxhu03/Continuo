@@ -161,6 +161,17 @@ function initAmbientEngine() {
       }
     });
 
+    // Cross-fade background video layer smoothly per section theme
+    if (videoLayer) {
+      if (theme === "hero") {
+        videoLayer.style.opacity = "0.85";
+      } else if (theme === "cta") {
+        videoLayer.style.opacity = "0.32";
+      } else {
+        videoLayer.style.opacity = "0.08";
+      }
+    }
+
     // Update ambient-system container class
     ambientSystem.className = `continuo-ambient-system theme-${theme}`;
   }
@@ -182,40 +193,6 @@ function initAmbientEngine() {
 
     sections.forEach((sec) => themeObserver.observe(sec));
   }
-
-  // Scroll listener: Cross-fade video & apply subtle 3D optical parallax
-  window.addEventListener(
-    "scroll",
-    () => {
-      const scrollY = window.scrollY;
-      const heroHeight = window.innerHeight;
-
-      // Video opacity transition
-      if (videoLayer) {
-        if (scrollY < heroHeight) {
-          const ratio = 1 - scrollY / heroHeight;
-          videoLayer.style.opacity = (0.18 + ratio * 0.7).toFixed(2);
-        } else if (currentTheme === "cta") {
-          videoLayer.style.opacity = "0.32";
-        } else {
-          videoLayer.style.opacity = "0.08";
-        }
-      }
-
-      // Parallax shifts on background layers (safe modulo loop for grid)
-      if (gridOverlay && !prefersReducedMotion) {
-        gridOverlay.style.transform = `translate3d(0, ${
-          -(scrollY * 0.04) % 60
-        }px, 0)`;
-      }
-      if (auraContainer && !prefersReducedMotion) {
-        auraContainer.style.transform = `translate3d(0, ${-(
-          scrollY * 0.05
-        )}px, 0)`;
-      }
-    },
-    { passive: true }
-  );
 
   // If user prefers reduced motion, draw calm starfield & return
   if (prefersReducedMotion) {
@@ -281,7 +258,7 @@ function initAmbientEngine() {
   // Context-Flow Node Structure (Adaptive for mobile, tablet, desktop)
   const isMobile = width <= 768;
   const isTablet = width > 768 && width <= 1024;
-  const nodeCount = isMobile ? 18 : isTablet ? 32 : Math.min(50, Math.floor(width / 28));
+  const nodeCount = isMobile ? 12 : isTablet ? 22 : Math.min(36, Math.floor(width / 36));
   const nodes = [];
 
   class ContextNode {
@@ -426,7 +403,7 @@ function initAmbientEngine() {
   }
 
   const packetPool = [];
-  const maxPackets = isMobile ? 7 : isTablet ? 12 : 18;
+  const maxPackets = isMobile ? 5 : isTablet ? 8 : 14;
   for (let i = 0; i < maxPackets; i++) {
     packetPool.push(new DataPacket());
   }
@@ -456,8 +433,8 @@ function initAmbientEngine() {
     mouse.x += (mouse.targetX - mouse.x) * 0.08;
     mouse.y += (mouse.targetY - mouse.y) * 0.08;
 
-    // Subtle cursor ambient aura
-    if (mouse.active) {
+    // Subtle cursor ambient aura (desktop pointer only)
+    if (mouse.active && !isCoarsePointer) {
       const gradient = ctx.createRadialGradient(
         mouse.x,
         mouse.y,
@@ -473,8 +450,9 @@ function initAmbientEngine() {
       ctx.fillRect(0, 0, width, height);
     }
 
-    // Connect close nodes
-    const connectionDist = isMobile ? 80 : isTablet ? 105 : 125;
+    // Connect close nodes (optimized with squared-distance threshold)
+    const connectionDist = isMobile ? 80 : isTablet ? 100 : 120;
+    const maxDistSq = connectionDist * connectionDist;
     const rInt = Math.round(activeR);
     const gInt = Math.round(activeG);
     const bInt = Math.round(activeB);
@@ -486,9 +464,10 @@ function initAmbientEngine() {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = nodes[i].x - nodes[j].x;
         const dy = nodes[i].y - nodes[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
 
-        if (dist < connectionDist) {
+        if (distSq < maxDistSq) {
+          const dist = Math.sqrt(distSq);
           const alpha = (1 - dist / connectionDist) * 0.18;
 
           ctx.beginPath();
@@ -651,47 +630,55 @@ function initStatsCountUp() {
    3. Header Scroll Blur & ScrollSpy Navigation
    ========================================================================== */
 function initHeaderScroll() {
-  let ticking = false;
-
-  window.addEventListener("scroll", () => {
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        if (window.scrollY > 40) {
-          document.body.classList.add("scrolled");
-        } else {
-          document.body.classList.remove("scrolled");
-        }
-        ticking = false;
-      });
-      ticking = true;
-    }
-  });
+  // If Lenis is not active, provide a throttled fallback listener for header state
+  if (typeof Lenis === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    let ticking = false;
+    window.addEventListener("scroll", () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (window.scrollY > 30) {
+            document.body.classList.add("scrolled");
+          } else {
+            document.body.classList.remove("scrolled");
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    }, { passive: true });
+  }
 }
 
 function initScrollSpy() {
   const sections = document.querySelectorAll("section[id]");
-  const navLinks = document.querySelectorAll(".nav-link");
+  const navLinks = document.querySelectorAll(".nav-link, .mobile-link");
+  if (!sections.length || !navLinks.length) return;
 
-  const onScroll = () => {
-    const scrollPos = window.scrollY + 180;
-
-    sections.forEach((sec) => {
-      const top = sec.offsetTop;
-      const height = sec.offsetHeight;
-      const id = sec.getAttribute("id");
-
-      if (scrollPos >= top && scrollPos < top + height) {
-        navLinks.forEach((link) => {
-          link.classList.remove("active");
-          if (link.getAttribute("href") === `#${id}`) {
-            link.classList.add("active");
+  if ("IntersectionObserver" in window) {
+    const spyObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute("id");
+            navLinks.forEach((link) => {
+              const href = link.getAttribute("href");
+              if (href === `#${id}`) {
+                link.classList.add("active");
+              } else if (href && href.startsWith("#")) {
+                link.classList.remove("active");
+              }
+            });
           }
         });
+      },
+      {
+        rootMargin: "-20% 0px -60% 0px",
+        threshold: 0,
       }
-    });
-  };
+    );
 
-  window.addEventListener("scroll", onScroll, { passive: true });
+    sections.forEach((sec) => spyObserver.observe(sec));
+  }
 }
 
 /* ==========================================================================
@@ -731,7 +718,7 @@ function initLenisSmoothScroll() {
   ).matches;
 
   if (prefersReducedMotion || typeof Lenis === "undefined") {
-    // Fallback standard smooth anchor jumping for reduced motion
+    // Accessible instant/native navigation for reduced motion
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
       anchor.addEventListener("click", (e) => {
         const href = anchor.getAttribute("href");
@@ -746,13 +733,14 @@ function initLenisSmoothScroll() {
             if (burger) burger.setAttribute("aria-expanded", "false");
             if (sheet) sheet.hidden = true;
           }
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.scrollIntoView({ behavior: "auto", block: "start" });
         }
       });
     });
     return;
   }
 
+  // Single authoritative Lenis instance
   lenisInstance = new Lenis({
     duration: 1.15,
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -760,7 +748,7 @@ function initLenisSmoothScroll() {
     gestureOrientation: "vertical",
     smoothWheel: true,
     wheelMultiplier: 1.0,
-    touchMultiplier: 1.5,
+    touchMultiplier: 1.2,
     infinite: false,
   });
 
@@ -770,16 +758,25 @@ function initLenisSmoothScroll() {
   }
   requestAnimationFrame(raf);
 
-  // Sync header scrolled class smoothly with Lenis
+  // Consolidated Lenis scroll listener (synchronizes header state and background grid parallax)
+  const gridOverlay = document.getElementById("ambient-grid-overlay");
   lenisInstance.on("scroll", (e) => {
-    if (e.scroll > 30) {
+    const scrollY = e.scroll;
+
+    // Header scrolled state
+    if (scrollY > 30) {
       document.body.classList.add("scrolled");
     } else {
       document.body.classList.remove("scrolled");
     }
+
+    // Grid optical parallax (safe modulo loop, running in lockstep with RAF)
+    if (gridOverlay) {
+      gridOverlay.style.transform = `translate3d(0, ${-(scrollY * 0.04) % 60}px, 0)`;
+    }
   });
 
-  // Wire internal anchor navigation to Lenis scrollTo
+  // Wire internal anchor navigation to Lenis scrollTo with calculated header offset
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener("click", (e) => {
       const href = anchor.getAttribute("href");
@@ -795,7 +792,14 @@ function initLenisSmoothScroll() {
           if (burger) burger.setAttribute("aria-expanded", "false");
           if (sheet) sheet.hidden = true;
         }
-        lenisInstance.scrollTo(target, { offset: -76, duration: 1.2 });
+
+        // Landing offset accounts for floating header; #hero scrolls to absolute top
+        const isHero = target.getAttribute("id") === "hero";
+        lenisInstance.scrollTo(target, {
+          offset: isHero ? 0 : -76,
+          duration: 1.15,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        });
       }
     });
   });
