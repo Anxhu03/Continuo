@@ -42,6 +42,11 @@
   padding: 0;
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -456,11 +461,11 @@ body.scrolled .header-container {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(22, 22, 28, 0.72);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.45);
   overflow: hidden;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.3s ease,
@@ -479,9 +484,9 @@ body.scrolled .header-container {
 }
 
 .brand-link:hover .glass-logo {
-  transform: translateY(-1px) scale(1.05);
-  border-color: rgba(56, 189, 248, 0.55);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.7), 0 0 20px rgba(56, 189, 248, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px) scale(1.06);
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.7), 0 0 24px rgba(56, 189, 248, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.6);
 }
 
 .brand-link:active .glass-logo {
@@ -510,6 +515,13 @@ body.scrolled .header-container {
   object-fit: contain;
   display: block;
   z-index: 1;
+  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(56, 189, 248, 0.7));
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+.brand-link:hover .logo-img {
+  filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(56, 189, 248, 0.95));
+  transform: scale(1.08) rotate(15deg);
 }
 
 /* 2. Center: Floating Glass Navigation Pill */
@@ -2268,63 +2280,117 @@ body.menu-open .burger-bar:nth-child(3) {
 /* Stage 2: Core Hub Card */
 .core-hub-card {
   width: 100%;
-  max-width: 680px;
+  max-width: 720px;
   background: rgba(18, 20, 30, 0.88);
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 20px;
-  padding: 22px 26px;
+  padding: 22px 28px;
   box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.6),
               0 0 30px rgba(56, 189, 248, 0.15),
               inset 0 1px 0 rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
+.core-hub-inner,
 .core-hub-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 20px;
+  width: 100%;
 }
 
+.core-emblem-wrap,
 .hub-emblem-wrap {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(56, 189, 248, 0.35);
   display: grid;
   place-items: center;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
+.core-emblem-img,
 .core-hub-emblem {
-  width: 28px;
-  height: 28px;
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
   object-fit: contain;
+  display: block;
+  filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+  transition: transform 0.3s ease;
 }
 
+.core-hub-card:hover .core-emblem-img {
+  transform: rotate(20deg) scale(1.08);
+}
+
+.core-text-wrap,
 .hub-header-meta {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
+.core-badge,
 .hub-kicker {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: #38bdf8;
+  text-transform: uppercase;
 }
 
+.core-title,
 .hub-title {
   font-size: 17px;
   font-weight: 600;
   color: #ffffff;
-  margin: 2px 0 0 0;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.core-desc {
+  font-size: 12.5px;
+  color: #a1a1aa;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.core-metrics-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.core-metric-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  white-space: nowrap;
+}
+
+.core-metric-item i {
+  font-size: 10px;
 }
 
 .hub-live-badge {
@@ -2350,49 +2416,21 @@ body.menu-open .burger-bar:nth-child(3) {
   animation: pulseDot 1.8s infinite;
 }
 
-.core-hub-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.hub-metric-pill {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  padding: 8px 12px;
-}
-
-.metric-label {
-  font-size: 10.5px;
-  color: #71717a;
-}
-
-.metric-value {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #e4e4e7;
-}
-
 /* Stage 3: Memory Vault Card */
 .memory-vault-card {
   width: 100%;
-  max-width: 680px;
-  background: rgba(16, 18, 26, 0.85);
+  max-width: 720px;
+  background: rgba(16, 18, 26, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 20px;
-  padding: 20px 24px;
+  padding: 22px 28px;
   box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.55),
               inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
+.vault-head,
 .vault-header {
   display: flex;
   align-items: center;
@@ -2401,8 +2439,8 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .vault-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 12px;
   background: rgba(168, 85, 247, 0.12);
   border: 1px solid rgba(168, 85, 247, 0.25);
@@ -2413,24 +2451,28 @@ body.menu-open .burger-bar:nth-child(3) {
   flex-shrink: 0;
 }
 
+.vault-title-group,
 .vault-copy {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.vault-copy h4 {
+.vault-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #c084fc;
+}
+
+.vault-heading {
   font-size: 15px;
   font-weight: 600;
   color: #ffffff;
-  margin: 0 0 3px 0;
 }
 
-.vault-copy p {
-  font-size: 12px;
-  color: #a1a1aa;
-  margin: 0;
-  line-height: 1.4;
-}
-
+.vault-tag,
 .vault-security-tag {
   display: inline-flex;
   align-items: center;
@@ -2438,23 +2480,25 @@ body.menu-open .burger-bar:nth-child(3) {
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 10.5px;
   font-weight: 600;
   color: #d4d4d8;
   white-space: nowrap;
 }
 
+.vault-tag i,
 .vault-security-tag i {
-  color: #38bdf8;
+  color: #10b981;
   font-size: 10px;
 }
 
+.vault-chips-grid,
 .vault-chips-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -2473,6 +2517,22 @@ body.menu-open .burger-bar:nth-child(3) {
 .vault-chip i {
   color: #10b981;
   font-size: 10px;
+}
+
+@media (max-width: 768px) {
+  .core-hub-inner,
+  .core-hub-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .core-metrics-chip {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .vault-head,
+  .vault-header {
+    flex-wrap: wrap;
+  }
 }
 
 /* ==========================================================================
@@ -3598,6 +3658,7 @@ body.menu-open .burger-bar:nth-child(3) {
   width: 22px;
   height: 22px;
   object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(56, 189, 248, 0.7));
 }
 
 .ws-brand-title {
@@ -4738,6 +4799,7 @@ button {
   width: 22px;
   height: 22px;
   object-fit: contain;
+  filter: brightness(0) invert(1) drop-shadow(0 0 4px rgba(56, 189, 248, 0.7));
 }
 
 .auth-header-copy {
