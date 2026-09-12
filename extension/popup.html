@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Continuo Companion</title>
+  <title>Continuo — Context Continuity Companion</title>
   <link rel="stylesheet" href="popup.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,7 +11,7 @@
 </head>
 <body>
   <div class="popup-shell">
-    <!-- Header -->
+    <!-- Clean Minimal Header -->
     <div class="popup-header">
       <div class="brand-group">
         <div class="brand-ring">
@@ -19,68 +19,88 @@
         </div>
         <div class="brand-text">
           <span class="brand-title">CONTINUO</span>
-          <span class="brand-sub">Context Layer</span>
         </div>
       </div>
       <div class="connection-status">
         <span class="status-indicator" id="status-indicator"></span>
-        <span class="status-label" id="status-label">Live</span>
+        <span class="status-label" id="status-label">Ready</span>
       </div>
     </div>
 
-    <!-- Active Tab Detection -->
-    <div class="detection-pill" id="detection-pill">
-      <span class="pill-icon" id="pill-icon">⚡</span>
-      <span class="pill-text" id="pill-text">Detecting active AI...</span>
+    <!-- Active AI Detection Status -->
+    <div class="detection-box" id="detection-box">
+      <div class="detection-status-row">
+        <span class="pulse-dot" id="pulse-dot"></span>
+        <span class="detection-status-text" id="detection-status-text">Conversation detected</span>
+      </div>
+      <div class="detection-source" id="detection-source">ChatGPT (Active Tab)</div>
     </div>
 
-    <!-- Project Selector -->
-    <div class="field-box">
-      <label for="ext-project-select" class="field-label">Target Project Memory</label>
-      <select id="ext-project-select" class="field-select">
+    <!-- Project Selection -->
+    <div class="project-box">
+      <label for="ext-project-select" class="project-label">Project:</label>
+      <select id="ext-project-select" class="project-select">
         <option value="" disabled selected>Loading projects...</option>
       </select>
     </div>
 
-    <!-- Main Action Button -->
-    <button class="capture-btn" id="btn-ext-capture" type="button">
-      <span class="btn-icon">📦</span>
-      <span id="btn-ext-capture-text">Capture Conversation Context</span>
+    <!-- Context Readiness -->
+    <div class="context-ready-indicator" id="context-ready-indicator">
+      <span class="ready-badge">Context ready</span>
+    </div>
+
+    <!-- Main Save Action Button -->
+    <button class="save-context-btn" id="btn-ext-capture" type="button">
+      <span id="btn-ext-capture-text">Save Context</span>
     </button>
 
-    <!-- Context Status / Progress -->
-    <div class="progress-box" id="progress-box" style="display: none;">
-      <div class="progress-header">
-        <span class="progress-title" id="progress-title">Extracting State...</span>
-        <span class="progress-score" id="progress-score">--%</span>
+    <!-- Post-Save Success & Continuation Panel -->
+    <div class="handoff-panel" id="handoff-panel" style="display: none;">
+      <div class="success-banner">
+        <span class="check-mark">✓</span>
+        <span class="success-text">Context saved</span>
       </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-      </div>
-      <p class="progress-sub" id="progress-sub">Parsing decisions, constraints, and files...</p>
-    </div>
 
-    <!-- Quick Handoff Action (Shows after capture) -->
-    <div class="handoff-card" id="handoff-card" style="display: none;">
-      <div class="handoff-title">Ready for Handoff</div>
-      <div class="handoff-buttons">
-        <button class="ho-btn primary" id="btn-quick-claude" type="button">
-          <span>Continue in Claude</span>
-          <span>→</span>
+      <div class="continue-actions">
+        <button class="continue-btn chatgpt" id="btn-cont-chatgpt" type="button">
+          <span>Continue with ChatGPT</span>
+          <span class="arrow">→</span>
         </button>
-        <button class="ho-btn secondary" id="btn-copy-raw" type="button">
-          <span>Copy Context</span>
+        <button class="continue-btn claude" id="btn-cont-claude" type="button">
+          <span>Continue with Claude</span>
+          <span class="arrow">→</span>
+        </button>
+        <button class="continue-btn gemini" id="btn-cont-gemini" type="button">
+          <span>Continue with Gemini</span>
+          <span class="arrow">→</span>
         </button>
       </div>
+
+      <button class="view-memory-btn" id="btn-view-memory" type="button">
+        <span>View Project Memory</span>
+        <span class="ext-link">↗</span>
+      </button>
     </div>
 
-    <!-- Footer Links -->
-    <div class="popup-footer">
-      <a href="http://localhost:3000/#hero" target="_blank" class="footer-link">
-        <span>Open Continuo Workspace</span>
-        <span>↗</span>
-      </a>
-    </div>
+    <!-- Advanced Diagnostics (Subtle Collapsible Drawer) -->
+    <details class="advanced-drawer" id="advanced-drawer">
+      <summary class="advanced-summary">Advanced Diagnostics</summary>
+      <div class="advanced-body">
+        <div class="adv-row">
+          <span>Extraction Fidelity:</span>
+          <strong id="adv-fidelity">--%</strong>
+        </div>
+        <div class="adv-row">
+          <span>Active Version:</span>
+          <strong id="adv-version">--</strong>
+        </div>
+        <div class="adv-row">
+          <span>API Gateway:</span>
+          <strong id="adv-gateway">127.0.0.1:8008</strong>
+        </div>
+        <div class="adv-log" id="adv-log">Ready for user-triggered capture.</div>
+      </div>
+    </details>
   </div>
 
   <script src="popup.js"></script>

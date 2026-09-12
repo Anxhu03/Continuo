@@ -1191,6 +1191,10 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
               <i class="fa-regular fa-user-circle"></i>
               <span id="ws-user-email">Sign In</span>
             </button>
+            <button class="ws-btn ws-btn-signout" id="ws-btn-signout" type="button" title="Sign out of Continuo" style="display: none;">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+              <span>Sign Out</span>
+            </button>
             <button class="ws-close-btn" id="ws-close-btn" type="button" aria-label="Close workspace">
               <i class="fa-solid fa-xmark"></i>
             </button>
@@ -1214,6 +1218,10 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
           <button class="ws-tab" data-tab="handoff" type="button">
             <i class="fa-solid fa-paper-plane"></i>
             <span>Cross-AI Handoff</span>
+          </button>
+          <button class="ws-tab" data-tab="diagnostics" type="button">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Dev Diagnostics</span>
           </button>
         </div>
 
@@ -1324,15 +1332,43 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
                   </div>
                 </div>
 
-                <!-- Structured Context Summary Preview -->
+                <!-- Structured Context Summary Preview (Human-Readable) -->
                 <div class="ws-summary-card">
                   <div class="ws-summary-head">
-                    <span class="ws-summary-title">Active Context Package</span>
+                    <div class="ws-summary-title-group" style="display: flex; align-items: center; gap: 8px;">
+                      <span class="ws-summary-title">Project Memory</span>
+                      <span class="memory-readiness-badge" id="ws-readiness-badge">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span id="ws-readiness-text">Memory Ready</span>
+                      </span>
+                    </div>
                     <span class="ws-summary-ver" id="ws-summary-ver">Version --</span>
                   </div>
-                  <div class="ws-summary-objective" id="ws-summary-objective">
-                    Select or create a project to inspect its active context package.
+
+                  <div class="human-memory-container" id="ws-human-summary">
+                    <div class="human-memory-card">
+                      <div class="human-memory-card-title"><i class="fa-solid fa-bullseye"></i> What We're Building</div>
+                      <div class="human-memory-card-body" id="ws-human-objective">Select or create a project to inspect its active context.</div>
+                    </div>
+
+                    <div class="human-memory-card">
+                      <div class="human-memory-card-title"><i class="fa-solid fa-play"></i> Current State</div>
+                      <div class="human-memory-card-body" id="ws-human-state">Initial setup and configuration.</div>
+                    </div>
+
+                    <div class="human-memory-card">
+                      <div class="human-memory-card-title"><i class="fa-solid fa-circle-check"></i> Completed Work</div>
+                      <ul class="human-memory-list" id="ws-human-completed">
+                        <li>Project initialized</li>
+                      </ul>
+                    </div>
+
+                    <div class="human-memory-card">
+                      <div class="human-memory-card-title"><i class="fa-solid fa-arrow-right"></i> Next Step</div>
+                      <div class="human-memory-card-body" id="ws-human-next">Capture dialogue to advance project memory.</div>
+                    </div>
                   </div>
+
                   <div class="ws-chips-row" id="ws-chips-row">
                     <span class="ws-summary-badge"><i class="fa-solid fa-list"></i> <span id="ws-count-reqs">0</span> Reqs</span>
                     <span class="ws-summary-badge"><i class="fa-solid fa-lock"></i> <span id="ws-count-const">0</span> Constraints</span>
@@ -1531,6 +1567,53 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
               </div>
             </div>
           </div>
+
+          <!-- PANEL 5: DEVELOPER & ADMIN DIAGNOSTICS -->
+          <div class="ws-panel" id="ws-panel-diagnostics">
+            <div class="ws-diag-container">
+              <div class="ws-diag-grid">
+                <div class="ws-diag-card">
+                  <div class="ws-diag-card-head"><i class="fa-solid fa-server"></i> Engine & Gateway Health</div>
+                  <div class="ws-diag-list">
+                    <div class="ws-diag-row"><span>FastAPI Gateway:</span><span class="ws-diag-val active" id="diag-backend-status">Operational (Port 8008)</span></div>
+                    <div class="ws-diag-row"><span>Persistence Database:</span><span class="ws-diag-val active">SQLite / Supabase RLS Ready</span></div>
+                    <div class="ws-diag-row"><span>JWT Authentication:</span><span class="ws-diag-val active">Stateless PBKDF2 Validated</span></div>
+                    <div class="ws-diag-row"><span>Extension Bridge:</span><span class="ws-diag-val active">Manifest V3 Relay Active</span></div>
+                  </div>
+                </div>
+
+                <div class="ws-diag-card">
+                  <div class="ws-diag-card-head"><i class="fa-solid fa-microchip"></i> Context Quality Dimensions</div>
+                  <div class="ws-diag-list">
+                    <div class="ws-diag-row"><span>Completeness Weight:</span><span class="ws-diag-val">30% (Goal, Reqs, Files)</span></div>
+                    <div class="ws-diag-row"><span>Consistency Weight:</span><span class="ws-diag-val">20% (Contradiction Check)</span></div>
+                    <div class="ws-diag-row"><span>Relevance Weight:</span><span class="ws-diag-val">25% (Noise Filtering)</span></div>
+                    <div class="ws-diag-row"><span>Actionability Weight:</span><span class="ws-diag-val">25% (Next Steps Clarity)</span></div>
+                  </div>
+                </div>
+
+                <div class="ws-diag-card">
+                  <div class="ws-diag-card-head"><i class="fa-solid fa-network-wired"></i> Supported AI Adapters</div>
+                  <div class="ws-diag-list">
+                    <div class="ws-diag-row"><span>ChatGPT (o3-mini / 4o):</span><span class="ws-diag-val active">Markdown Spec + Direct Link</span></div>
+                    <div class="ws-diag-row"><span>Claude 3.7 Sonnet:</span><span class="ws-diag-val active">Anthropic XML Tags + Direct Link</span></div>
+                    <div class="ws-diag-row"><span>Google Gemini 2.0:</span><span class="ws-diag-val active">Markdown Package + Direct Link</span></div>
+                    <div class="ws-diag-row"><span>Cursor IDE:</span><span class="ws-diag-val active">.cursorrules Spec Format</span></div>
+                  </div>
+                </div>
+
+                <div class="ws-diag-card">
+                  <div class="ws-diag-card-head"><i class="fa-solid fa-shield-halved"></i> Security & Role Authorization</div>
+                  <div class="ws-diag-list">
+                    <div class="ws-diag-row"><span>Access Control:</span><span class="ws-diag-val active">User-Scoped Project Isolation</span></div>
+                    <div class="ws-diag-row"><span>Plaintext Credentials:</span><span class="ws-diag-val active">Zero Exposure (Audited)</span></div>
+                    <div class="ws-diag-row"><span>CORS Policy:</span><span class="ws-diag-val active">Whitelisted (Local + Ext)</span></div>
+                    <div class="ws-diag-row"><span>Environment:</span><span class="ws-diag-val active">Production Prepared</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1628,13 +1711,14 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
           </button>
 
           <div class="auth-divider">
-            <span>OR INSTANT ACCESS</span>
+            <span>OR DEVELOPMENT ACCESS</span>
           </div>
 
           <button class="continuo-btn continuo-btn-secondary full-width auth-demo-btn" id="btn-demo-engineer" type="button">
-            <i class="fa-solid fa-bolt demo-bolt-icon"></i>
-            <span>Continue as Demo Engineer (Instant)</span>
+            <span class="auth-dev-badge">DEV SANDBOX</span>
+            <span>Continue as Demo Engineer (Local Mock)</span>
           </button>
+          <p class="auth-demo-subtext">Local sandbox for testing — pre-loaded demo session without real credentials.</p>
 
           <div class="auth-footer-badge">
             <i class="fa-solid fa-shield-halved"></i>
