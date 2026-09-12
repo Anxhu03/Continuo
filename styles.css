@@ -409,7 +409,7 @@ body {
 }
 
 /* ==========================================================================
-   Sticky Header Container
+   iOS 26-Inspired Glass Material System & Upper Navigation
    ========================================================================== */
 .header-container {
   position: fixed;
@@ -417,67 +417,114 @@ body {
   left: 0;
   width: 100%;
   z-index: 100;
-  padding: clamp(16px, 2.4vh, 24px) clamp(14px, 3vw, 32px);
+  padding: clamp(16px, 2.4vh, 22px) clamp(14px, 3vw, 32px);
   display: flex;
   justify-content: center;
-  transition: padding 0.3s ease, background-color 0.3s ease, backdrop-filter 0.3s ease;
+  pointer-events: none;
+  transition: padding 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body.scrolled .header-container {
-  padding: 12px clamp(14px, 3vw, 32px);
-  background-color: rgba(0, 0, 0, 0.68);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px clamp(14px, 3vw, 32px);
 }
 
 .header {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 760px;
-  gap: clamp(16px, 2.5vw, 24px);
+  max-width: 820px;
+  gap: clamp(12px, 2vw, 18px);
   animation: slideDown 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Circular Logo Button */
-.logo-btn {
+/* 1. Circular Glass Brand Logo Button */
+.glass-logo {
+  position: relative;
   display: grid;
   place-items: center;
-  width: clamp(40px, 4.4vw, 46px);
-  height: clamp(40px, 4.4vw, 46px);
+  width: clamp(42px, 4.4vw, 48px);
+  height: clamp(42px, 4.4vw, 48px);
   border-radius: 50%;
-  background-color: #ffffff;
-  box-shadow: var(--nav-shadow);
+  background: rgba(24, 24, 30, 0.68);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3);
   text-decoration: none;
   flex-shrink: 0;
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
 }
 
-.logo-btn:hover {
-  transform: scale(1.04);
+.glass-reflection-dome {
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 48%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, transparent 100%);
+  border-radius: 50% 50% 100% 100%;
+  pointer-events: none;
+}
+
+.glass-logo:hover {
+  transform: translateY(-1px) scale(1.04);
+  border-color: rgba(56, 189, 248, 0.45);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+}
+
+.glass-logo:active {
+  transform: scale(0.96);
 }
 
 .logo-img {
-  width: 72%;
-  height: 72%;
+  width: 68%;
+  height: 68%;
   object-fit: contain;
   display: block;
+  z-index: 1;
 }
 
-/* Desktop White Nav Pill */
-.nav-pill {
+/* 2. Floating iOS 26 Glass Navigation Pill */
+.glass-nav {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex: 1;
-  max-width: 480px;
+  max-width: 490px;
   height: clamp(44px, 5.2vw, 48px);
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
-  background-color: #ffffff;
-  box-shadow: var(--nav-shadow);
+  background: rgba(22, 22, 28, 0.65);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.22);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+body.scrolled .glass-nav {
+  background: rgba(14, 14, 18, 0.84);
+  border-color: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(36px) saturate(190%);
+  -webkit-backdrop-filter: blur(36px) saturate(190%);
+  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.26);
+}
+
+.glass-specular-edge {
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35) 50%, transparent);
+  pointer-events: none;
 }
 
 .nav-link {
@@ -485,68 +532,164 @@ body.scrolled .header-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px;
+  padding: 0 clamp(8px, 1.2vw, 14px);
   height: 100%;
-  font-size: clamp(13px, 1.4vw, 15px);
+  border-radius: 999px;
+  font-size: clamp(13px, 1.35vw, 14.5px);
   font-weight: 500;
   letter-spacing: -0.01em;
-  color: var(--nav-text);
+  color: #c4c4c8;
   text-decoration: none;
-  opacity: 0.55;
-  transition: opacity 0.2s ease;
+  opacity: 0.8;
+  transition: color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
   white-space: nowrap;
 }
 
 .nav-link:hover {
-  opacity: 0.85;
+  opacity: 1;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .nav-link.active {
   opacity: 1;
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-/* Active indicator: three 3x3px black dots */
 .nav-link.active::after {
   content: "";
   position: absolute;
   bottom: 5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 3px;
-  height: 3px;
-  background-color: #000000;
+  width: 4px;
+  height: 4px;
+  background-color: var(--accent-cyan);
   border-radius: 50%;
-  box-shadow: -5px 0 0 #000000, 5px 0 0 #000000;
+  box-shadow: 0 0 6px var(--accent-cyan);
 }
 
-/* Header Actions & Sign In */
+/* 3. Header Action Buttons (Glass Primary & Secondary CTAs) */
 .header-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
-.sign-in-btn {
+.glass-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: clamp(44px, 5.2vw, 48px);
-  padding: 0 clamp(18px, 2.2vw, 24px);
+  gap: 8px;
+  height: clamp(42px, 5vw, 46px);
+  padding: 0 clamp(16px, 2vw, 20px);
   border-radius: 999px;
-  background-color: var(--pill-dark);
-  color: var(--sign-in-text);
-  font-size: clamp(13px, 1.4vw, 15px);
+  font-family: var(--font-sans);
+  font-size: clamp(13px, 1.35vw, 14px);
   font-weight: 500;
   letter-spacing: -0.01em;
   text-decoration: none;
-  box-shadow: var(--nav-shadow);
-  flex-shrink: 0;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+  outline: none;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    color 0.25s ease;
 }
 
-.sign-in-btn:hover {
-  background-color: #323234;
+.glass-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Secondary CTA: Translucent Subtle Glass */
+.glass-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e4e4e7;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.18);
+}
+
+.glass-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
   color: #ffffff;
   transform: translateY(-1px);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.glass-btn-secondary:active {
+  transform: scale(0.97);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Primary CTA: Premium Luminous Glass with Continuo Accent */
+.glass-btn-primary {
+  position: relative;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.24) 0%, rgba(99, 102, 241, 0.22) 100%);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  color: #ffffff;
+  box-shadow: 0 8px 24px -4px rgba(56, 189, 248, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.glass-btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+}
+
+.glass-btn-primary .btn-icon {
+  font-size: 11px;
+  color: var(--accent-cyan);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-btn-primary:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.36) 0%, rgba(99, 102, 241, 0.32) 100%);
+  border-color: rgba(56, 189, 248, 0.65);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -4px rgba(56, 189, 248, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.glass-btn-primary:hover .btn-icon {
+  transform: translateX(2px);
+}
+
+.glass-btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* 4. Mobile Glass Hamburger Button */
+.glass-burger {
+  background: rgba(24, 24, 30, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+  transition: background-color 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+.glass-burger:hover {
+  background: rgba(35, 35, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.glass-burger:active {
+  transform: scale(0.95);
 }
 
 /* Mobile Hamburger Button (Hidden on Desktop) */

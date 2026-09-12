@@ -116,14 +116,15 @@
       <div class="ambient-vignette"></div>
     </div>
 
-    <!-- Sticky Header -->
+    <!-- Floating iOS 26 Glass Header -->
     <header class="header-container" id="site-header">
-      <div class="header">
-        <!-- Circular brand logo button -->
-        <a href="#hero" class="logo-btn" aria-label="Continuo Home">
+      <div class="header glass-header-shell">
+        <!-- Circular Glass Brand Logo Button -->
+        <a href="#hero" class="logo-btn glass-logo" aria-label="Continuo Home" id="header-logo">
+          <div class="glass-reflection-dome"></div>
           <img
             src="assets/logo.webp"
-            alt=""
+            alt="Continuo Logo"
             width="52"
             height="52"
             class="logo-img"
@@ -131,8 +132,9 @@
           />
         </a>
 
-        <!-- Desktop Navigation Pill (White) -->
-        <nav class="nav-pill" aria-label="Main Navigation">
+        <!-- Desktop Navigation Pill (iOS 26 Translucent Glass) -->
+        <nav class="nav-pill glass-nav" aria-label="Main Navigation">
+          <div class="glass-specular-edge"></div>
           <a href="#hero" class="nav-link active" id="nav-home">Home</a>
           <a href="#problem" class="nav-link" id="nav-problem">The Problem</a>
           <a href="#engine" class="nav-link" id="nav-engine">Context Engine</a>
@@ -140,14 +142,21 @@
           <a href="#how-it-works" class="nav-link" id="nav-how">How It Works</a>
         </nav>
 
-        <!-- Desktop Action Buttons -->
+        <!-- Desktop Action Buttons (Dual Glass CTAs) -->
         <div class="header-actions">
-          <a href="#handoff-playground" class="sign-in-btn" id="header-signin">Try Handoff</a>
+          <button class="glass-btn glass-btn-secondary" id="header-signin-btn" type="button">
+            <i class="fa-regular fa-user" style="font-size: 11px;"></i>
+            <span id="nav-auth-label">Sign In</span>
+          </button>
+          <button class="glass-btn glass-btn-primary" id="header-launch-btn" type="button">
+            <span class="btn-text">Launch App</span>
+            <i class="fa-solid fa-arrow-right-long btn-icon"></i>
+          </button>
         </div>
 
         <!-- Mobile Menu Trigger -->
         <button
-          class="burger-btn"
+          class="burger-btn glass-burger"
           id="burger-btn"
           aria-label="Toggle navigation menu"
           aria-expanded="false"
