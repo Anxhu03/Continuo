@@ -803,6 +803,14 @@ function initLenisSmoothScroll() {
       }
     });
   });
+
+  // Ensure Lenis keeps dimensions accurately calibrated across image loads and viewport changes
+  window.addEventListener("load", () => {
+    if (lenisInstance) lenisInstance.resize();
+  });
+  window.addEventListener("resize", () => {
+    if (lenisInstance) lenisInstance.resize();
+  }, { passive: true });
 }
 
 function initCardSpotlights() {
@@ -812,13 +820,20 @@ function initCardSpotlights() {
   if (!spotlightCards.length) return;
 
   spotlightCards.forEach((card) => {
+    let rect = null;
+    card.addEventListener("mouseenter", () => {
+      rect = card.getBoundingClientRect();
+    }, { passive: true });
     card.addEventListener("mousemove", (e) => {
-      const rect = card.getBoundingClientRect();
+      if (!rect) rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       card.style.setProperty("--mouse-x", `${x}px`);
       card.style.setProperty("--mouse-y", `${y}px`);
-    });
+    }, { passive: true });
+    card.addEventListener("mouseleave", () => {
+      rect = null;
+    }, { passive: true });
   });
 }
 
@@ -1345,6 +1360,13 @@ function initContinuoWorkspaceApp() {
   const wsHealthChip = document.getElementById("ws-health-chip");
   const wsUserPill = document.getElementById("ws-user-pill");
   const wsUserEmail = document.getElementById("ws-user-email");
+  const wsBtnSignout = document.getElementById("ws-btn-signout");
+  const wsReadinessBadge = document.getElementById("ws-readiness-badge");
+  const wsReadinessText = document.getElementById("ws-readiness-text");
+  const wsHumanObjective = document.getElementById("ws-human-objective");
+  const wsHumanState = document.getElementById("ws-human-state");
+  const wsHumanCompleted = document.getElementById("ws-human-completed");
+  const wsHumanNext = document.getElementById("ws-human-next");
 
   // DOM Elements - Tabs
   const wsTabs = document.querySelectorAll(".ws-tab");
@@ -1478,11 +1500,25 @@ function initContinuoWorkspaceApp() {
     if (currentUser && authToken) {
       if (wsUserEmail) wsUserEmail.textContent = currentUser.email.split("@")[0];
       if (navAuthLabel) navAuthLabel.textContent = "Workspace";
+      if (wsBtnSignout) wsBtnSignout.style.display = "inline-flex";
     } else {
       if (wsUserEmail) wsUserEmail.textContent = "Sign In";
       if (navAuthLabel) navAuthLabel.textContent = "Sign In";
+      if (wsBtnSignout) wsBtnSignout.style.display = "none";
     }
   }
+
+  function signOutUser() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem("continuo_jwt");
+    localStorage.removeItem("continuo_user");
+    updateUserUI();
+    closeWorkspace();
+    showToast("Signed out of Continuo");
+  }
+
+  if (wsBtnSignout) wsBtnSignout.addEventListener("click", signOutUser);
 
   async function ensureAuthenticated() {
     if (authToken && currentUser) return true;
@@ -1639,13 +1675,44 @@ function initContinuoWorkspaceApp() {
       wsQualityVal.style.color = "#f87171";
     }
 
-    // 2. Summary Card
+    // 2. Summary Card & Readiness Status (Part 14)
+    if (wsReadinessBadge) {
+      if (score >= 75 && (!pkg.contradiction_count || pkg.contradiction_count === 0)) {
+        wsReadinessBadge.className = "memory-readiness-badge";
+        wsReadinessBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span id="ws-readiness-text">Memory Ready</span>`;
+      } else {
+        wsReadinessBadge.className = "memory-readiness-badge review";
+        wsReadinessBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span id="ws-readiness-text">Needs Review</span>`;
+      }
+    }
+
     wsSummaryVer.textContent = `Version ${pkg.version}`;
-    wsSummaryObjective.textContent = pkg.objective || "No objective defined yet.";
+    if (wsSummaryObjective) wsSummaryObjective.textContent = pkg.objective || "No objective defined yet.";
     wsCountReqs.textContent = (pkg.requirements || []).length;
     wsCountConst.textContent = (pkg.constraints || []).length;
     wsCountDec.textContent = (pkg.decisions || []).length;
     wsCountFiles.textContent = (pkg.files_context || []).length;
+
+    // Human-Readable Project Memory Representation (Part 11 & 12)
+    if (wsHumanObjective) {
+      wsHumanObjective.textContent = pkg.objective || "No objective defined yet.";
+    }
+    if (wsHumanState) {
+      wsHumanState.textContent = pkg.current_state || "Active development.";
+    }
+    if (wsHumanCompleted) {
+      wsHumanCompleted.innerHTML = "";
+      const doneList = pkg.completed_work && pkg.completed_work.length ? pkg.completed_work : ["Initial foundation setup."];
+      doneList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanCompleted.appendChild(li);
+      });
+    }
+    if (wsHumanNext) {
+      const nextList = pkg.next_steps || [];
+      wsHumanNext.textContent = nextList.length ? nextList[0] : "Capture or edit context to advance.";
+    }
 
     // 3. Breakdown
     const compScore = Math.min(30, 8 + (pkg.requirements?.length || 0) * 2.5);
@@ -2074,7 +2141,15 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     }
   }
 
-  if (headerSigninBtn) headerSigninBtn.addEventListener("click", openAuthModal);
+  if (headerSigninBtn) {
+    headerSigninBtn.addEventListener("click", () => {
+      if (authToken && currentUser) {
+        openWorkspace();
+      } else {
+        openAuthModal();
+      }
+    });
+  }
   if (wsUserPill) wsUserPill.addEventListener("click", openAuthModal);
   if (btnCloseAuth) btnCloseAuth.addEventListener("click", closeAuthModal);
 
@@ -2211,7 +2286,6 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   }
 
   if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
-  if (headerSigninBtn) headerSigninBtn.addEventListener("click", openWorkspace);
   if (heroCtaBtn) heroCtaBtn.addEventListener("click", openWorkspace);
   if (footerCtaBtn) footerCtaBtn.addEventListener("click", openWorkspace);
   if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);

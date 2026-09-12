@@ -79,9 +79,14 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.site-wrapper {
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -96,6 +101,8 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  contain: strict;
+  isolation: isolate;
 }
 
 /* Layer 0: Technical Coordinate Micro-Grid with Subtle Parallax */
@@ -114,7 +121,7 @@ body {
   -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.35) 100%);
 }
 
-/* Layer 0.5: Analog SVG Noise/Grain Overlay (Eliminates OLED gradient banding) */
+/* Layer 0.5: Analog SVG Noise/Grain Overlay (Subtle, zero compositor lag) */
 .ambient-noise-overlay {
   position: absolute;
   inset: 0;
@@ -122,8 +129,7 @@ body {
   height: 100%;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
   pointer-events: none;
-  opacity: 0.7;
-  mix-blend-mode: overlay;
+  opacity: 0.04;
   z-index: 1;
 }
 
@@ -138,6 +144,7 @@ body {
   transition: opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity;
   z-index: 1;
+  transform: translateZ(0);
 }
 
 .bg-video {
@@ -460,6 +467,7 @@ body.scrolled .header-container {
   justify-content: space-between;
   width: 100%;
   max-width: 1320px;
+  height: 48px;
   gap: 18px;
   animation: slideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -468,6 +476,7 @@ body.scrolled .header-container {
 .brand-link {
   display: inline-flex;
   align-items: center;
+  height: 48px;
   gap: 10px;
   text-decoration: none;
   flex-shrink: 0;
@@ -475,6 +484,7 @@ body.scrolled .header-container {
   background: transparent;
   border: none;
   padding: 0;
+  margin: 0;
   cursor: pointer;
 }
 
@@ -487,6 +497,7 @@ body.scrolled .header-container {
   justify-content: center;
   width: 28px;
   height: 28px;
+  line-height: 1;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -514,8 +525,12 @@ body.scrolled .header-container {
 }
 
 .brand-wordmark {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
   font-family: var(--font-display);
   font-size: 15px;
+  line-height: 1;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: #ffffff;
@@ -534,6 +549,9 @@ body.scrolled .header-container {
   height: 26px;
   object-fit: contain;
   display: block;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
   z-index: 1;
   /* Pure glowing white mark with soft, emitted luminosity */
   filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.35));
@@ -552,7 +570,7 @@ body.scrolled .header-container {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  height: 46px;
+  height: 48px;
   padding: 4px 6px;
   border-radius: 999px;
   background: rgba(18, 18, 24, 0.68);
@@ -630,6 +648,7 @@ body.scrolled .glass-nav {
 .header-actions {
   display: inline-flex;
   align-items: center;
+  height: 48px;
   gap: 10px;
   flex-shrink: 0;
 }
@@ -3584,6 +3603,23 @@ body.menu-open .burger-bar:nth-child(3) {
   }
 }
 
+@media (max-width: 390px) {
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-actions .glass-btn-primary {
+    padding: 0 10px;
+    font-size: 12px;
+    height: 38px;
+  }
+
+  .glass-burger {
+    width: 38px;
+    height: 38px;
+  }
+}
+
 /* Accessibility: prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -5251,6 +5287,191 @@ html.lenis body {
 .final-cta-card:hover::before {
   opacity: 1;
 }
+
+/* ==========================================================================
+   Workspace Enhancements: Sign Out, Human Memory, Dev Diagnostics
+   ========================================================================== */
+.ws-btn-signout {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  color: #fca5a5 !important;
+  padding: 5px 10px;
+  font-size: 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.ws-btn-signout:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  color: #ffffff !important;
+}
+
+.auth-dev-badge {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+
+.auth-demo-subtext {
+  font-size: 11px;
+  color: #71717a;
+  text-align: center;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.memory-readiness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: #34d399;
+}
+
+.memory-readiness-badge.review {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.human-memory-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.human-memory-card {
+  background: rgba(20, 22, 32, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.human-memory-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.human-memory-card-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #d4d4d8;
+}
+
+.human-memory-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.human-memory-list li {
+  font-size: 12px;
+  color: #d4d4d8;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.human-memory-list li::before {
+  content: "•";
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+/* Dev Diagnostics Tab Panel */
+.ws-diag-container {
+  padding: 16px 0;
+}
+
+.ws-diag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .ws-diag-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ws-diag-card {
+  background: rgba(18, 20, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ws-diag-card-head {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e4e4e7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding-bottom: 10px;
+}
+
+.ws-diag-card-head i {
+  color: #38bdf8;
+}
+
+.ws-diag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ws-diag-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: #a1a1aa;
+}
+
+.ws-diag-val {
+  font-family: monospace;
+  font-size: 11px;
+  color: #d4d4d8;
+}
+
+.ws-diag-val.active {
+  color: #34d399;
+  font-weight: 600;
+}
+
 
 
 
