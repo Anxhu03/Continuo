@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Continuo — Keep Your Context. Continue Anywhere.</title>
+    <meta
+      name="description"
+      content="Continuo preserves the context behind your AI work and lets you continue across ChatGPT, Claude, Gemini, and Cursor without explaining everything again."
+    />
+    <meta name="theme-color" content="#000000" />
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- OnlineWebFonts: BubbledotICG-FinePos -->
+    <link
+      href="https://db.onlinewebfonts.com/c/8cb707a9b8a73f8a7403336b861c3074?family=BubbledotICG-FinePos"
+      rel="stylesheet"
+    />
+
+    <!-- Font Awesome 6.5.2 -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Full-bleed background video for the Hero section -->
+    <div class="bg" id="bg-hero">
+      <video class="bg-video" autoplay muted loop playsinline>
+        <source
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4"
+          type="video/mp4"
+        />
+      </video>
+      <div class="bg-overlay"></div>
+    </div>
+
+    <!-- Sticky Header -->
+    <header class="header-container" id="site-header">
+      <div class="header">
+        <!-- Circular brand logo button -->
+        <a href="#hero" class="logo-btn" aria-label="Continuo Home">
+          <img
+            src="assets/logo.webp"
+            alt=""
+            width="52"
+            height="52"
+            class="logo-img"
+            loading="eager"
+          />
+        </a>
+
+        <!-- Desktop Navigation Pill (White) -->
+        <nav class="nav-pill" aria-label="Main Navigation">
+          <a href="#hero" class="nav-link active" id="nav-home">Home</a>
+          <a href="#problem" class="nav-link" id="nav-problem">The Problem</a>
+          <a href="#engine" class="nav-link" id="nav-engine">Context Engine</a>
+          <a href="#memory" class="nav-link" id="nav-memory">Project Memory</a>
+          <a href="#how-it-works" class="nav-link" id="nav-how">How It Works</a>
+        </nav>
+
+        <!-- Desktop Action Buttons -->
+        <div class="header-actions">
+          <a href="#handoff-playground" class="sign-in-btn" id="header-signin">Try Handoff</a>
+        </div>
+
+        <!-- Mobile Menu Trigger -->
+        <button
+          class="burger-btn"
+          id="burger-btn"
+          aria-label="Toggle navigation menu"
+          aria-expanded="false"
+          aria-controls="mobile-sheet"
+        >
+          <span class="burger-bar"></span>
+          <span class="burger-bar"></span>
+          <span class="burger-bar"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Wrapper -->
+    <div class="site-wrapper">
+      <!-- =================================================================
+           SECTION 1: HERO SECTION (Exact Visual Identity Preserved)
+           ================================================================= -->
+      <section class="hero-section" id="hero">
+        <div class="hero-inner">
+          <!-- Trust Row -->
+          <div class="trust-row anim" style="--d: 0.05s" id="hero-trust">
+            <div class="trust-avatars" aria-hidden="true">
+              <!-- Microsoft -->
+              <div class="avatar-ring avatar-1">
+                <div class="avatar-inner">
+                  <i class="fa-brands fa-microsoft"></i>
+                </div>
+              </div>
+              <!-- Amazon -->
+              <div class="avatar-ring avatar-2">
+                <div class="avatar-inner">
+                  <i class="fa-brands fa-amazon"></i>
+                </div>
+              </div>
+              <!-- Google -->
+              <div class="avatar-ring avatar-3">
+                <div class="avatar-inner">
+                  <i class="fa-brands fa-google"></i>
+                </div>
+              </div>
+            </div>
+            <div class="trust-pill">
+              <span class="trust-text">Trusted by 2000+ AI Engineers</span>
+            </div>
+          </div>
+
+          <!-- Headline (Solid White, Bubbledot retro dot-matrix, 2 lines) -->
+          <h1 class="headline" id="hero-headline">
+            <span class="hl-line hl-line-1">Intelligence</span>
+            <span class="hl-line hl-line-2">Designed To Evolve</span>
+          </h1>
+
+          <!-- Subhead -->
+          <p class="subhead anim" style="--d: 0.28s" id="hero-subhead">
+            Keep your context. Continue anywhere. Continuo captures your project memory
+            across ChatGPT, Claude, and Gemini so you never start from scratch again.
+          </p>
+
+          <!-- Live Model Transit Pill -->
+          <div class="model-transit-pill anim" style="--d: 0.35s">
+            <div class="transit-node"><i class="fa-solid fa-robot"></i> ChatGPT</div>
+            <div class="transit-connector">
+              <span class="transit-line"></span>
+              <span class="transit-chip"><img src="assets/logo.webp" alt="" class="transit-icon" /> Continuo</span>
+              <span class="transit-line"></span>
+            </div>
+            <div class="transit-node"><i class="fa-solid fa-bolt"></i> Claude 3.7</div>
+          </div>
+
+          <!-- CTA Buttons -->
+          <div class="cta-group anim-pulse" style="--d: 0.45s">
+            <a href="#how-it-works" class="cta-btn" id="hero-cta">
+              <span>Add to Chrome</span>
+              <i class="fa-solid fa-arrow-down-long" style="margin-left: 8px; font-size: 12px;"></i>
+            </a>
+            <a href="#engine" class="cta-secondary-btn">
+              <span>See Context Engine</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Stats Footer (Exact 4 Metrics) -->
+        <div class="stats-footer" id="stats-section">
+          <!-- Metric 1: Inference Time -->
+          <div class="stat-item anim" style="--d: 0.5s">
+            <div class="stat-top">
+              <span class="stat-glyph">&lt;</span>
+              <span
+                class="stat-val"
+                data-target="120"
+                data-suffix="ms"
+                data-decimals="0"
+                data-idx="0"
+                >0ms</span
+              >
+            </div>
+            <span class="stat-label">Inference Time</span>
+          </div>
+
+          <!-- Metric 2: Platform Uptime -->
+          <div class="stat-item anim" style="--d: 0.58s">
+            <div class="stat-top">
+              <span class="stat-glyph">%</span>
+              <span
+                class="stat-val"
+                data-target="99.99"
+                data-suffix="%"
+                data-decimals="2"
+                data-idx="1"
+                >0.00%</span
+              >
+            </div>
+            <span class="stat-label">Platform Uptime</span>
+          </div>
+
+          <!-- Metric 3: Autonomous Runtime -->
+          <div class="stat-item anim" style="--d: 0.66s">
+            <div class="stat-top">
+              <span class="stat-glyph">*</span>
+              <span
+                class="stat-val"
+                data-target="24"
+                data-suffix="/7"
+                data-decimals="0"
+                data-idx="2"
+                >0/7</span
+              >
+            </div>
+            <span class="stat-label">Autonomous Runtime</span>
+          </div>
+
+          <!-- Metric 4: Context Windows -->
+          <div class="stat-item anim" style="--d: 0.74s">
+            <div class="stat-top">
+              <span class="stat-glyph">#</span>
+              <span
+                class="stat-val"
+                data-target="2.4"
+                data-suffix="M"
+                data-decimals="1"
+                data-idx="3"
+                >0.0M</span
+              >
+            </div>
+            <span class="stat-label">Context Windows</span>
+          </div>
+        </div>
+
+        <!-- Subtle Scroll Down Indicator -->
+        <a href="#problem" class="scroll-cue" aria-label="Scroll to learn more">
+          <span class="scroll-cue-pill">
+            <span class="scroll-cue-dot"></span>
+          </span>
+          <span class="scroll-cue-text">Scroll to explore</span>
+        </a>
+      </section>
+
+      <!-- =================================================================
+           SECTION 2: THE PROBLEM / CONTEXT FRACTURE
+           ================================================================= -->
+      <section class="section problem-section" id="problem">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">The AI Context Wall</div>
+            <h2 class="section-title">
+              Your AI changed.<br />
+              <span class="text-dim">Your work shouldn't have to.</span>
+            </h2>
+            <p class="section-lead">
+              You spend hours discussing architecture, rejecting failed attempts,
+              and shaping requirements. Then you hit a usage limit or switch models — and you're back to square one.
+            </p>
+          </div>
+
+          <!-- Simulated Before/After Comparison Flow -->
+          <div class="comparison-grid reveal-on-scroll">
+            <!-- Left: Without Continuo -->
+            <div class="compare-card compare-bad">
+              <div class="compare-tag"><i class="fa-solid fa-xmark"></i> Without Continuo</div>
+              <div class="chat-mockup">
+                <div class="chat-msg user-msg">
+                  <div class="chat-role">You in ChatGPT (4 hours in)</div>
+                  <div class="chat-text">"Let me paste our database schema, the 14 requirements, and the 3 auth bugs we already fixed..."</div>
+                </div>
+                <div class="chat-alert">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>Conversation length exceeded. Token limit reached.</span>
+                </div>
+                <div class="chat-msg system-switch">
+                  <div class="switch-badge">Switching to Claude...</div>
+                </div>
+                <div class="chat-msg user-msg restart-msg">
+                  <div class="chat-role">You in Claude (Starting over)</div>
+                  <div class="chat-text">"Hi Claude, I have a project called Nexora. Let me re-explain everything we just did in ChatGPT for the last 3 hours..."</div>
+                </div>
+              </div>
+              <div class="compare-footer">
+                <span class="cost-metric"><i class="fa-regular fa-clock"></i> 45 min wasted re-explaining</span>
+                <span class="cost-metric"><i class="fa-solid fa-arrows-rotate"></i> Forgotten constraints & regressions</span>
+              </div>
+            </div>
+
+            <!-- Right: With Continuo -->
+            <div class="compare-card compare-good">
+              <div class="compare-tag good-tag"><i class="fa-solid fa-check"></i> With Continuo</div>
+              <div class="chat-mockup">
+                <div class="continuo-capture-strip">
+                  <div class="capture-icon"><img src="assets/logo.webp" alt="" /></div>
+                  <div class="capture-info">
+                    <strong>Continuo Context Engine</strong>
+                    <span>Extracted 12 decisions, 6 constraints, current state & next steps</span>
+                  </div>
+                  <div class="capture-score">94% Health</div>
+                </div>
+
+                <div class="chat-msg user-msg continuum-msg">
+                  <div class="chat-role">You in Claude with Continuo Handoff</div>
+                  <div class="chat-text">
+                    <span class="mono-prefix">[CONTINUO CONTEXT PACKAGE: NEXORA AI]</span>
+                    "Continue from current state v1.2: FastAPI migration complete, Supabase RLS pending. Do not restart."
+                  </div>
+                </div>
+
+                <div class="chat-msg ai-msg">
+                  <div class="chat-role">Claude 3.7</div>
+                  <div class="chat-text">"I see your exact current state and previous decisions. Implementing Supabase RLS policies now."</div>
+                </div>
+              </div>
+              <div class="compare-footer good-footer">
+                <span class="cost-metric"><i class="fa-solid fa-bolt"></i> 1-click continuation</span>
+                <span class="cost-metric"><i class="fa-solid fa-shield-halved"></i> 100% architectural fidelity</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 3: THE INTERACTIVE CONTEXT ENGINE (The Core Tech)
+           ================================================================= -->
+      <section class="section engine-section" id="engine">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">Core Technology</div>
+            <h2 class="section-title">
+              Don't transfer the conversation.<br />
+              <span class="text-dim">Transfer what actually matters.</span>
+            </h2>
+            <p class="section-lead">
+              Continuo ignores conversational noise, formatting niceties, and dead ends.
+              It extracts a deterministic, structured project specification ready for the next model.
+            </p>
+          </div>
+
+          <!-- Interactive Engine Visualization -->
+          <div class="engine-interactive reveal-on-scroll">
+            <!-- Left: Conversation Stream Ingestion -->
+            <div class="engine-column input-column">
+              <div class="col-header">
+                <i class="fa-regular fa-comments"></i>
+                <span>Raw AI Stream</span>
+              </div>
+              <div class="stream-feed">
+                <div class="feed-item active-feed">
+                  <span class="feed-badge">User</span>
+                  <span class="feed-code">"We must use FastAPI, not Flask. Database is Supabase Postgres."</span>
+                </div>
+                <div class="feed-item noise-item">
+                  <span class="feed-badge noise">Noise</span>
+                  <span class="feed-code">"Thanks for the explanation! Can you explain that again in simple terms?"</span>
+                </div>
+                <div class="feed-item active-feed">
+                  <span class="feed-badge">Constraint</span>
+                  <span class="feed-code">"No external dependencies outside pyproject.toml. Must run Python 3.12+."</span>
+                </div>
+                <div class="feed-item error-item">
+                  <span class="feed-badge error">Failed</span>
+                  <span class="feed-code">"Tried asyncpg pool, crashed on event loop conflict in sub-task."</span>
+                </div>
+                <div class="feed-item active-feed">
+                  <span class="feed-badge">State</span>
+                  <span class="feed-code">"Endpoints /auth/login and /projects tested & verified 200 OK."</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center: The Neural Extraction Core -->
+            <div class="engine-core-column">
+              <div class="engine-core-orb">
+                <div class="orb-pulse"></div>
+                <div class="orb-ring ring-1"></div>
+                <div class="orb-ring ring-2"></div>
+                <div class="orb-logo">
+                  <img src="assets/logo.webp" alt="Continuo Engine Core" />
+                </div>
+              </div>
+              <div class="engine-core-title">CONTINUO CONTEXT ENGINE</div>
+              <div class="engine-core-stats">
+                <span class="core-tag"><i class="fa-solid fa-filter"></i> 82% Noise Eliminated</span>
+                <span class="core-tag"><i class="fa-solid fa-code-branch"></i> Deterministic Schema</span>
+              </div>
+              <div class="core-arrow-indicator">
+                <i class="fa-solid fa-arrow-right"></i>
+              </div>
+            </div>
+
+            <!-- Right: 9 Structured Context Cards (Interactive Grid) -->
+            <div class="engine-column output-column">
+              <div class="col-header">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Structured Context Package</span>
+                <span class="click-hint">Click cards to inspect</span>
+              </div>
+              <div class="cards-grid" id="context-cards-grid">
+                <!-- Card 1: GOAL -->
+                <div class="context-card active-card" data-key="goal">
+                  <div class="card-icon"><i class="fa-solid fa-bullseye"></i></div>
+                  <div class="card-title">GOAL</div>
+                  <div class="card-preview">Autonomous AI continuity layer</div>
+                </div>
+                <!-- Card 2: REQUIREMENTS -->
+                <div class="context-card" data-key="requirements">
+                  <div class="card-icon"><i class="fa-solid fa-list-check"></i></div>
+                  <div class="card-title">REQUIREMENTS</div>
+                  <div class="card-preview">4 verified functional specs</div>
+                </div>
+                <!-- Card 3: DECISIONS -->
+                <div class="context-card" data-key="decisions">
+                  <div class="card-icon"><i class="fa-solid fa-gavel"></i></div>
+                  <div class="card-title">DECISIONS</div>
+                  <div class="card-preview">FastAPI backend, Supabase Auth</div>
+                </div>
+                <!-- Card 4: CONSTRAINTS -->
+                <div class="context-card" data-key="constraints">
+                  <div class="card-icon"><i class="fa-solid fa-lock"></i></div>
+                  <div class="card-title">CONSTRAINTS</div>
+                  <div class="card-preview">Chrome MV3, Zero training data retention</div>
+                </div>
+                <!-- Card 5: FILES & CODE -->
+                <div class="context-card" data-key="files">
+                  <div class="card-icon"><i class="fa-regular fa-file-code"></i></div>
+                  <div class="card-title">FILES & CODE</div>
+                  <div class="card-preview">5 core architecture files</div>
+                </div>
+                <!-- Card 6: CURRENT STATE -->
+                <div class="context-card" data-key="state">
+                  <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+                  <div class="card-title">CURRENT STATE</div>
+                  <div class="card-preview">v1.2: Context extraction ready</div>
+                </div>
+                <!-- Card 7: FAILED ATTEMPTS -->
+                <div class="context-card" data-key="failed">
+                  <div class="card-icon"><i class="fa-solid fa-ban"></i></div>
+                  <div class="card-title">FAILED ATTEMPTS</div>
+                  <div class="card-preview">2 dead ends permanently logged</div>
+                </div>
+                <!-- Card 8: OPEN PROBLEMS -->
+                <div class="context-card" data-key="problems">
+                  <div class="card-icon"><i class="fa-solid fa-bug"></i></div>
+                  <div class="card-title">OPEN PROBLEMS</div>
+                  <div class="card-preview">1 pending CORS edge case</div>
+                </div>
+                <!-- Card 9: NEXT STEPS -->
+                <div class="context-card" data-key="next">
+                  <div class="card-icon"><i class="fa-solid fa-arrow-right-long"></i></div>
+                  <div class="card-title">NEXT STEPS</div>
+                  <div class="card-preview">Destination handoff & review</div>
+                </div>
+              </div>
+
+              <!-- Live Card Inspector Drawer -->
+              <div class="card-inspector" id="card-inspector">
+                <div class="inspector-header">
+                  <span id="inspector-title">GOAL</span>
+                  <span class="inspector-tag">Extracted from 14 messages</span>
+                </div>
+                <div class="inspector-body" id="inspector-content">
+                  "Build an AI-agnostic context continuity layer that captures structured project memory across ChatGPT, Claude, and Gemini, enabling seamless model handoffs with zero re-explanation."
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 4: INTERACTIVE PROJECT MEMORY (Version Timeline & Diff)
+           ================================================================= -->
+      <section class="section memory-section" id="memory">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">Project Memory</div>
+            <h2 class="section-title">
+              Context isn't a clipboard.<br />
+              <span class="text-dim">It's a persistent project memory.</span>
+            </h2>
+            <p class="section-lead">
+              Projects evolve across days and multiple models. Continuo versions your project memory,
+              detects contradictions, and tracks what changed.
+            </p>
+          </div>
+
+          <!-- Project Memory Dashboard Preview -->
+          <div class="project-memory-preview reveal-on-scroll">
+            <div class="project-header-bar">
+              <div class="proj-title-group">
+                <span class="proj-label">PROJECT</span>
+                <h3 class="proj-name">Nexora AI Platform</h3>
+                <span class="proj-status-badge"><span class="pulse-dot"></span> Active</span>
+              </div>
+              <div class="proj-meta-group">
+                <div class="meta-item">
+                  <span class="meta-lbl">Context Health</span>
+                  <span class="meta-val highlight-green">94% Complete</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-lbl">Active AI</span>
+                  <span class="meta-val">ChatGPT → Claude</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-lbl">Last Sync</span>
+                  <span class="meta-val">Today, 16:40</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Version Selector Strip -->
+            <div class="version-selector-strip">
+              <span class="ver-label"><i class="fa-solid fa-code-commit"></i> Context Versions:</span>
+              <div class="version-tabs">
+                <button class="ver-tab" data-ver="v1">v1.0 (Initial Inception)</button>
+                <button class="ver-tab" data-ver="v2">v1.1 (Auth Refactor)</button>
+                <button class="ver-tab active" data-ver="v3">v1.2 (Current Working State)</button>
+              </div>
+            </div>
+
+            <!-- Version Diff Details (Interactive) -->
+            <div class="version-diff-card" id="version-diff-card">
+              <div class="diff-header">
+                <span class="diff-title" id="diff-title">What Changed in v1.2</span>
+                <span class="diff-badge" id="diff-badge">ChatGPT → Claude Handoff</span>
+              </div>
+              <div class="diff-grid" id="diff-items">
+                <div class="diff-col added-col">
+                  <div class="diff-col-title"><i class="fa-solid fa-circle-plus"></i> Added</div>
+                  <ul class="diff-list" id="diff-added">
+                    <li>Supabase RLS access policies for user workspace isolation</li>
+                    <li>JWT refresh token rotation flow with secure cookie headers</li>
+                    <li>Context schema validation test suite</li>
+                  </ul>
+                </div>
+                <div class="diff-col modified-col">
+                  <div class="diff-col-title"><i class="fa-solid fa-pen"></i> Modified</div>
+                  <ul class="diff-list" id="diff-modified">
+                    <li>Backend framework: Migrated from Flask prototype to production FastAPI</li>
+                    <li>Database schema: Added foreign key constraint on project_id</li>
+                  </ul>
+                </div>
+                <div class="diff-col removed-col">
+                  <div class="diff-col-title"><i class="fa-solid fa-circle-minus"></i> Removed / Rejected</div>
+                  <ul class="diff-list" id="diff-removed">
+                    <li>In-memory session cache (caused multi-node state desync)</li>
+                    <li>Discarded legacy Flask CORS middleware</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 5: AI PROVIDER MESH
+           ================================================================= -->
+      <section class="section mesh-section" id="providers">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">Model Agnostic</div>
+            <h2 class="section-title">
+              AI models will change.<br />
+              <span class="text-dim">Your project doesn't have to.</span>
+            </h2>
+            <p class="section-lead">
+              Use the best AI for each specific phase of your build. Start architecture in ChatGPT,
+              refactor in Claude, benchmark in Gemini, and code in Cursor. Continuo is your universal context bridge.
+            </p>
+          </div>
+
+          <!-- Provider Constellation Diagram -->
+          <div class="mesh-constellation reveal-on-scroll">
+            <div class="mesh-center-hub">
+              <div class="hub-rings"></div>
+              <div class="hub-logo-box">
+                <img src="assets/logo.webp" alt="Continuo Hub" />
+              </div>
+              <span class="hub-caption">CONTINUO</span>
+              <span class="hub-subcaption">Universal Context Layer</span>
+            </div>
+
+            <!-- Provider Satellite Nodes -->
+            <div class="provider-nodes">
+              <!-- Node 1: ChatGPT -->
+              <div class="p-node node-chatgpt" style="--angle: 0deg">
+                <div class="p-node-icon"><i class="fa-solid fa-robot"></i></div>
+                <div class="p-node-info">
+                  <strong>ChatGPT</strong>
+                  <span>OpenAI o3 / GPT-4o</span>
+                </div>
+              </div>
+              <!-- Node 2: Claude -->
+              <div class="p-node node-claude" style="--angle: 72deg">
+                <div class="p-node-icon"><i class="fa-solid fa-bolt"></i></div>
+                <div class="p-node-info">
+                  <strong>Claude</strong>
+                  <span>Anthropic 3.7 Sonnet</span>
+                </div>
+              </div>
+              <!-- Node 3: Gemini -->
+              <div class="p-node node-gemini" style="--angle: 144deg">
+                <div class="p-node-icon"><i class="fa-brands fa-google"></i></div>
+                <div class="p-node-info">
+                  <strong>Gemini</strong>
+                  <span>Google 2.0 Flash / Pro</span>
+                </div>
+              </div>
+              <!-- Node 4: Cursor / Copilot -->
+              <div class="p-node node-cursor" style="--angle: 216deg">
+                <div class="p-node-icon"><i class="fa-solid fa-terminal"></i></div>
+                <div class="p-node-info">
+                  <strong>Cursor</strong>
+                  <span>Agentic IDE Context</span>
+                </div>
+              </div>
+              <!-- Node 5: Future AI -->
+              <div class="p-node node-future" style="--angle: 288deg">
+                <div class="p-node-icon"><i class="fa-solid fa-microchip"></i></div>
+                <div class="p-node-info">
+                  <strong>Future Models</strong>
+                  <span>Pluggable Provider API</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 6: STICKY "HOW CONTINUO WORKS" & UI PREVIEWS
+           ================================================================= -->
+      <section class="section sticky-walkthrough-section" id="how-it-works">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">The Workflow</div>
+            <h2 class="section-title">
+              Five seconds to capture.<br />
+              <span class="text-dim">Zero hours lost explaining.</span>
+            </h2>
+            <p class="section-lead">
+              A lightweight Chrome Extension pairing seamlessly with your authenticated web workspace.
+            </p>
+          </div>
+
+          <div class="walkthrough-layout">
+            <!-- Left Side: Interactive Step Items -->
+            <div class="steps-column">
+              <!-- Step 1 -->
+              <div class="step-card active-step" data-step="1">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <h4 class="step-title">Work normally in your favorite AI</h4>
+                  <p class="step-desc">
+                    Use ChatGPT, Claude, or Gemini exactly as you do today. Chat, debug, upload files,
+                    and shape your architecture without changing your habits.
+                  </p>
+                </div>
+              </div>
+              <!-- Step 2 -->
+              <div class="step-card" data-step="2">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <h4 class="step-title">1-Click Context Capture</h4>
+                  <p class="step-desc">
+                    Click the Continuo Chrome extension. It instantly parses active conversation nodes,
+                    filtering out banter while preserving all critical code, decisions, and constraints.
+                  </p>
+                </div>
+              </div>
+              <!-- Step 3 -->
+              <div class="step-card" data-step="3">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <h4 class="step-title">Review & Verify Your Context</h4>
+                  <p class="step-desc">
+                    Inspect the extracted package in your Continuo Review Editor. Edit requirements,
+                    tweak constraints, or tag open bugs. You always remain in control.
+                  </p>
+                </div>
+              </div>
+              <!-- Step 4 -->
+              <div class="step-card" data-step="4">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <h4 class="step-title">Choose Destination & Generate Handoff</h4>
+                  <p class="step-desc">
+                    Select where you want to continue. Continuo automatically generates a clean,
+                    optimized prompt payload formatted specifically for the destination model.
+                  </p>
+                </div>
+              </div>
+              <!-- Step 5 -->
+              <div class="step-card" data-step="5">
+                <div class="step-num">05</div>
+                <div class="step-content">
+                  <h4 class="step-title">Continue without missing a beat</h4>
+                  <p class="step-desc">
+                    Paste the handoff or click 'Open Claude'. The new assistant immediately understands
+                    the full working context and continues from your exact milestone.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Morphing Product UI Preview -->
+            <div class="preview-column">
+              <div class="sticky-ui-container">
+                <!-- UI Preview 1: Chrome Extension Popup View -->
+                <div class="product-window" id="product-window">
+                  <div class="window-bar">
+                    <span class="w-dot dot-red"></span>
+                    <span class="w-dot dot-yellow"></span>
+                    <span class="w-dot dot-green"></span>
+                    <span class="window-title" id="window-title-text">Continuo Extension — Manifest V3</span>
+                  </div>
+                  <div class="window-body" id="window-body-content">
+                    <!-- Extension Mockup -->
+                    <div class="ext-mockup">
+                      <div class="ext-head">
+                        <div class="ext-brand">
+                          <img src="assets/logo.webp" alt="" class="ext-logo" />
+                          <span>CONTINUO</span>
+                        </div>
+                        <span class="ext-chip">ChatGPT Detected</span>
+                      </div>
+
+                      <div class="ext-card">
+                        <div class="ext-card-row">
+                          <span class="ext-muted">Active Project</span>
+                          <strong class="ext-bold">Nexora AI Platform</strong>
+                        </div>
+                        <div class="ext-card-row">
+                          <span class="ext-muted">Context Completeness</span>
+                          <span class="ext-green-pill">94% Health</span>
+                        </div>
+                        <div class="ext-progress-bar">
+                          <div class="ext-fill" style="width: 94%"></div>
+                        </div>
+                      </div>
+
+                      <div class="ext-items-summary">
+                        <span class="ext-badge"><i class="fa-solid fa-check"></i> 14 Decisions</span>
+                        <span class="ext-badge"><i class="fa-solid fa-check"></i> 6 Constraints</span>
+                        <span class="ext-badge"><i class="fa-solid fa-check"></i> State: v1.2</span>
+                      </div>
+
+                      <div class="ext-btn-row">
+                        <button class="ext-btn primary"><i class="fa-solid fa-cube"></i> Capture Context</button>
+                        <button class="ext-btn secondary"><i class="fa-solid fa-arrow-up-right-from-square"></i> Continue Elsewhere</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 7: LIVE INTERACTIVE HANDOFF PLAYGROUND
+           ================================================================= -->
+      <section class="section playground-section" id="handoff-playground">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">Interactive Playground</div>
+            <h2 class="section-title">
+              Test a real handoff right now.<br />
+              <span class="text-dim">Experience how the next AI sees your context.</span>
+            </h2>
+            <p class="section-lead">
+              Select a source conversation and a target AI to see the exact structured payload Continuo generates.
+            </p>
+          </div>
+
+          <!-- Playground Box -->
+          <div class="playground-box reveal-on-scroll">
+            <!-- Controls Bar -->
+            <div class="play-controls">
+              <div class="control-group">
+                <label for="source-ai-select"><i class="fa-solid fa-arrow-right-to-bracket"></i> From (Source):</label>
+                <select id="source-ai-select" class="play-select">
+                  <option value="chatgpt" selected>ChatGPT (o3-mini / GPT-4o)</option>
+                  <option value="claude">Claude 3.7 Sonnet</option>
+                  <option value="gemini">Google Gemini 2.0 Flash</option>
+                </select>
+              </div>
+
+              <div class="play-switch-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+
+              <div class="control-group">
+                <label for="dest-ai-select"><i class="fa-solid fa-arrow-right-from-bracket"></i> To (Destination):</label>
+                <select id="dest-ai-select" class="play-select">
+                  <option value="claude" selected>Claude 3.7 Sonnet</option>
+                  <option value="chatgpt">ChatGPT (OpenAI)</option>
+                  <option value="gemini">Google Gemini 2.0</option>
+                  <option value="cursor">Cursor / VS Code Agent</option>
+                </select>
+              </div>
+
+              <div class="control-group action-group">
+                <button class="copy-payload-btn" id="copy-payload-btn">
+                  <i class="fa-regular fa-clone"></i>
+                  <span>Copy Handoff Payload</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Code Output Display -->
+            <div class="payload-display">
+              <div class="payload-bar">
+                <span class="payload-format"><i class="fa-brands fa-markdown"></i> Standardized Handoff Payload</span>
+                <span class="payload-tokens">~ 342 tokens (92% compression vs raw thread)</span>
+              </div>
+              <pre class="payload-code" id="payload-code-block"><code>You are continuing an existing software project.
+
+PROJECT
+Nexora AI Platform (v1.2)
+
+OBJECTIVE
+Build an autonomous AI-agnostic context continuity layer for cross-model handoffs.
+
+CURRENT WORKING STATE
+Backend API routes /auth/login and /context/capture implemented and tested.
+Database migration to Supabase PostgreSQL applied.
+
+LOCKED ARCHITECTURAL DECISIONS
+1. Framework: Python 3.12+ with FastAPI (migrated away from Flask prototype).
+2. Database: Supabase PostgreSQL with RLS enabled.
+3. Extension: Chrome Manifest V3 with minimal tab permissions.
+
+REJECTED APPROACHES / FAILED ATTEMPTS
+- In-memory session dictionaries failed on horizontal scaling; use JWT with refresh token rotation.
+- Avoid asyncpg raw connection pool conflicts with sub-task loops.
+
+OPEN PROBLEMS / PENDING TASKS
+1. Implement Supabase RLS security policies for workspace isolation.
+2. Complete Chrome Extension popup review editor.
+
+INSTRUCTION
+Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-suggest rejected approaches.</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 8: PRIVACY & ARCHITECTURE
+           ================================================================= -->
+      <section class="section privacy-section" id="privacy">
+        <div class="section-container">
+          <div class="section-header reveal-on-scroll">
+            <div class="badge-pill">Privacy First</div>
+            <h2 class="section-title">
+              Your context is proprietary.<br />
+              <span class="text-dim">Zero model training. Minimal permissions.</span>
+            </h2>
+            <p class="section-lead">
+              Continuo was designed by developers who work on proprietary IP. Privacy isn't a setting — it's our core architecture.
+            </p>
+          </div>
+
+          <div class="privacy-grid reveal-on-scroll">
+            <div class="privacy-card">
+              <div class="p-card-icon"><i class="fa-solid fa-lock"></i></div>
+              <h3>Zero Training Data Retention</h3>
+              <p>Your conversations and code are never used to train, tune, or evaluate any third-party AI model.</p>
+            </div>
+            <div class="privacy-card">
+              <div class="p-card-icon"><i class="fa-solid fa-shield-virus"></i></div>
+              <h3>Minimal Browser Permissions</h3>
+              <p>The Continuo Chrome Extension only activates on approved AI domains (chatgpt.com, claude.ai, gemini.google.com). No general browsing history.</p>
+            </div>
+            <div class="privacy-card">
+              <div class="p-card-icon"><i class="fa-solid fa-key"></i></div>
+              <h3>Encrypted Project Memory</h3>
+              <p>All project memory versions are encrypted at rest with AES-256 and transmitted strictly via HTTPS/TLS 1.3.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 9: FINAL CTA & CONCLUSION
+           ================================================================= -->
+      <section class="section final-cta-section" id="cta-section">
+        <div class="section-container">
+          <div class="final-cta-card reveal-on-scroll">
+            <div class="final-badge">Start In Seconds</div>
+            <h2 class="final-title">
+              Your AI can change.<br />
+              <span class="final-highlight">Your context shouldn't.</span>
+            </h2>
+            <p class="final-desc">
+              Install the Continuo Chrome Extension and take your project context anywhere.
+              No complex setup. No recurring prompt explanations.
+            </p>
+            <div class="final-actions">
+              <a href="#how-it-works" class="cta-btn" id="footer-cta-btn">
+                <span>Add to Chrome</span>
+                <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 8px; font-size: 13px;"></i>
+              </a>
+              <a href="#handoff-playground" class="cta-secondary-btn">
+                <span>Try Playground</span>
+              </a>
+            </div>
+            <div class="final-foot-note">
+              <span><i class="fa-solid fa-check"></i> Free during developer preview</span>
+              <span><i class="fa-solid fa-check"></i> Works with ChatGPT, Claude & Gemini</span>
+              <span><i class="fa-solid fa-check"></i> Manifest V3 Verified</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           SECTION 10: FOOTER
+           ================================================================= -->
+      <footer class="site-footer">
+        <div class="footer-container">
+          <div class="footer-top">
+            <div class="footer-brand">
+              <a href="#hero" class="footer-logo">
+                <img src="assets/logo.webp" alt="Continuo" />
+                <span class="footer-name">CONTINUO</span>
+              </a>
+              <p class="footer-tagline">
+                Keep your context. Continue anywhere.<br />
+                The universal AI project continuity layer.
+              </p>
+            </div>
+
+            <div class="footer-links-grid">
+              <div class="footer-col">
+                <span class="col-head">Product</span>
+                <a href="#engine">Context Engine</a>
+                <a href="#memory">Project Memory</a>
+                <a href="#providers">AI Provider Mesh</a>
+                <a href="#handoff-playground">Handoff Playground</a>
+              </div>
+              <div class="footer-col">
+                <span class="col-head">Platforms</span>
+                <a href="#providers">ChatGPT Support</a>
+                <a href="#providers">Claude Support</a>
+                <a href="#providers">Gemini Support</a>
+                <a href="#providers">Cursor Integration</a>
+              </div>
+              <div class="footer-col">
+                <span class="col-head">Security</span>
+                <a href="#privacy">Privacy Policy</a>
+                <a href="#privacy">Manifest V3 Security</a>
+                <a href="#privacy">Data Architecture</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-bottom">
+            <div class="copy-text">
+              &copy; 2026 Continuo Inc. All rights reserved. Intelligence Designed To Evolve.
+            </div>
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span>All Systems Operational (99.99% Uptime)</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Mobile Drawer Overlay & Sheet -->
+    <div class="mobile-overlay" id="mobile-overlay" aria-hidden="true"></div>
+    <div class="mobile-sheet" id="mobile-sheet" role="dialog" aria-modal="true" hidden>
+      <nav class="mobile-nav" aria-label="Mobile Navigation">
+        <a href="#hero" class="mobile-link active" style="--link-idx: 0">Home</a>
+        <a href="#problem" class="mobile-link" style="--link-idx: 1">The Problem</a>
+        <a href="#engine" class="mobile-link" style="--link-idx: 2">Context Engine</a>
+        <a href="#memory" class="mobile-link" style="--link-idx: 3">Project Memory</a>
+        <a href="#how-it-works" class="mobile-link" style="--link-idx: 4">How It Works</a>
+        <a href="#handoff-playground" class="mobile-signin-btn" style="--link-idx: 5">Try Handoff</a>
+      </nav>
+    </div>
+
+    <!-- Toast Notification for Copying -->
+    <div class="toast-notice" id="toast-notice" role="status" aria-live="polite">
+      <i class="fa-solid fa-circle-check"></i>
+      <span id="toast-text">Handoff payload copied to clipboard!</span>
+    </div>
+
+    <!-- Script -->
+    <script src="main.js" defer></script>
+  </body>
+</html>
