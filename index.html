@@ -33,6 +33,9 @@
       referrerpolicy="no-referrer"
     />
 
+    <!-- Lenis Smooth Scroll Stylesheet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.css" />
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -116,23 +119,26 @@
       <div class="ambient-vignette"></div>
     </div>
 
-    <!-- Floating iOS 26 Glass Header -->
+    <!-- Floating Glass Header (3-Column Layout: Brand Left, Navigation Center, Actions Right) -->
     <header class="header-container" id="site-header">
       <div class="header glass-header-shell">
-        <!-- Circular Glass Brand Logo Button -->
-        <a href="#hero" class="logo-btn glass-logo" aria-label="Continuo Home" id="header-logo">
-          <div class="glass-reflection-dome"></div>
-          <img
-            src="assets/logo.webp"
-            alt="Continuo Logo"
-            width="52"
-            height="52"
-            class="logo-img"
-            loading="eager"
-          />
+        <!-- Left: Brand Logo & Wordmark -->
+        <a href="#hero" class="brand-link" id="header-logo" aria-label="Continuo Home">
+          <div class="logo-btn glass-logo">
+            <div class="glass-reflection-dome"></div>
+            <img
+              src="assets/logo.webp"
+              alt="Continuo Emblem"
+              width="52"
+              height="52"
+              class="logo-img"
+              loading="eager"
+            />
+          </div>
+          <span class="brand-wordmark">CONTINUO</span>
         </a>
 
-        <!-- Desktop Navigation Pill (iOS 26 Translucent Glass) -->
+        <!-- Center: Desktop Navigation Pill -->
         <nav class="nav-pill glass-nav" aria-label="Main Navigation">
           <div class="glass-specular-edge"></div>
           <a href="#hero" class="nav-link active" id="nav-home">Home</a>
@@ -142,30 +148,29 @@
           <a href="#how-it-works" class="nav-link" id="nav-how">How It Works</a>
         </nav>
 
-        <!-- Desktop Action Buttons (Dual Glass CTAs) -->
+        <!-- Right: Header Actions (Workspace & Launch App) + Mobile Trigger -->
         <div class="header-actions">
-          <button class="glass-btn glass-btn-secondary" id="header-signin-btn" type="button">
-            <i class="fa-regular fa-user" style="font-size: 11px;"></i>
-            <span id="nav-auth-label">Sign In</span>
+          <button class="glass-btn glass-btn-secondary" id="header-signin-btn" type="button" title="Open Workspace">
+            <i class="fa-solid fa-layer-group ws-nav-icon"></i>
+            <span id="nav-auth-label">Workspace</span>
           </button>
-          <button class="glass-btn glass-btn-primary" id="header-launch-btn" type="button">
+          <button class="glass-btn glass-btn-primary" id="header-launch-btn" type="button" title="Launch App">
             <span class="btn-text">Launch App</span>
             <i class="fa-solid fa-arrow-right-long btn-icon"></i>
           </button>
+          <!-- Mobile Menu Trigger -->
+          <button
+            class="burger-btn glass-burger"
+            id="burger-btn"
+            aria-label="Toggle navigation menu"
+            aria-expanded="false"
+            aria-controls="mobile-sheet"
+          >
+            <span class="burger-bar"></span>
+            <span class="burger-bar"></span>
+            <span class="burger-bar"></span>
+          </button>
         </div>
-
-        <!-- Mobile Menu Trigger -->
-        <button
-          class="burger-btn glass-burger"
-          id="burger-btn"
-          aria-label="Toggle navigation menu"
-          aria-expanded="false"
-          aria-controls="mobile-sheet"
-        >
-          <span class="burger-bar"></span>
-          <span class="burger-bar"></span>
-          <span class="burger-bar"></span>
-        </button>
       </div>
     </header>
 
@@ -1529,7 +1534,10 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
       <span id="toast-text">Handoff payload copied to clipboard!</span>
     </div>
 
-    <!-- Script -->
+    <!-- Lenis Smooth Scroll Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"></script>
+
+    <!-- Main Script -->
     <script src="main.js" defer></script>
   </body>
 </html>

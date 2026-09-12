@@ -15,11 +15,13 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  initLenisSmoothScroll();
   initAmbientEngine();
   initStatsCountUp();
   initHeaderScroll();
   initScrollSpy();
   initScrollReveals();
+  initCardSpotlights();
   initContextEngineInspector();
   initProjectMemoryDiff();
   initWalkthroughSteps();
@@ -719,6 +721,104 @@ function initScrollReveals() {
 }
 
 /* ==========================================================================
+   4.5 Lenis Premium Smooth Scrolling & Inspira UI Spotlights
+   ========================================================================== */
+let lenisInstance = null;
+
+function initLenisSmoothScroll() {
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  if (prefersReducedMotion || typeof Lenis === "undefined") {
+    // Fallback standard smooth anchor jumping for reduced motion
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener("click", (e) => {
+        const href = anchor.getAttribute("href");
+        if (!href || href === "#") return;
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          if (document.body.classList.contains("menu-open")) {
+            document.body.classList.remove("menu-open");
+            const burger = document.getElementById("burger-btn");
+            const sheet = document.getElementById("mobile-sheet");
+            if (burger) burger.setAttribute("aria-expanded", "false");
+            if (sheet) sheet.hidden = true;
+          }
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+    return;
+  }
+
+  lenisInstance = new Lenis({
+    duration: 1.15,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: "vertical",
+    gestureOrientation: "vertical",
+    smoothWheel: true,
+    wheelMultiplier: 1.0,
+    touchMultiplier: 1.5,
+    infinite: false,
+  });
+
+  function raf(time) {
+    lenisInstance.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  // Sync header scrolled class smoothly with Lenis
+  lenisInstance.on("scroll", (e) => {
+    if (e.scroll > 30) {
+      document.body.classList.add("scrolled");
+    } else {
+      document.body.classList.remove("scrolled");
+    }
+  });
+
+  // Wire internal anchor navigation to Lenis scrollTo
+  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+    anchor.addEventListener("click", (e) => {
+      const href = anchor.getAttribute("href");
+      if (!href || href === "#") return;
+      const target = document.querySelector(href);
+      if (target) {
+        e.preventDefault();
+        // Close mobile menu if opened
+        if (document.body.classList.contains("menu-open")) {
+          document.body.classList.remove("menu-open");
+          const burger = document.getElementById("burger-btn");
+          const sheet = document.getElementById("mobile-sheet");
+          if (burger) burger.setAttribute("aria-expanded", "false");
+          if (sheet) sheet.hidden = true;
+        }
+        lenisInstance.scrollTo(target, { offset: -76, duration: 1.2 });
+      }
+    });
+  });
+}
+
+function initCardSpotlights() {
+  const spotlightCards = document.querySelectorAll(
+    ".compare-card, .engine-column, .step-card, .p-node, .final-cta-card"
+  );
+  if (!spotlightCards.length) return;
+
+  spotlightCards.forEach((card) => {
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty("--mouse-x", `${x}px`);
+      card.style.setProperty("--mouse-y", `${y}px`);
+    });
+  });
+}
+
+/* ==========================================================================
    5. Interactive Context Engine Inspector (9 Structured Nodes)
    ========================================================================== */
 function initContextEngineInspector() {
@@ -1204,7 +1304,7 @@ function initMobileMenu() {
   });
 
   window.addEventListener("resize", () => {
-    if (window.innerWidth > 768 && document.body.classList.contains("menu-open")) {
+    if (window.innerWidth > 960 && document.body.classList.contains("menu-open")) {
       closeMenu();
     }
   });
@@ -2055,14 +2155,17 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
 
     wsOverlay.classList.add("active");
     document.body.style.overflow = "hidden";
+    if (lenisInstance) lenisInstance.stop();
   }
 
   function closeWorkspace() {
     wsOverlay.classList.remove("active");
     document.body.style.overflow = "";
+    if (lenisInstance) lenisInstance.start();
   }
 
   if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
+  if (headerSigninBtn) headerSigninBtn.addEventListener("click", openWorkspace);
   if (heroCtaBtn) heroCtaBtn.addEventListener("click", openWorkspace);
   if (footerCtaBtn) footerCtaBtn.addEventListener("click", openWorkspace);
   if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);
