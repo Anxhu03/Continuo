@@ -2050,24 +2050,49 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   // =========================================================================
   function openAuthModal() {
     authModal.style.display = "flex";
+    authModal.setAttribute("aria-hidden", "false");
     authErrorMsg.style.display = "none";
+    if (lenisInstance) lenisInstance.stop();
+    setTimeout(() => {
+      if (authMode === "register" && authName) {
+        authName.focus();
+      } else if (authEmail) {
+        authEmail.focus();
+      }
+    }, 60);
   }
 
   function closeAuthModal() {
     authModal.style.display = "none";
+    authModal.setAttribute("aria-hidden", "true");
+    if (lenisInstance && (!wsOverlay || !wsOverlay.classList.contains("active"))) {
+      lenisInstance.start();
+    }
   }
 
   if (headerSigninBtn) headerSigninBtn.addEventListener("click", openAuthModal);
   if (wsUserPill) wsUserPill.addEventListener("click", openAuthModal);
   if (btnCloseAuth) btnCloseAuth.addEventListener("click", closeAuthModal);
 
+  if (authModal) {
+    authModal.addEventListener("click", (e) => {
+      if (e.target === authModal) closeAuthModal();
+    });
+  }
+
   if (authTabLogin) {
     authTabLogin.addEventListener("click", () => {
       authMode = "login";
       authTabLogin.classList.add("active");
-      authTabRegister.classList.remove("active");
+      authTabLogin.setAttribute("aria-selected", "true");
+      if (authTabRegister) {
+        authTabRegister.classList.remove("active");
+        authTabRegister.setAttribute("aria-selected", "false");
+      }
       authNameGroup.style.display = "none";
-      btnSubmitAuth.textContent = "Sign In";
+      if (btnSubmitAuth) {
+        btnSubmitAuth.innerHTML = `<span>Sign In</span><i class="fa-solid fa-arrow-right btn-icon"></i>`;
+      }
       authErrorMsg.style.display = "none";
     });
   }
@@ -2076,9 +2101,15 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     authTabRegister.addEventListener("click", () => {
       authMode = "register";
       authTabRegister.classList.add("active");
-      authTabLogin.classList.remove("active");
+      authTabRegister.setAttribute("aria-selected", "true");
+      if (authTabLogin) {
+        authTabLogin.classList.remove("active");
+        authTabLogin.setAttribute("aria-selected", "false");
+      }
       authNameGroup.style.display = "block";
-      btnSubmitAuth.textContent = "Create Account";
+      if (btnSubmitAuth) {
+        btnSubmitAuth.innerHTML = `<span>Create Account</span><i class="fa-solid fa-arrow-right btn-icon"></i>`;
+      }
       authErrorMsg.style.display = "none";
     });
   }
@@ -2097,6 +2128,7 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
 
       try {
         btnSubmitAuth.disabled = true;
+        btnSubmitAuth.innerHTML = `<span>Authenticating...</span><i class="fa-solid fa-circle-notch fa-spin btn-icon"></i>`;
         let tokenData;
         if (authMode === "login") {
           tokenData = await apiRequest("/auth/login", "POST", { email, password });
@@ -2118,16 +2150,26 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
         authErrorMsg.style.display = "block";
       } finally {
         btnSubmitAuth.disabled = false;
+        btnSubmitAuth.innerHTML = authMode === "login"
+          ? `<span>Sign In</span><i class="fa-solid fa-arrow-right btn-icon"></i>`
+          : `<span>Create Account</span><i class="fa-solid fa-arrow-right btn-icon"></i>`;
       }
     });
   }
 
   if (btnDemoEngineer) {
     btnDemoEngineer.addEventListener("click", async () => {
-      await ensureAuthenticated();
-      closeAuthModal();
-      await loadProjects();
-      showToast("Signed in as Demo Engineer!");
+      btnDemoEngineer.disabled = true;
+      try {
+        await ensureAuthenticated();
+        closeAuthModal();
+        await loadProjects();
+        showToast("Signed in as Demo Engineer!");
+      } catch (err) {
+        showToast(err.message || "Demo login failed");
+      } finally {
+        btnDemoEngineer.disabled = false;
+      }
     });
   }
 

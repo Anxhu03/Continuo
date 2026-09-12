@@ -643,15 +643,15 @@
       </section>
 
       <!-- =================================================================
-           SECTION 5: AI PROVIDER MESH
+           SECTION 5: AI PROVIDER MESH & CONTEXT FLOW CONDUIT
            ================================================================= -->
       <section class="section mesh-section" id="providers" data-ambient-theme="mesh">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
-            <div class="badge-pill">Model Agnostic</div>
+            <div class="badge-pill">Universal Model Mesh</div>
             <h2 class="section-title">
               AI models will change.<br />
-              <span class="text-dim">Your project doesn't have to.</span>
+              <span class="text-dim">Your project context shouldn't.</span>
             </h2>
             <p class="section-lead">
               Use the best AI for each specific phase of your build. Start architecture in ChatGPT,
@@ -659,60 +659,151 @@
             </p>
           </div>
 
-          <!-- Provider Constellation Diagram -->
-          <div class="mesh-constellation reveal-on-scroll">
-            <div class="mesh-center-hub">
-              <div class="hub-rings"></div>
-              <div class="hub-logo-box">
-                <img src="assets/logo.webp" alt="Continuo Hub" />
+          <!-- Structured Context Flow Pipeline: Provider -> Continuo -> Memory -> Destination AI -->
+          <div class="flow-pipeline-container reveal-on-scroll">
+            
+            <!-- STAGE 1: Source AI Models -->
+            <div class="flow-stage stage-sources">
+              <div class="flow-stage-label">
+                <span class="stage-tag">STAGE 1</span>
+                <span class="stage-name">AI PROVIDERS (SOURCE)</span>
               </div>
-              <span class="hub-caption">CONTINUO</span>
-              <span class="hub-subcaption">Universal Context Layer</span>
+              <div class="flow-nodes-row">
+                <div class="p-node node-chatgpt">
+                  <div class="p-node-icon"><i class="fa-solid fa-robot"></i></div>
+                  <div class="p-node-info">
+                    <strong>ChatGPT</strong>
+                    <span>OpenAI o3 / GPT-4o</span>
+                  </div>
+                  <span class="node-status-dot active"></span>
+                </div>
+                <div class="p-node node-claude">
+                  <div class="p-node-icon"><i class="fa-solid fa-bolt"></i></div>
+                  <div class="p-node-info">
+                    <strong>Claude</strong>
+                    <span>Anthropic 3.7 Sonnet</span>
+                  </div>
+                  <span class="node-status-dot active"></span>
+                </div>
+                <div class="p-node node-gemini">
+                  <div class="p-node-icon"><i class="fa-brands fa-google"></i></div>
+                  <div class="p-node-info">
+                    <strong>Gemini</strong>
+                    <span>Google 2.0 Flash / Pro</span>
+                  </div>
+                  <span class="node-status-dot active"></span>
+                </div>
+              </div>
             </div>
 
-            <!-- Provider Satellite Nodes -->
-            <div class="provider-nodes">
-              <!-- Node 1: ChatGPT -->
-              <div class="p-node node-chatgpt" style="--angle: 0deg">
-                <div class="p-node-icon"><i class="fa-solid fa-robot"></i></div>
-                <div class="p-node-info">
-                  <strong>ChatGPT</strong>
-                  <span>OpenAI o3 / GPT-4o</span>
-                </div>
+            <!-- FLOW CONNECTOR 1 -->
+            <div class="flow-conduit-beam" aria-hidden="true">
+              <div class="beam-line"></div>
+              <div class="beam-pulse-chip">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span>Raw Chat Ingestion</span>
               </div>
-              <!-- Node 2: Claude -->
-              <div class="p-node node-claude" style="--angle: 72deg">
-                <div class="p-node-icon"><i class="fa-solid fa-bolt"></i></div>
-                <div class="p-node-info">
-                  <strong>Claude</strong>
-                  <span>Anthropic 3.7 Sonnet</span>
-                </div>
-              </div>
-              <!-- Node 3: Gemini -->
-              <div class="p-node node-gemini" style="--angle: 144deg">
-                <div class="p-node-icon"><i class="fa-brands fa-google"></i></div>
-                <div class="p-node-info">
-                  <strong>Gemini</strong>
-                  <span>Google 2.0 Flash / Pro</span>
-                </div>
-              </div>
-              <!-- Node 4: Cursor / Copilot -->
-              <div class="p-node node-cursor" style="--angle: 216deg">
-                <div class="p-node-icon"><i class="fa-solid fa-terminal"></i></div>
-                <div class="p-node-info">
-                  <strong>Cursor</strong>
-                  <span>Agentic IDE Context</span>
-                </div>
-              </div>
-              <!-- Node 5: Future AI -->
-              <div class="p-node node-future" style="--angle: 288deg">
-                <div class="p-node-icon"><i class="fa-solid fa-microchip"></i></div>
-                <div class="p-node-info">
-                  <strong>Future Models</strong>
-                  <span>Pluggable Provider API</span>
+              <div class="beam-line"></div>
+            </div>
+
+            <!-- STAGE 2: Continuo Core Synthesis Hub -->
+            <div class="flow-stage stage-core">
+              <div class="core-hub-card">
+                <div class="hub-rings-glow" aria-hidden="true"></div>
+                <div class="core-hub-inner">
+                  <div class="core-emblem-wrap">
+                    <div class="glass-reflection-dome"></div>
+                    <img src="assets/logo.webp" alt="Continuo Core" class="core-emblem-img" />
+                  </div>
+                  <div class="core-text-wrap">
+                    <div class="core-badge">CONTINUO CONTEXT ENGINE</div>
+                    <h3 class="core-title">Universal Synthesis Core</h3>
+                    <p class="core-desc">
+                      Filters conversational banter, extracts technical decisions & active constraints, and compiles deterministic context packages.
+                    </p>
+                  </div>
+                  <div class="core-metrics-chip">
+                    <span class="core-metric-item"><i class="fa-solid fa-filter"></i> 90% Noise Cut</span>
+                    <span class="core-metric-item"><i class="fa-solid fa-gauge-high"></i> &lt;18ms Synthesized</span>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <!-- FLOW CONNECTOR 2 -->
+            <div class="flow-conduit-beam" aria-hidden="true">
+              <div class="beam-line"></div>
+              <div class="beam-pulse-chip">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span>Anchoring Structured State</span>
+              </div>
+              <div class="beam-line"></div>
+            </div>
+
+            <!-- STAGE 3: Persistent Project Memory -->
+            <div class="flow-stage stage-memory">
+              <div class="memory-vault-card">
+                <div class="vault-head">
+                  <div class="vault-icon"><i class="fa-solid fa-layer-group"></i></div>
+                  <div class="vault-title-group">
+                    <span class="vault-label">PERSISTENT PROJECT MEMORY</span>
+                    <strong class="vault-heading">Structured Project Graph (v1.2 Active)</strong>
+                  </div>
+                  <span class="vault-tag"><i class="fa-solid fa-lock"></i> Encrypted AES-256</span>
+                </div>
+                <div class="vault-chips-grid">
+                  <span class="vault-chip"><i class="fa-solid fa-check"></i> 14 Technical Decisions</span>
+                  <span class="vault-chip"><i class="fa-solid fa-check"></i> 6 Locked Constraints</span>
+                  <span class="vault-chip"><i class="fa-solid fa-code-compare"></i> Version Diff Tracking</span>
+                  <span class="vault-chip"><i class="fa-solid fa-shield-halved"></i> Contradiction Guard</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- FLOW CONNECTOR 3 -->
+            <div class="flow-conduit-beam" aria-hidden="true">
+              <div class="beam-line"></div>
+              <div class="beam-pulse-chip">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span>Model-Tailored Handoff</span>
+              </div>
+              <div class="beam-line"></div>
+            </div>
+
+            <!-- STAGE 4: Destination Models & IDEs -->
+            <div class="flow-stage stage-destinations">
+              <div class="flow-stage-label">
+                <span class="stage-tag">STAGE 4</span>
+                <span class="stage-name">TARGET ENVIRONMENT (CONTINUE ANYWHERE)</span>
+              </div>
+              <div class="flow-nodes-row">
+                <div class="p-node node-cursor">
+                  <div class="p-node-icon"><i class="fa-solid fa-terminal"></i></div>
+                  <div class="p-node-info">
+                    <strong>Cursor IDE</strong>
+                    <span>Agentic Context Injection</span>
+                  </div>
+                  <span class="node-status-dot destination"></span>
+                </div>
+                <div class="p-node node-claude-dest">
+                  <div class="p-node-icon"><i class="fa-solid fa-bolt"></i></div>
+                  <div class="p-node-info">
+                    <strong>Claude 3.7</strong>
+                    <span>Deep Architectural Refactor</span>
+                  </div>
+                  <span class="node-status-dot destination"></span>
+                </div>
+                <div class="p-node node-future">
+                  <div class="p-node-icon"><i class="fa-solid fa-microchip"></i></div>
+                  <div class="p-node-info">
+                    <strong>Next AI Models</strong>
+                    <span>Zero Lock-in Provider API</span>
+                  </div>
+                  <span class="node-status-dot destination"></span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
@@ -1475,42 +1566,81 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
 
     <!-- Sub-Modal: Authentication / Sign In -->
     <div class="submodal-overlay" id="auth-modal" aria-hidden="true" style="display: none;">
-      <div class="submodal-card glass-modal auth-card" role="dialog" aria-modal="true">
+      <div class="submodal-card glass-modal auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <div class="glass-specular-edge"></div>
+
         <div class="submodal-header">
-          <h3 id="auth-modal-title">Continuo Account</h3>
-          <button class="submodal-close" id="btn-close-auth">&times;</button>
+          <div class="auth-header-brand">
+            <div class="auth-brand-emblem">
+              <img src="assets/logo.webp" alt="Continuo" class="auth-emblem-img" />
+            </div>
+            <div class="auth-header-copy">
+              <h3 id="auth-modal-title" class="auth-title">Continuo Account</h3>
+              <span class="auth-subtitle">Universal AI Context Continuity</span>
+            </div>
+          </div>
+          <button class="submodal-close" id="btn-close-auth" aria-label="Close authentication modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
+
         <div class="submodal-body">
-          <div class="auth-tabs">
-            <button class="auth-tab active" id="auth-tab-login" type="button">Sign In</button>
-            <button class="auth-tab" id="auth-tab-register" type="button">Register</button>
+          <!-- Glass Segmented Tab Control -->
+          <div class="auth-segmented-control" role="tablist" aria-label="Authentication Mode">
+            <button class="auth-tab active" id="auth-tab-login" role="tab" aria-selected="true" type="button">
+              <i class="fa-solid fa-arrow-right-to-bracket tab-icon"></i>
+              <span>Sign In</span>
+            </button>
+            <button class="auth-tab" id="auth-tab-register" role="tab" aria-selected="false" type="button">
+              <i class="fa-solid fa-user-plus tab-icon"></i>
+              <span>Register</span>
+            </button>
           </div>
 
           <div class="ws-field-full" id="auth-name-group" style="display: none;">
             <label for="auth-name" class="ws-label">Full Name</label>
-            <input type="text" id="auth-name" class="ws-text-input" placeholder="e.g. Elena Rostova" />
+            <div class="auth-input-wrap">
+              <i class="fa-regular fa-user auth-input-icon"></i>
+              <input type="text" id="auth-name" class="ws-text-input auth-text-input" placeholder="e.g. Elena Rostova" autocomplete="name" />
+            </div>
           </div>
+
           <div class="ws-field-full">
             <label for="auth-email" class="ws-label">Email Address</label>
-            <input type="email" id="auth-email" class="ws-text-input" placeholder="engineer@continuo.ai" />
+            <div class="auth-input-wrap">
+              <i class="fa-regular fa-envelope auth-input-icon"></i>
+              <input type="email" id="auth-email" class="ws-text-input auth-text-input" placeholder="engineer@continuo.ai" autocomplete="email" required />
+            </div>
           </div>
+
           <div class="ws-field-full">
             <label for="auth-password" class="ws-label">Password</label>
-            <input type="password" id="auth-password" class="ws-text-input" placeholder="••••••••••••" />
+            <div class="auth-input-wrap">
+              <i class="fa-solid fa-lock auth-input-icon"></i>
+              <input type="password" id="auth-password" class="ws-text-input auth-text-input" placeholder="••••••••••••" autocomplete="current-password" required />
+            </div>
           </div>
 
-          <div class="auth-error-msg" id="auth-error-msg" style="display: none;"></div>
+          <div class="auth-error-msg" id="auth-error-msg" role="alert" style="display: none;"></div>
 
-          <button class="ws-btn ws-btn-primary full-width" id="btn-submit-auth" type="button">Sign In</button>
+          <button class="continuo-btn continuo-btn-primary full-width auth-submit-btn" id="btn-submit-auth" type="button">
+            <span>Sign In</span>
+            <i class="fa-solid fa-arrow-right btn-icon"></i>
+          </button>
 
           <div class="auth-divider">
-            <span>OR QUICK ACCESS</span>
+            <span>OR INSTANT ACCESS</span>
           </div>
 
-          <button class="ws-btn ws-btn-secondary full-width" id="btn-demo-engineer" type="button">
-            <i class="fa-solid fa-bolt" style="color: #38bdf8;"></i>
+          <button class="continuo-btn continuo-btn-secondary full-width auth-demo-btn" id="btn-demo-engineer" type="button">
+            <i class="fa-solid fa-bolt demo-bolt-icon"></i>
             <span>Continue as Demo Engineer (Instant)</span>
           </button>
+
+          <div class="auth-footer-badge">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>AES-256 encrypted local persistence & JWT authentication</span>
+          </div>
         </div>
       </div>
     </div>
