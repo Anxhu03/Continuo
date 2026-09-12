@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWalkthroughSteps();
   initHandoffPlayground();
   initMobileMenu();
+  initContinuoWorkspaceApp();
 });
 
 /* ==========================================================================
@@ -1208,3 +1209,884 @@ function initMobileMenu() {
     }
   });
 }
+
+/* ==========================================================================
+   10. CONTINUO LIVE WORKSPACE APPLICATION & API INTEGRATION
+   Connects the frontend UI to FastAPI backend, project persistence,
+   context engine, quality scoring, version diff, and handoffs.
+   ========================================================================== */
+function initContinuoWorkspaceApp() {
+  const API_BASE = "http://127.0.0.1:8008/api/v1";
+
+  // App State
+  let authToken = localStorage.getItem("continuo_jwt") || null;
+  let currentUser = JSON.parse(localStorage.getItem("continuo_user") || "null");
+  let currentProjects = [];
+  let selectedProjectId = null;
+  let activeContextPkg = null;
+  let activeVersions = [];
+  let lastHandoffUrl = "https://claude.ai/new";
+
+  // DOM Elements - Workspace Modal
+  const wsOverlay = document.getElementById("workspace-overlay");
+  const wsCloseBtn = document.getElementById("ws-close-btn");
+  const headerLaunchBtn = document.getElementById("header-launch-btn");
+  const headerSigninBtn = document.getElementById("header-signin-btn");
+  const navAuthLabel = document.getElementById("nav-auth-label");
+  const heroCtaBtn = document.getElementById("hero-cta");
+  const footerCtaBtn = document.getElementById("footer-cta-btn");
+  const wsProjectSelect = document.getElementById("ws-project-select");
+  const wsBtnNewProject = document.getElementById("ws-btn-new-project");
+  const wsVerChip = document.getElementById("ws-ver-chip");
+  const wsHealthChip = document.getElementById("ws-health-chip");
+  const wsUserPill = document.getElementById("ws-user-pill");
+  const wsUserEmail = document.getElementById("ws-user-email");
+
+  // DOM Elements - Tabs
+  const wsTabs = document.querySelectorAll(".ws-tab");
+  const wsPanels = document.querySelectorAll(".ws-panel");
+
+  // DOM Elements - Panel 1: Capture
+  const wsSourceProvider = document.getElementById("ws-source-provider");
+  const wsSessionTitle = document.getElementById("ws-session-title");
+  const wsRawTranscript = document.getElementById("ws-raw-transcript");
+  const wsBtnLoadSample = document.getElementById("ws-btn-load-sample");
+  const wsBtnRunCapture = document.getElementById("ws-btn-run-capture");
+  const wsCaptureStatus = document.getElementById("ws-capture-status");
+  const wsCaptureBtnText = document.getElementById("ws-capture-btn-text");
+  const wsQualityVal = document.getElementById("ws-quality-val");
+  const wsMeterFill = document.getElementById("ws-meter-fill");
+  const wsValComp = document.getElementById("ws-val-comp");
+  const wsValClarity = document.getElementById("ws-val-clarity");
+  const wsValAction = document.getElementById("ws-val-action");
+  const wsValCons = document.getElementById("ws-val-cons");
+  const wsContradictionAlert = document.getElementById("ws-contradiction-alert");
+  const wsContraTopic = document.getElementById("ws-contra-topic");
+  const wsContraExp = document.getElementById("ws-contra-exp");
+  const wsRecsList = document.getElementById("ws-recs-list");
+  const wsSummaryVer = document.getElementById("ws-summary-ver");
+  const wsSummaryObjective = document.getElementById("ws-summary-objective");
+  const wsCountReqs = document.getElementById("ws-count-reqs");
+  const wsCountConst = document.getElementById("ws-count-const");
+  const wsCountDec = document.getElementById("ws-count-dec");
+  const wsCountFiles = document.getElementById("ws-count-files");
+
+  // DOM Elements - Panel 2: Memory Editor
+  const wsEditObjective = document.getElementById("ws-edit-objective");
+  const wsEditState = document.getElementById("ws-edit-state");
+  const wsEditRequirements = document.getElementById("ws-edit-requirements");
+  const wsEditConstraints = document.getElementById("ws-edit-constraints");
+  const wsEditDecisions = document.getElementById("ws-edit-decisions");
+  const wsEditFiles = document.getElementById("ws-edit-files");
+  const wsEditNext = document.getElementById("ws-edit-next");
+  const wsBtnSaveMemory = document.getElementById("ws-btn-save-memory");
+
+  // DOM Elements - Panel 3: Diff
+  const wsDiffFromSelect = document.getElementById("ws-diff-from-select");
+  const wsDiffToSelect = document.getElementById("ws-diff-to-select");
+  const wsBtnCalcDiff = document.getElementById("ws-btn-calc-diff");
+  const wsDiffTitle = document.getElementById("ws-diff-title");
+  const wsDiffSummaryText = document.getElementById("ws-diff-summary-text");
+  const wsDiffAddedList = document.getElementById("ws-diff-added-list");
+  const wsDiffModList = document.getElementById("ws-diff-mod-list");
+  const wsDiffRemList = document.getElementById("ws-diff-rem-list");
+
+  // DOM Elements - Panel 4: Handoff
+  const wsHoSource = document.getElementById("ws-ho-source");
+  const wsHoDest = document.getElementById("ws-ho-dest");
+  const wsHoNotes = document.getElementById("ws-ho-notes");
+  const wsBtnGenerateHandoff = document.getElementById("ws-btn-generate-handoff");
+  const wsBtnCopyPayload = document.getElementById("ws-btn-copy-payload");
+  const wsBtnOpenTarget = document.getElementById("ws-btn-open-target");
+  const wsOpenTargetText = document.getElementById("ws-open-target-text");
+  const wsHoCodeBlock = document.getElementById("ws-ho-code-block");
+
+  // DOM Elements - Submodals
+  const newProjectModal = document.getElementById("new-project-modal");
+  const btnCloseNewProject = document.getElementById("btn-close-new-project");
+  const btnCancelNewProject = document.getElementById("btn-cancel-new-project");
+  const btnSubmitNewProject = document.getElementById("btn-submit-new-project");
+  const newProjName = document.getElementById("new-proj-name");
+  const newProjDesc = document.getElementById("new-proj-desc");
+  const newProjGoal = document.getElementById("new-proj-goal");
+
+  const authModal = document.getElementById("auth-modal");
+  const btnCloseAuth = document.getElementById("btn-close-auth");
+  const authTabLogin = document.getElementById("auth-tab-login");
+  const authTabRegister = document.getElementById("auth-tab-register");
+  const authNameGroup = document.getElementById("auth-name-group");
+  const authName = document.getElementById("auth-name");
+  const authEmail = document.getElementById("auth-email");
+  const authPassword = document.getElementById("auth-password");
+  const btnSubmitAuth = document.getElementById("btn-submit-auth");
+  const btnDemoEngineer = document.getElementById("btn-demo-engineer");
+  const authErrorMsg = document.getElementById("auth-error-msg");
+  let authMode = "login";
+
+  // Toast Helper
+  function showToast(msg) {
+    const toast = document.getElementById("toast-notice");
+    const toastText = document.getElementById("toast-text");
+    if (!toast) return;
+    if (toastText) toastText.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 3500);
+  }
+
+  // HTTP Helper with Bearer Token
+  async function apiRequest(endpoint, method = "GET", body = null) {
+    const headers = { "Content-Type": "application/json" };
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+    }
+
+    try {
+      const resp = await fetch(`${API_BASE}${endpoint}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : null,
+      });
+
+      if (resp.status === 401) {
+        // Token expired or invalid
+        authToken = null;
+        localStorage.removeItem("continuo_jwt");
+        updateUserUI();
+      }
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.detail || `Server error (${resp.status})`);
+      }
+      return data;
+    } catch (err) {
+      console.warn(`[Continuo API Error] ${method} ${endpoint}:`, err);
+      throw err;
+    }
+  }
+
+  // =========================================================================
+  // Auth Operations
+  // =========================================================================
+  function updateUserUI() {
+    if (currentUser && authToken) {
+      if (wsUserEmail) wsUserEmail.textContent = currentUser.email.split("@")[0];
+      if (navAuthLabel) navAuthLabel.textContent = "Workspace";
+    } else {
+      if (wsUserEmail) wsUserEmail.textContent = "Sign In";
+      if (navAuthLabel) navAuthLabel.textContent = "Sign In";
+    }
+  }
+
+  async function ensureAuthenticated() {
+    if (authToken && currentUser) return true;
+
+    // Automatic Demo Authentication for frictionless testing
+    try {
+      const demoRes = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: "demo@continuo.ai",
+          password: "DemoContinuo2026!",
+        }),
+      });
+
+      let tokenData;
+      if (demoRes.ok) {
+        tokenData = await demoRes.json();
+      } else {
+        // Register demo user
+        const regRes = await fetch(`${API_BASE}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: "demo@continuo.ai",
+            password: "DemoContinuo2026!",
+            full_name: "Elena Rostova (Demo Engineer)",
+          }),
+        });
+        tokenData = await regRes.json();
+      }
+
+      authToken = tokenData.access_token;
+      currentUser = { email: tokenData.email, id: tokenData.user_id };
+      localStorage.setItem("continuo_jwt", authToken);
+      localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+      updateUserUI();
+      return true;
+    } catch (err) {
+      console.warn("Backend not available yet, using local guest state.");
+      return false;
+    }
+  }
+
+  // =========================================================================
+  // Project Management
+  // =========================================================================
+  async function loadProjects() {
+    try {
+      const projs = await apiRequest("/projects");
+      currentProjects = projs;
+
+      if (!currentProjects.length) {
+        // Create initial default project
+        const newProj = await apiRequest("/projects", "POST", {
+          name: "Nexora AI Platform",
+          description: "Multi-agent context persistence orchestrator",
+          initial_objective:
+            "Build an AI-agnostic context continuity layer that captures structured project memory across ChatGPT, Claude, and Gemini.",
+        });
+        currentProjects = [newProj];
+      }
+
+      // Populate Select
+      wsProjectSelect.innerHTML = "";
+      currentProjects.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.current_version})`;
+        wsProjectSelect.appendChild(opt);
+      });
+
+      if (!selectedProjectId && currentProjects.length > 0) {
+        selectedProjectId = currentProjects[0].id;
+      }
+      wsProjectSelect.value = selectedProjectId;
+
+      await loadActiveProjectContext();
+      await loadProjectVersions();
+    } catch (err) {
+      if (wsCaptureStatus) {
+        wsCaptureStatus.textContent = "Backend connecting...";
+      }
+    }
+  }
+
+  async function loadActiveProjectContext() {
+    if (!selectedProjectId) return;
+    const proj = currentProjects.find((p) => p.id === selectedProjectId);
+    if (!proj) return;
+
+    wsVerChip.textContent = proj.current_version || "v1.0";
+    wsHealthChip.textContent = `${Math.round(proj.health_score || 85)}% Health`;
+
+    try {
+      const ctxPkg = await apiRequest(`/context/projects/${selectedProjectId}/context`);
+      activeContextPkg = ctxPkg;
+      renderContextPackage(ctxPkg);
+    } catch (err) {
+      console.log("No existing context package found, waiting for capture.");
+    }
+  }
+
+  async function loadProjectVersions() {
+    if (!selectedProjectId) return;
+    try {
+      const versions = await apiRequest(`/versions/projects/${selectedProjectId}`);
+      activeVersions = versions;
+
+      wsDiffFromSelect.innerHTML = "";
+      wsDiffToSelect.innerHTML = "";
+
+      versions.forEach((v, idx) => {
+        const optA = document.createElement("option");
+        optA.value = v.version_number;
+        optA.textContent = `${v.version_number} (${v.changelog ? v.changelog.substring(0, 30) + '...' : 'Milestone'})`;
+        wsDiffFromSelect.appendChild(optA);
+
+        const optB = document.createElement("option");
+        optB.value = v.version_number;
+        optB.textContent = `${v.version_number} (${v.changelog ? v.changelog.substring(0, 30) + '...' : 'Milestone'})`;
+        wsDiffToSelect.appendChild(optB);
+      });
+
+      // Default compare: oldest to newest
+      if (versions.length >= 2) {
+        wsDiffFromSelect.selectedIndex = versions.length - 1;
+        wsDiffToSelect.selectedIndex = 0;
+      }
+    } catch (err) {
+      console.warn("Could not load versions:", err);
+    }
+  }
+
+  function renderContextPackage(pkg) {
+    if (!pkg) return;
+
+    // 1. Intelligence Head & Quality Meter
+    const score = Math.round(pkg.quality_score || 85);
+    wsQualityVal.textContent = `${score}%`;
+    wsHealthChip.textContent = `${score}% Health`;
+    wsVerChip.textContent = pkg.version;
+    wsMeterFill.style.width = `${Math.min(100, score)}%`;
+
+    // Dynamic color gradient based on score
+    if (score >= 80) {
+      wsMeterFill.style.background = "linear-gradient(90deg, #38bdf8, #34d399)";
+      wsQualityVal.style.color = "#34d399";
+    } else if (score >= 60) {
+      wsMeterFill.style.background = "linear-gradient(90deg, #38bdf8, #facc15)";
+      wsQualityVal.style.color = "#facc15";
+    } else {
+      wsMeterFill.style.background = "linear-gradient(90deg, #f87171, #ef4444)";
+      wsQualityVal.style.color = "#f87171";
+    }
+
+    // 2. Summary Card
+    wsSummaryVer.textContent = `Version ${pkg.version}`;
+    wsSummaryObjective.textContent = pkg.objective || "No objective defined yet.";
+    wsCountReqs.textContent = (pkg.requirements || []).length;
+    wsCountConst.textContent = (pkg.constraints || []).length;
+    wsCountDec.textContent = (pkg.decisions || []).length;
+    wsCountFiles.textContent = (pkg.files_context || []).length;
+
+    // 3. Breakdown
+    const compScore = Math.min(30, 8 + (pkg.requirements?.length || 0) * 2.5);
+    const clarityScore = Math.min(25, 8 + (pkg.files_context?.length || 0) * 3);
+    const actionScore = Math.min(25, 10 + (pkg.next_steps?.length || 0) * 4);
+    const consScore = pkg.contradiction_count ? 10.0 : 20.0;
+
+    wsValComp.textContent = `${compScore.toFixed(1)} / 30`;
+    wsValClarity.textContent = `${clarityScore.toFixed(1)} / 25`;
+    wsValAction.textContent = `${actionScore.toFixed(1)} / 25`;
+    wsValCons.textContent = `${consScore.toFixed(1)} / 20`;
+
+    // 4. Contradiction Alert
+    if (pkg.contradiction_count > 0) {
+      wsContradictionAlert.style.display = "flex";
+      wsContraTopic.textContent = "Architectural Decision Contradiction";
+      wsContraExp.textContent = "A recent choice or requirement conflicts with established constraints. Review decisions in Project Memory.";
+    } else {
+      wsContradictionAlert.style.display = "none";
+    }
+
+    // 5. Recommendations
+    wsRecsList.innerHTML = "";
+    const recs = [];
+    if ((pkg.requirements || []).length < 3) {
+      recs.push("Specify at least 3 explicit functional requirements.");
+    }
+    if ((pkg.constraints || []).length < 2) {
+      recs.push("Document non-negotiable architectural constraints to prevent AI drift.");
+    }
+    if ((pkg.files_context || []).length === 0) {
+      recs.push("Tag primary file paths to give direct grounding.");
+    }
+    if (!recs.length) {
+      recs.push("Context package has high operational fidelity and is ready for model transit.");
+    }
+    recs.forEach((r) => {
+      const li = document.createElement("li");
+      li.textContent = r;
+      wsRecsList.appendChild(li);
+    });
+
+    // 6. Populate Memory Editor (Tab 2)
+    wsEditObjective.value = pkg.objective || "";
+    wsEditState.value = pkg.current_state || "";
+    wsEditRequirements.value = (pkg.requirements || []).join("\n");
+    wsEditConstraints.value = (pkg.constraints || []).join("\n");
+    wsEditDecisions.value = (pkg.decisions || []).join("\n");
+    wsEditFiles.value = (pkg.files_context || []).join("\n");
+    wsEditNext.value = (pkg.next_steps || []).join("\n");
+  }
+
+  // =========================================================================
+  // Sample Conversation Generator
+  // =========================================================================
+  const SAMPLE_SESSION = `User: I've been working on our authentication microservice for Nexora AI.
+We decided to use FastAPI with SQLAlchemy and PyJWT for stateless token validation.
+Database is Supabase PostgreSQL.
+
+Requirement: Support Google and GitHub OAuth login providers with PKCE flow.
+Requirement: Issue short-lived access JWTs (15 min) and rotating refresh tokens stored in httpOnly secure cookies.
+Requirement: Never allow unauthenticated requests past the /api/v1 gateway.
+
+Constraint: Never store plaintext passwords or secrets under any circumstances.
+Constraint: Do not use third-party auth services like Auth0; maintain full local data sovereignty.
+Constraint: Must run on Python 3.12+ and pass all pytest suites before deployment.
+
+Current State: OAuth callback handler and JWT issuing routes are implemented and passing unit tests.
+Completed: Setup database migrations for refresh_tokens table and verified password hashing with PBKDF2.
+Pending: Implement token revocation blacklist endpoint and setup Redis cache.
+
+Files in scope:
+- backend/routers/auth.py
+- backend/services/auth.py
+- backend/models/user.py
+- tests/test_auth.py
+
+Next step: Connect frontend auth modal and verify cross-domain CORS tokens with the Chrome Extension.`;
+
+  if (wsBtnLoadSample) {
+    wsBtnLoadSample.addEventListener("click", () => {
+      wsRawTranscript.value = SAMPLE_SESSION;
+      wsSessionTitle.value = "Auth Architecture & OAuth2 Refactor";
+      showToast("Engineering session sample loaded!");
+    });
+  }
+
+  // =========================================================================
+  // Context Capture Flow
+  // =========================================================================
+  if (wsBtnRunCapture) {
+    wsBtnRunCapture.addEventListener("click", async () => {
+      const rawText = wsRawTranscript.value.trim();
+      if (!rawText || rawText.length < 15) {
+        showToast("Please enter a conversation transcript to capture.");
+        return;
+      }
+
+      if (!selectedProjectId) {
+        showToast("Please select or create a project first.");
+        return;
+      }
+
+      wsBtnRunCapture.disabled = true;
+
+      // Sequential Contextual Loading States
+      const steps = [
+        "Capturing context from " + wsSourceProvider.value.toUpperCase() + "...",
+        "Extracting objective, requirements & decisions...",
+        "Checking architectural consistency & contradictions...",
+        "Synthesizing Project Memory Package...",
+      ];
+
+      let stepIdx = 0;
+      wsCaptureBtnText.textContent = steps[0];
+      wsCaptureStatus.textContent = steps[0];
+
+      const interval = setInterval(() => {
+        stepIdx++;
+        if (stepIdx < steps.length) {
+          wsCaptureBtnText.textContent = steps[stepIdx];
+          wsCaptureStatus.textContent = steps[stepIdx];
+        }
+      }, 380);
+
+      try {
+        const pkg = await apiRequest("/context/capture", "POST", {
+          project_id: selectedProjectId,
+          provider: wsSourceProvider.value,
+          raw_transcript: rawText,
+          title: wsSessionTitle.value || `Capture from ${wsSourceProvider.value}`,
+        });
+
+        clearInterval(interval);
+        renderContextPackage(pkg);
+        await loadProjectVersions();
+
+        wsCaptureStatus.textContent = `Context captured successfully as ${pkg.version}!`;
+        showToast(`Synthesized Context Package ${pkg.version} with ${Math.round(pkg.quality_score)}% Health!`);
+
+        // Refresh project list to reflect version bump
+        await loadProjects();
+      } catch (err) {
+        clearInterval(interval);
+        wsCaptureStatus.textContent = "Extraction completed.";
+        showToast(err.message || "Failed to capture context.");
+      } finally {
+        wsBtnRunCapture.disabled = false;
+        wsCaptureBtnText.textContent = "Ingest & Synthesize Context Package";
+      }
+    });
+  }
+
+  // =========================================================================
+  // Memory Editor (Human Control)
+  // =========================================================================
+  if (wsBtnSaveMemory) {
+    wsBtnSaveMemory.addEventListener("click", async () => {
+      if (!selectedProjectId) return;
+
+      const toList = (text) =>
+        text
+          .split("\n")
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0);
+
+      const updateData = {
+        objective: wsEditObjective.value.trim(),
+        current_state: wsEditState.value.trim(),
+        requirements: toList(wsEditRequirements.value),
+        constraints: toList(wsEditConstraints.value),
+        decisions: toList(wsEditDecisions.value),
+        files_context: toList(wsEditFiles.value),
+        next_steps: toList(wsEditNext.value),
+      };
+
+      try {
+        wsBtnSaveMemory.disabled = true;
+        wsBtnSaveMemory.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Saving Curated Memory...</span>`;
+
+        const newPkg = await apiRequest(
+          `/context/projects/${selectedProjectId}/context`,
+          "PATCH",
+          updateData
+        );
+
+        renderContextPackage(newPkg);
+        await loadProjectVersions();
+        await loadProjects();
+
+        showToast(`Saved Curated Memory as version ${newPkg.version}!`);
+      } catch (err) {
+        showToast(err.message || "Failed to update project memory.");
+      } finally {
+        wsBtnSaveMemory.disabled = false;
+        wsBtnSaveMemory.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Save Curated Memory (Bump Version)</span>`;
+      }
+    });
+  }
+
+  // =========================================================================
+  // Version Diff Engine
+  // =========================================================================
+  if (wsBtnCalcDiff) {
+    wsBtnCalcDiff.addEventListener("click", async () => {
+      if (!selectedProjectId) return;
+      const fromVer = wsDiffFromSelect.value;
+      const toVer = wsDiffToSelect.value;
+
+      if (fromVer === toVer) {
+        showToast("Select two distinct versions to calculate a diff.");
+        return;
+      }
+
+      try {
+        wsBtnCalcDiff.disabled = true;
+        const diffData = await apiRequest(
+          `/versions/projects/${selectedProjectId}/diff?from_version=${fromVer}&to_version=${toVer}`
+        );
+
+        wsDiffTitle.textContent = `Evolution: ${diffData.from_version} → ${diffData.to_version}`;
+        wsDiffSummaryText.textContent = diffData.summary;
+
+        // Render Added
+        wsDiffAddedList.innerHTML = "";
+        const addedEntries = Object.entries(diffData.added);
+        if (addedEntries.length === 0) {
+          wsDiffAddedList.innerHTML = `<li class="ws-empty-item">No new additions detected</li>`;
+        } else {
+          addedEntries.forEach(([cat, items]) => {
+            items.forEach((item) => {
+              const li = document.createElement("li");
+              li.textContent = `[${cat.toUpperCase()}] ${item}`;
+              wsDiffAddedList.appendChild(li);
+            });
+          });
+        }
+
+        // Render Modified
+        wsDiffModList.innerHTML = "";
+        const modEntries = Object.entries(diffData.modified);
+        if (modEntries.length === 0) {
+          wsDiffModList.innerHTML = `<li class="ws-empty-item">No modified state</li>`;
+        } else {
+          modEntries.forEach(([cat, change]) => {
+            const li = document.createElement("li");
+            li.textContent = `[${cat.toUpperCase()}] ${change.to || change.from}`;
+            wsDiffModList.appendChild(li);
+          });
+        }
+
+        // Render Removed
+        wsDiffRemList.innerHTML = "";
+        const remEntries = Object.entries(diffData.removed);
+        if (remEntries.length === 0) {
+          wsDiffRemList.innerHTML = `<li class="ws-empty-item">No discarded elements</li>`;
+        } else {
+          remEntries.forEach(([cat, items]) => {
+            items.forEach((item) => {
+              const li = document.createElement("li");
+              li.textContent = `[${cat.toUpperCase()}] ${item}`;
+              wsDiffRemList.appendChild(li);
+            });
+          });
+        }
+
+        showToast(`Calculated memory diff for ${fromVer} → ${toVer}!`);
+      } catch (err) {
+        showToast(err.message || "Failed to calculate version diff.");
+      } finally {
+        wsBtnCalcDiff.disabled = false;
+      }
+    });
+  }
+
+  // =========================================================================
+  // Cross-AI Handoff Generation
+  // =========================================================================
+  if (wsBtnGenerateHandoff) {
+    wsBtnGenerateHandoff.addEventListener("click", async () => {
+      if (!selectedProjectId) {
+        showToast("Please select an active project first.");
+        return;
+      }
+
+      const source = wsHoSource.value;
+      const dest = wsHoDest.value;
+      const customNotes = wsHoNotes.value.trim() || null;
+
+      try {
+        wsBtnGenerateHandoff.disabled = true;
+        wsBtnGenerateHandoff.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Formatting for ${dest.toUpperCase()}...</span>`;
+
+        const handoff = await apiRequest("/handoffs", "POST", {
+          project_id: selectedProjectId,
+          source_provider: source,
+          destination_provider: dest,
+          custom_instructions: customNotes,
+        });
+
+        wsHoCodeBlock.textContent = handoff.formatted_payload;
+        lastHandoffUrl = handoff.destination_url;
+
+        const destLabels = {
+          claude: "Open Claude (claude.ai)",
+          chatgpt: "Open ChatGPT (chatgpt.com)",
+          gemini: "Open Gemini (gemini.google.com)",
+          cursor: "Open Cursor (cursor.com)",
+        };
+        wsOpenTargetText.textContent = destLabels[dest] || "Open Destination AI";
+
+        showToast(`Cross-AI Handoff prepared for ${dest.toUpperCase()}!`);
+      } catch (err) {
+        showToast(err.message || "Failed to generate handoff.");
+      } finally {
+        wsBtnGenerateHandoff.disabled = false;
+        wsBtnGenerateHandoff.innerHTML = `<i class="fa-solid fa-bolt"></i> <span>Generate Tailored Handoff Payload</span>`;
+      }
+    });
+  }
+
+  if (wsBtnCopyPayload) {
+    wsBtnCopyPayload.addEventListener("click", () => {
+      const text = wsHoCodeBlock.textContent;
+      if (!text || text.includes("Click \"Generate Tailored Handoff Payload\"")) {
+        showToast("Please generate a handoff payload first.");
+        return;
+      }
+
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Context Handoff payload copied to clipboard!");
+      });
+    });
+  }
+
+  if (wsBtnOpenTarget) {
+    wsBtnOpenTarget.addEventListener("click", () => {
+      const text = wsHoCodeBlock.textContent;
+      if (text && !text.includes("Click \"Generate Tailored Handoff Payload\"")) {
+        navigator.clipboard.writeText(text);
+      }
+      showToast("Copied context! Opening destination model...");
+      window.open(lastHandoffUrl, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  // =========================================================================
+  // Project Creation Sub-modal
+  // =========================================================================
+  if (wsBtnNewProject) {
+    wsBtnNewProject.addEventListener("click", () => {
+      newProjectModal.style.display = "flex";
+      newProjName.focus();
+    });
+  }
+
+  function closeNewProjectModal() {
+    newProjectModal.style.display = "none";
+    newProjName.value = "";
+    newProjDesc.value = "";
+    newProjGoal.value = "";
+  }
+
+  if (btnCloseNewProject) btnCloseNewProject.addEventListener("click", closeNewProjectModal);
+  if (btnCancelNewProject) btnCancelNewProject.addEventListener("click", closeNewProjectModal);
+
+  if (btnSubmitNewProject) {
+    btnSubmitNewProject.addEventListener("click", async () => {
+      const name = newProjName.value.trim();
+      if (!name) {
+        showToast("Please enter a project name.");
+        return;
+      }
+
+      try {
+        btnSubmitNewProject.disabled = true;
+        const newProj = await apiRequest("/projects", "POST", {
+          name: name,
+          description: newProjDesc.value.trim() || null,
+          initial_objective: newProjGoal.value.trim() || null,
+        });
+
+        closeNewProjectModal();
+        selectedProjectId = newProj.id;
+        await loadProjects();
+        showToast(`Created persistent project "${newProj.name}"!`);
+      } catch (err) {
+        showToast(err.message || "Failed to create project.");
+      } finally {
+        btnSubmitNewProject.disabled = false;
+      }
+    });
+  }
+
+  // Project Switcher
+  if (wsProjectSelect) {
+    wsProjectSelect.addEventListener("change", async (e) => {
+      selectedProjectId = e.target.value;
+      await loadActiveProjectContext();
+      await loadProjectVersions();
+    });
+  }
+
+  // =========================================================================
+  // Auth Sub-modal
+  // =========================================================================
+  function openAuthModal() {
+    authModal.style.display = "flex";
+    authErrorMsg.style.display = "none";
+  }
+
+  function closeAuthModal() {
+    authModal.style.display = "none";
+  }
+
+  if (headerSigninBtn) headerSigninBtn.addEventListener("click", openAuthModal);
+  if (wsUserPill) wsUserPill.addEventListener("click", openAuthModal);
+  if (btnCloseAuth) btnCloseAuth.addEventListener("click", closeAuthModal);
+
+  if (authTabLogin) {
+    authTabLogin.addEventListener("click", () => {
+      authMode = "login";
+      authTabLogin.classList.add("active");
+      authTabRegister.classList.remove("active");
+      authNameGroup.style.display = "none";
+      btnSubmitAuth.textContent = "Sign In";
+      authErrorMsg.style.display = "none";
+    });
+  }
+
+  if (authTabRegister) {
+    authTabRegister.addEventListener("click", () => {
+      authMode = "register";
+      authTabRegister.classList.add("active");
+      authTabLogin.classList.remove("active");
+      authNameGroup.style.display = "block";
+      btnSubmitAuth.textContent = "Create Account";
+      authErrorMsg.style.display = "none";
+    });
+  }
+
+  if (btnSubmitAuth) {
+    btnSubmitAuth.addEventListener("click", async () => {
+      const email = authEmail.value.trim();
+      const password = authPassword.value;
+      const name = authName.value.trim();
+
+      if (!email || !password) {
+        authErrorMsg.textContent = "Please enter email and password.";
+        authErrorMsg.style.display = "block";
+        return;
+      }
+
+      try {
+        btnSubmitAuth.disabled = true;
+        let tokenData;
+        if (authMode === "login") {
+          tokenData = await apiRequest("/auth/login", "POST", { email, password });
+        } else {
+          tokenData = await apiRequest("/auth/register", "POST", { email, password, full_name: name });
+        }
+
+        authToken = tokenData.access_token;
+        currentUser = { email: tokenData.email, id: tokenData.user_id };
+        localStorage.setItem("continuo_jwt", authToken);
+        localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+
+        closeAuthModal();
+        updateUserUI();
+        await loadProjects();
+        showToast(`Signed in as ${email}!`);
+      } catch (err) {
+        authErrorMsg.textContent = err.message || "Authentication failed.";
+        authErrorMsg.style.display = "block";
+      } finally {
+        btnSubmitAuth.disabled = false;
+      }
+    });
+  }
+
+  if (btnDemoEngineer) {
+    btnDemoEngineer.addEventListener("click", async () => {
+      await ensureAuthenticated();
+      closeAuthModal();
+      await loadProjects();
+      showToast("Signed in as Demo Engineer!");
+    });
+  }
+
+  // =========================================================================
+  // Workspace Tab Navigation
+  // =========================================================================
+  wsTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      wsTabs.forEach((t) => t.classList.remove("active"));
+      wsPanels.forEach((p) => p.classList.remove("active"));
+
+      tab.classList.add("active");
+      const tabId = tab.getAttribute("data-tab");
+      const panel = document.getElementById(`ws-panel-${tabId}`);
+      if (panel) panel.classList.add("active");
+    });
+  });
+
+  // =========================================================================
+  // Workspace Open & Close
+  // =========================================================================
+  async function openWorkspace() {
+    await ensureAuthenticated();
+    await loadProjects();
+
+    wsOverlay.classList.add("active");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeWorkspace() {
+    wsOverlay.classList.remove("active");
+    document.body.style.overflow = "";
+  }
+
+  if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
+  if (heroCtaBtn) heroCtaBtn.addEventListener("click", openWorkspace);
+  if (footerCtaBtn) footerCtaBtn.addEventListener("click", openWorkspace);
+  if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);
+
+  wsOverlay.addEventListener("click", (e) => {
+    if (e.target === wsOverlay) closeWorkspace();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (newProjectModal.style.display === "flex") {
+        closeNewProjectModal();
+      } else if (authModal.style.display === "flex") {
+        closeAuthModal();
+      } else if (wsOverlay.classList.contains("active")) {
+        closeWorkspace();
+      }
+    }
+  });
+
+  // Startup initialization
+  updateUserUI();
+  ensureAuthenticated().then(() => {
+    loadProjects();
+  });
+}
+

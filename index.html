@@ -1053,6 +1053,463 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
       </footer>
     </div>
 
+    <!-- =================================================================
+         CONTINUO LIVE WORKSPACE MODAL & APPLICATION DASHBOARD
+         Authentic iOS 26 Translucent Glass Layer connected to FastAPI Backend
+         ================================================================= -->
+    <div class="workspace-overlay" id="workspace-overlay" aria-hidden="true">
+      <div class="workspace-modal glass-modal" id="workspace-modal" role="dialog" aria-modal="true" aria-labelledby="ws-title">
+        <!-- Specular Edge Reflection -->
+        <div class="glass-specular-edge"></div>
+
+        <!-- Top Header Bar -->
+        <div class="ws-header-bar">
+          <div class="ws-brand-group">
+            <div class="ws-logo-ring">
+              <img src="assets/logo.webp" alt="Continuo" class="ws-logo-img" />
+            </div>
+            <div class="ws-brand-text">
+              <h2 id="ws-title" class="ws-brand-title">CONTINUO</h2>
+              <span class="ws-brand-sub">Project Memory Layer</span>
+            </div>
+          </div>
+
+          <!-- Project Selector & Quick New Project -->
+          <div class="ws-project-controls">
+            <div class="ws-select-wrap">
+              <i class="fa-solid fa-folder-tree ws-select-icon"></i>
+              <select id="ws-project-select" class="ws-select" aria-label="Select active project">
+                <option value="" disabled selected>Loading projects...</option>
+              </select>
+            </div>
+            <button class="ws-btn ws-btn-sm" id="ws-btn-new-project" type="button" title="Create a new persistent project">
+              <i class="fa-solid fa-plus"></i>
+              <span>New Project</span>
+            </button>
+          </div>
+
+          <!-- Status & User Profile Pill -->
+          <div class="ws-header-meta">
+            <span class="ws-chip ws-chip-ver" id="ws-ver-chip">v1.0</span>
+            <span class="ws-chip ws-chip-health" id="ws-health-chip">--% Health</span>
+            <button class="ws-user-pill" id="ws-user-pill" type="button" title="Account settings">
+              <i class="fa-regular fa-user-circle"></i>
+              <span id="ws-user-email">Sign In</span>
+            </button>
+            <button class="ws-close-btn" id="ws-close-btn" type="button" aria-label="Close workspace">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="ws-tabs-bar">
+          <button class="ws-tab active" data-tab="capture" type="button">
+            <i class="fa-solid fa-cube"></i>
+            <span>Capture & Ingest</span>
+          </button>
+          <button class="ws-tab" data-tab="memory" type="button">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Project Memory Editor</span>
+          </button>
+          <button class="ws-tab" data-tab="diff" type="button">
+            <i class="fa-solid fa-code-compare"></i>
+            <span>Memory Diff & History</span>
+          </button>
+          <button class="ws-tab" data-tab="handoff" type="button">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Cross-AI Handoff</span>
+          </button>
+        </div>
+
+        <!-- Tab Panels Container -->
+        <div class="ws-content-body">
+          <!-- PANEL 1: CAPTURE & INGEST -->
+          <div class="ws-panel active" id="ws-panel-capture">
+            <div class="ws-panel-grid">
+              <!-- Left Input Column -->
+              <div class="ws-input-col">
+                <div class="ws-card-header">
+                  <div class="ws-card-title">
+                    <i class="fa-regular fa-comments"></i>
+                    <span>Raw Conversation Transcript</span>
+                  </div>
+                  <div class="ws-card-actions">
+                    <button class="ws-text-btn" id="ws-btn-load-sample" type="button">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i>
+                      <span>Load Engineering Session Sample</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="ws-form-row">
+                  <div class="ws-field-half">
+                    <label for="ws-source-provider" class="ws-label">Source AI Model</label>
+                    <select id="ws-source-provider" class="ws-input-select">
+                      <option value="chatgpt" selected>ChatGPT (o3-mini / GPT-4o)</option>
+                      <option value="claude">Claude (3.7 Sonnet / Opus)</option>
+                      <option value="gemini">Google Gemini (2.0 Flash / Pro)</option>
+                      <option value="cursor">Cursor / VS Code Agent</option>
+                    </select>
+                  </div>
+                  <div class="ws-field-half">
+                    <label for="ws-session-title" class="ws-label">Session Label (Optional)</label>
+                    <input type="text" id="ws-session-title" class="ws-text-input" placeholder="e.g. Auth Architecture Refactor" />
+                  </div>
+                </div>
+
+                <div class="ws-field-full">
+                  <label for="ws-raw-transcript" class="ws-label">Conversation Dialogue or Debugging Turns</label>
+                  <textarea
+                    id="ws-raw-transcript"
+                    class="ws-textarea-code"
+                    rows="9"
+                    placeholder="Paste conversational turns, technical decisions, requirements, code paths, or error messages from your AI chat..."
+                  ></textarea>
+                </div>
+
+                <div class="ws-action-bar">
+                  <button class="ws-primary-btn" id="ws-btn-run-capture" type="button">
+                    <i class="fa-solid fa-brain"></i>
+                    <span id="ws-capture-btn-text">Ingest & Synthesize Context Package</span>
+                  </button>
+                  <span class="ws-status-msg" id="ws-capture-status"></span>
+                </div>
+              </div>
+
+              <!-- Right Intelligence Column -->
+              <div class="ws-output-col">
+                <!-- Quality Score Meter & Diagnostics Card -->
+                <div class="ws-intel-card">
+                  <div class="ws-intel-head">
+                    <span class="ws-intel-title">Context Quality & Health</span>
+                    <span class="ws-score-number" id="ws-quality-val">--%</span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div class="ws-meter-track">
+                    <div class="ws-meter-fill" id="ws-meter-fill" style="width: 0%"></div>
+                  </div>
+
+                  <!-- Breakdown Metrics -->
+                  <div class="ws-breakdown-grid">
+                    <div class="ws-break-item">
+                      <span class="ws-break-lbl">Completeness</span>
+                      <span class="ws-break-val" id="ws-val-comp">-- / 30</span>
+                    </div>
+                    <div class="ws-break-item">
+                      <span class="ws-break-lbl">Clarity & Depth</span>
+                      <span class="ws-break-val" id="ws-val-clarity">-- / 25</span>
+                    </div>
+                    <div class="ws-break-item">
+                      <span class="ws-break-lbl">Actionability</span>
+                      <span class="ws-break-val" id="ws-val-action">-- / 25</span>
+                    </div>
+                    <div class="ws-break-item">
+                      <span class="ws-break-lbl">Consistency</span>
+                      <span class="ws-break-val" id="ws-val-cons">-- / 20</span>
+                    </div>
+                  </div>
+
+                  <!-- Contradiction Warning Alert (Hidden by default) -->
+                  <div class="ws-alert-contradiction" id="ws-contradiction-alert" style="display: none;">
+                    <div class="ws-alert-head">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                      <strong id="ws-contra-topic">Architectural Conflict Detected</strong>
+                    </div>
+                    <p class="ws-alert-text" id="ws-contra-exp"></p>
+                  </div>
+
+                  <!-- Recommendations List -->
+                  <div class="ws-recs-box">
+                    <div class="ws-recs-head"><i class="fa-solid fa-list-check"></i> Quality Recommendations:</div>
+                    <ul class="ws-recs-list" id="ws-recs-list">
+                      <li>Capture an AI session to generate dynamic quality analysis.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- Structured Context Summary Preview -->
+                <div class="ws-summary-card">
+                  <div class="ws-summary-head">
+                    <span class="ws-summary-title">Active Context Package</span>
+                    <span class="ws-summary-ver" id="ws-summary-ver">Version --</span>
+                  </div>
+                  <div class="ws-summary-objective" id="ws-summary-objective">
+                    Select or create a project to inspect its active context package.
+                  </div>
+                  <div class="ws-chips-row" id="ws-chips-row">
+                    <span class="ws-summary-badge"><i class="fa-solid fa-list"></i> <span id="ws-count-reqs">0</span> Reqs</span>
+                    <span class="ws-summary-badge"><i class="fa-solid fa-lock"></i> <span id="ws-count-const">0</span> Constraints</span>
+                    <span class="ws-summary-badge"><i class="fa-solid fa-gavel"></i> <span id="ws-count-dec">0</span> Decisions</span>
+                    <span class="ws-summary-badge"><i class="fa-regular fa-file-code"></i> <span id="ws-count-files">0</span> Files</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 2: PROJECT MEMORY EDITOR (HUMAN CONTROL) -->
+          <div class="ws-panel" id="ws-panel-memory">
+            <div class="ws-editor-container">
+              <div class="ws-editor-intro">
+                <div>
+                  <h3 class="ws-editor-title">Project Memory Editor</h3>
+                  <p class="ws-editor-sub">
+                    You have total authority over your project context. Refine requirements, add non-negotiable constraints,
+                    or update current state before transit.
+                  </p>
+                </div>
+                <button class="ws-primary-btn" id="ws-btn-save-memory" type="button">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>Save Curated Memory (Bump Version)</span>
+                </button>
+              </div>
+
+              <div class="ws-editor-grid">
+                <!-- Field: Objective -->
+                <div class="ws-editor-field full-width">
+                  <label for="ws-edit-objective" class="ws-label">Project Objective / Core Goal</label>
+                  <textarea id="ws-edit-objective" class="ws-textarea-field" rows="2"></textarea>
+                </div>
+
+                <!-- Field: Current State -->
+                <div class="ws-editor-field full-width">
+                  <label for="ws-edit-state" class="ws-label">Current Working State</label>
+                  <input type="text" id="ws-edit-state" class="ws-text-input" />
+                </div>
+
+                <!-- Field: Requirements -->
+                <div class="ws-editor-field">
+                  <label for="ws-edit-requirements" class="ws-label">Active Requirements (1 per line)</label>
+                  <textarea id="ws-edit-requirements" class="ws-textarea-field" rows="5"></textarea>
+                </div>
+
+                <!-- Field: Constraints -->
+                <div class="ws-editor-field">
+                  <label for="ws-edit-constraints" class="ws-label">Non-Negotiable Constraints (1 per line)</label>
+                  <textarea id="ws-edit-constraints" class="ws-textarea-field" rows="5"></textarea>
+                </div>
+
+                <!-- Field: Decisions -->
+                <div class="ws-editor-field">
+                  <label for="ws-edit-decisions" class="ws-label">Locked Architectural Decisions (1 per line)</label>
+                  <textarea id="ws-edit-decisions" class="ws-textarea-field" rows="4"></textarea>
+                </div>
+
+                <!-- Field: Files -->
+                <div class="ws-editor-field">
+                  <label for="ws-edit-files" class="ws-label">Files & Code in Scope (1 per line)</label>
+                  <textarea id="ws-edit-files" class="ws-textarea-field" rows="4"></textarea>
+                </div>
+
+                <!-- Field: Next Steps -->
+                <div class="ws-editor-field full-width">
+                  <label for="ws-edit-next" class="ws-label">Immediate Next Steps for Target Model (1 per line)</label>
+                  <textarea id="ws-edit-next" class="ws-textarea-field" rows="3"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 3: MEMORY DIFF & VERSION HISTORY -->
+          <div class="ws-panel" id="ws-panel-diff">
+            <div class="ws-diff-container">
+              <div class="ws-diff-controls-bar">
+                <div class="ws-diff-pickers">
+                  <div class="ws-diff-picker-item">
+                    <label for="ws-diff-from-select" class="ws-label">Base Version (From):</label>
+                    <select id="ws-diff-from-select" class="ws-input-select">
+                      <option value="v1.0">v1.0</option>
+                    </select>
+                  </div>
+                  <div class="ws-diff-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+                  <div class="ws-diff-picker-item">
+                    <label for="ws-diff-to-select" class="ws-label">Compare Version (To):</label>
+                    <select id="ws-diff-to-select" class="ws-input-select">
+                      <option value="v1.1">v1.1</option>
+                    </select>
+                  </div>
+                  <button class="ws-btn ws-btn-primary" id="ws-btn-calc-diff" type="button">
+                    <i class="fa-solid fa-code-compare"></i>
+                    <span>Inspect Diff</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Diff Results View -->
+              <div class="ws-diff-results-card">
+                <div class="ws-diff-results-header">
+                  <span class="ws-diff-results-title" id="ws-diff-title">Memory Evolution Overview</span>
+                  <span class="ws-diff-results-tag" id="ws-diff-tag">Calculated via Deterministic Diff Engine</span>
+                </div>
+                <p class="ws-diff-summary-text" id="ws-diff-summary-text">
+                  Select two versions to inspect architectural additions, modifications, and rejected paths.
+                </p>
+
+                <div class="ws-diff-cols-grid">
+                  <!-- Added Col -->
+                  <div class="ws-diff-column col-added">
+                    <div class="ws-diff-col-head"><i class="fa-solid fa-circle-plus"></i> Added Elements</div>
+                    <ul class="ws-diff-item-list" id="ws-diff-added-list">
+                      <li class="ws-empty-item">No additions</li>
+                    </ul>
+                  </div>
+
+                  <!-- Modified Col -->
+                  <div class="ws-diff-column col-mod">
+                    <div class="ws-diff-col-head"><i class="fa-solid fa-pen-to-square"></i> Modified State</div>
+                    <ul class="ws-diff-item-list" id="ws-diff-mod-list">
+                      <li class="ws-empty-item">No modifications</li>
+                    </ul>
+                  </div>
+
+                  <!-- Removed Col -->
+                  <div class="ws-diff-column col-rem">
+                    <div class="ws-diff-col-head"><i class="fa-solid fa-circle-minus"></i> Removed / Discarded</div>
+                    <ul class="ws-diff-item-list" id="ws-diff-rem-list">
+                      <li class="ws-empty-item">No discarded elements</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 4: CROSS-AI HANDOFF DISPATCHER -->
+          <div class="ws-panel" id="ws-panel-handoff">
+            <div class="ws-handoff-container">
+              <div class="ws-handoff-controls">
+                <div class="ws-form-row">
+                  <div class="ws-field-third">
+                    <label for="ws-ho-source" class="ws-label">Source Context</label>
+                    <select id="ws-ho-source" class="ws-input-select">
+                      <option value="chatgpt" selected>ChatGPT</option>
+                      <option value="claude">Claude</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="cursor">Cursor</option>
+                    </select>
+                  </div>
+                  <div class="ws-field-third">
+                    <label for="ws-ho-dest" class="ws-label">Destination AI Target</label>
+                    <select id="ws-ho-dest" class="ws-input-select">
+                      <option value="claude" selected>Claude 3.7 Sonnet (XML Spec)</option>
+                      <option value="chatgpt">ChatGPT (Markdown Package)</option>
+                      <option value="gemini">Google Gemini 2.0</option>
+                      <option value="cursor">Cursor IDE Agent (.cursorrules / Spec)</option>
+                    </select>
+                  </div>
+                  <div class="ws-field-third">
+                    <label for="ws-ho-notes" class="ws-label">Custom Hand-Off Focus (Optional)</label>
+                    <input type="text" id="ws-ho-notes" class="ws-text-input" placeholder="e.g. Focus on token revocation logic" />
+                  </div>
+                </div>
+
+                <div class="ws-handoff-generate-row">
+                  <button class="ws-primary-btn" id="ws-btn-generate-handoff" type="button">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Generate Tailored Handoff Payload</span>
+                  </button>
+                  <div class="ws-ho-meta-tags">
+                    <span class="ws-pill-tag"><i class="fa-solid fa-shield"></i> Zero Prompt Re-explanation</span>
+                    <span class="ws-pill-tag"><i class="fa-solid fa-code"></i> Model-Specific Prompting</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Handoff Output Payload Box -->
+              <div class="ws-handoff-output-box">
+                <div class="ws-handoff-output-bar">
+                  <span class="ws-ho-format" id="ws-ho-format-tag"><i class="fa-solid fa-terminal"></i> Formatted Handoff Payload</span>
+                  <div class="ws-ho-actions">
+                    <button class="ws-btn ws-btn-sm" id="ws-btn-copy-payload" type="button">
+                      <i class="fa-regular fa-clone"></i>
+                      <span>Copy Context Payload</span>
+                    </button>
+                    <button class="ws-btn ws-btn-primary ws-btn-sm" id="ws-btn-open-target" type="button">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                      <span id="ws-open-target-text">Open Claude</span>
+                    </button>
+                  </div>
+                </div>
+                <pre class="ws-ho-code-block" id="ws-ho-code-block"><code>Click "Generate Tailored Handoff Payload" to format the active project context for your destination AI.</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-Modal: New Project Creation -->
+    <div class="submodal-overlay" id="new-project-modal" aria-hidden="true" style="display: none;">
+      <div class="submodal-card glass-modal" role="dialog" aria-modal="true">
+        <div class="submodal-header">
+          <h3>Create Persistent Project</h3>
+          <button class="submodal-close" id="btn-close-new-project">&times;</button>
+        </div>
+        <div class="submodal-body">
+          <div class="ws-field-full">
+            <label for="new-proj-name" class="ws-label">Project Name</label>
+            <input type="text" id="new-proj-name" class="ws-text-input" placeholder="e.g. Nexora Autonomous Agent" />
+          </div>
+          <div class="ws-field-full">
+            <label for="new-proj-desc" class="ws-label">Short Description</label>
+            <input type="text" id="new-proj-desc" class="ws-text-input" placeholder="e.g. Multi-agent context orchestrator" />
+          </div>
+          <div class="ws-field-full">
+            <label for="new-proj-goal" class="ws-label">Initial Objective (Optional)</label>
+            <textarea id="new-proj-goal" class="ws-textarea-field" rows="2" placeholder="e.g. Build production resilience into cross-model session continuity."></textarea>
+          </div>
+        </div>
+        <div class="submodal-footer">
+          <button class="ws-btn ws-btn-secondary" id="btn-cancel-new-project" type="button">Cancel</button>
+          <button class="ws-btn ws-btn-primary" id="btn-submit-new-project" type="button">Create Project</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-Modal: Authentication / Sign In -->
+    <div class="submodal-overlay" id="auth-modal" aria-hidden="true" style="display: none;">
+      <div class="submodal-card glass-modal auth-card" role="dialog" aria-modal="true">
+        <div class="submodal-header">
+          <h3 id="auth-modal-title">Continuo Account</h3>
+          <button class="submodal-close" id="btn-close-auth">&times;</button>
+        </div>
+        <div class="submodal-body">
+          <div class="auth-tabs">
+            <button class="auth-tab active" id="auth-tab-login" type="button">Sign In</button>
+            <button class="auth-tab" id="auth-tab-register" type="button">Register</button>
+          </div>
+
+          <div class="ws-field-full" id="auth-name-group" style="display: none;">
+            <label for="auth-name" class="ws-label">Full Name</label>
+            <input type="text" id="auth-name" class="ws-text-input" placeholder="e.g. Elena Rostova" />
+          </div>
+          <div class="ws-field-full">
+            <label for="auth-email" class="ws-label">Email Address</label>
+            <input type="email" id="auth-email" class="ws-text-input" placeholder="engineer@continuo.ai" />
+          </div>
+          <div class="ws-field-full">
+            <label for="auth-password" class="ws-label">Password</label>
+            <input type="password" id="auth-password" class="ws-text-input" placeholder="••••••••••••" />
+          </div>
+
+          <div class="auth-error-msg" id="auth-error-msg" style="display: none;"></div>
+
+          <button class="ws-btn ws-btn-primary full-width" id="btn-submit-auth" type="button">Sign In</button>
+
+          <div class="auth-divider">
+            <span>OR QUICK ACCESS</span>
+          </div>
+
+          <button class="ws-btn ws-btn-secondary full-width" id="btn-demo-engineer" type="button">
+            <i class="fa-solid fa-bolt" style="color: #38bdf8;"></i>
+            <span>Continue as Demo Engineer (Instant)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Mobile Drawer Overlay & Sheet -->
     <div class="mobile-overlay" id="mobile-overlay" aria-hidden="true"></div>
     <div class="mobile-sheet" id="mobile-sheet" role="dialog" aria-modal="true" hidden>
