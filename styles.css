@@ -17,7 +17,8 @@
   --trust-size: clamp(36px, 4.5vw, 42px);
   --accent-cyan: #38bdf8;
   --accent-emerald: #10b981;
-  --card-bg: rgba(24, 24, 27, 0.65);
+  --accent-purple: #a855f7;
+  --card-bg: rgba(20, 20, 24, 0.72);
   --card-border: rgba(255, 255, 255, 0.12);
 }
 
@@ -58,15 +59,59 @@ body {
 }
 
 /* ==========================================================================
-   Background Video Layer (Hero Background with Soft Blend)
+   GLOBAL CONTINUOUS AMBIENT BACKGROUND SYSTEM
    ========================================================================== */
-.bg {
+.continuo-ambient-system {
   position: fixed;
   inset: 0;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
   background-color: #000000;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
+}
+
+/* Layer 0: Technical Coordinate Micro-Grid with Subtle Parallax */
+.ambient-grid-overlay {
+  position: absolute;
+  inset: -60px;
+  width: calc(100% + 120px);
+  height: calc(100% + 120px);
+  background-image: linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.65;
+  pointer-events: none;
+  will-change: transform;
+  mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.35) 100%);
+  -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* Layer 0.5: Analog SVG Noise/Grain Overlay (Eliminates OLED gradient banding) */
+.ambient-noise-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.7;
+  mix-blend-mode: overlay;
+  z-index: 1;
+}
+
+/* Layer 1: Looping Background Video with Smooth Dynamic Cross-Fade */
+.ambient-video-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.88;
+  transition: opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+  z-index: 1;
 }
 
 .bg-video {
@@ -76,15 +121,291 @@ body {
   height: 100%;
   object-fit: cover;
   pointer-events: none;
-  opacity: 0.88;
 }
 
-.bg-overlay {
+.ambient-video-gradient {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.7) 70%),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.4) 70%, #000000 100%);
+  background: radial-gradient(circle at center, transparent 35%, rgba(0, 0, 0, 0.65) 75%, #000000 100%),
+    linear-gradient(to bottom, transparent 30%, rgba(0, 0, 0, 0.75) 80%, #000000 100%);
   pointer-events: none;
+}
+
+/* Layer 2: Dedicated Cross-Fading Atmospheric Aura System per Section */
+.aura-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform;
+}
+
+.aura-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
+.aura-layer.active {
+  opacity: 1;
+}
+
+.aura-glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+/* Hero Auras: Deep Indigo, Electric Sky & Radiant Violet */
+.aura-hero-1 {
+  width: 720px;
+  height: 720px;
+  top: -12%;
+  left: 12%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.28) 0%, transparent 70%);
+}
+.aura-hero-2 {
+  width: 650px;
+  height: 650px;
+  top: 32%;
+  right: 10%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 70%);
+}
+.aura-hero-3 {
+  width: 540px;
+  height: 540px;
+  bottom: 8%;
+  left: 28%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, transparent 70%);
+}
+
+/* Problem Auras: Fractured Crimson & Amber Stutter Atmosphere */
+.aura-problem-1 {
+  width: 760px;
+  height: 760px;
+  top: 15%;
+  left: 15%;
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.22) 0%, transparent 70%);
+}
+.aura-problem-2 {
+  width: 680px;
+  height: 680px;
+  top: 45%;
+  right: 12%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+}
+
+/* Engine Auras: High-Velocity Electric Cyan & Ingestion Emerald */
+.aura-engine-1 {
+  width: 800px;
+  height: 800px;
+  top: 20%;
+  right: 12%;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.24) 0%, transparent 70%);
+}
+.aura-engine-2 {
+  width: 700px;
+  height: 700px;
+  top: 55%;
+  left: 8%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%);
+}
+
+/* Memory Auras: Calm Persistent Sapphire & Royal Indigo */
+.aura-memory-1 {
+  width: 850px;
+  height: 850px;
+  top: 18%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.26) 0%, transparent 70%);
+}
+.aura-memory-2 {
+  width: 650px;
+  height: 650px;
+  bottom: 12%;
+  right: 15%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 70%);
+}
+
+/* Mesh Auras: Inter-Model Violet & Cyan Bridge */
+.aura-mesh-1 {
+  width: 750px;
+  height: 750px;
+  top: 25%;
+  left: 12%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%);
+}
+.aura-mesh-2 {
+  width: 700px;
+  height: 700px;
+  top: 52%;
+  right: 10%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 70%);
+}
+
+/* How It Works Auras: Directional Flow Emerald & Aqua */
+.aura-how-1 {
+  width: 800px;
+  height: 800px;
+  top: 30%;
+  left: 18%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.24) 0%, transparent 70%);
+}
+.aura-how-2 {
+  width: 700px;
+  height: 700px;
+  top: 58%;
+  right: 14%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.20) 0%, transparent 70%);
+}
+
+/* Playground Auras: Luminous Active Dispatch Sky */
+.aura-playground-1 {
+  width: 780px;
+  height: 780px;
+  top: 20%;
+  right: 15%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.26) 0%, transparent 70%);
+}
+.aura-playground-2 {
+  width: 680px;
+  height: 680px;
+  bottom: 15%;
+  left: 12%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.20) 0%, transparent 70%);
+}
+
+/* Privacy Auras: Shielded Platinum & Calibrated Slate */
+.aura-privacy-1 {
+  width: 700px;
+  height: 700px;
+  top: 25%;
+  left: 20%;
+  background: radial-gradient(circle, rgba(148, 163, 184, 0.20) 0%, transparent 70%);
+}
+.aura-privacy-2 {
+  width: 650px;
+  height: 650px;
+  top: 50%;
+  right: 15%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, transparent 70%);
+}
+
+/* CTA Auras: Resurgence of Radiance & White Core */
+.aura-cta-1 {
+  width: 900px;
+  height: 900px;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, transparent 70%);
+}
+.aura-cta-2 {
+  width: 1000px;
+  height: 1000px;
+  top: 48%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.28) 0%, transparent 70%);
+}
+
+/* Layer 3: Interactive Context-Flow Canvas */
+.ambient-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Layer 4: Vignette Contrast Layer (Guarantees Content Readability) */
+.ambient-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: radial-gradient(ellipse at center, transparent 38%, rgba(0, 0, 0, 0.76) 100%);
+}
+
+/* Atmospheric Transition Bridge between Hero and Section 2 */
+.section-ambient-bridge {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 0 16px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bridge-stream {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.bridge-line-pulse {
+  width: 2px;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, rgba(56, 189, 248, 0.7), rgba(239, 68, 68, 0.7), transparent);
+  animation: bridgePulse 2.2s ease-in-out infinite;
+}
+
+.bridge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(20, 20, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 11px;
+  font-weight: 500;
+  color: #a1a1aa;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.bridge-chip i {
+  color: var(--accent-cyan);
+  font-size: 10px;
+  animation: bridgeArrow 1.5s ease-in-out infinite;
+}
+
+@keyframes bridgePulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scaleY(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.15);
+  }
+}
+
+@keyframes bridgeArrow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
 }
 
 /* ==========================================================================
@@ -104,10 +425,10 @@ body {
 
 body.scrolled .header-container {
   padding: 12px clamp(14px, 3vw, 32px);
-  background-color: rgba(0, 0, 0, 0.65);
+  background-color: rgba(0, 0, 0, 0.68);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .header {
@@ -450,7 +771,7 @@ body.menu-open .burger-bar:nth-child(3) {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  background: rgba(40, 40, 42, 0.7);
+  background: rgba(40, 40, 42, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 999px;
   padding: 6px 16px;
@@ -672,14 +993,127 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 /* ==========================================================================
-   Shared Section Architecture
+   Shared Section Architecture (Translucent & Atmospheric)
    ========================================================================== */
 .section {
   position: relative;
   width: 100%;
   padding: clamp(80px, 12vh, 130px) clamp(16px, 4vw, 36px);
-  background-color: #000000;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  max-width: 800px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Subtle contextual radial haze at the top of each section for smooth visual continuity */
+.problem-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 600px;
+  height: 260px;
+  background: radial-gradient(ellipse at center, rgba(239, 68, 68, 0.07) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.engine-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 650px;
+  height: 280px;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.memory-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 650px;
+  height: 280px;
+  background: radial-gradient(ellipse at center, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.mesh-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 650px;
+  height: 280px;
+  background: radial-gradient(ellipse at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.sticky-walkthrough-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 700px;
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.playground-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 700px;
+  height: 300px;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.09) 0%, transparent 70%);
+  pointer-events: none;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.final-cta-section::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  width: 800px;
+  height: 340px;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.12) 0%, rgba(56, 189, 248, 0.08) 50%, transparent 70%);
+  pointer-events: none;
+  filter: blur(50px);
+  z-index: 0;
 }
 
 .section-container {
@@ -701,7 +1135,7 @@ body.menu-open .burger-bar:nth-child(3) {
   align-items: center;
   padding: 5px 14px;
   border-radius: 999px;
-  background: var(--pill-dark);
+  background: rgba(40, 40, 44, 0.75);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #e4e4e7;
   font-size: 12px;
@@ -709,6 +1143,8 @@ body.menu-open .burger-bar:nth-child(3) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin-bottom: 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .section-title {
@@ -763,16 +1199,18 @@ body.menu-open .burger-bar:nth-child(3) {
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .compare-bad {
-  border-color: rgba(239, 68, 68, 0.25);
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(24, 24, 27, 0.7) 100%);
+  border-color: rgba(239, 68, 68, 0.28);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06) 0%, rgba(20, 20, 24, 0.75) 100%);
 }
 
 .compare-good {
   border-color: rgba(16, 185, 129, 0.35);
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, rgba(24, 24, 27, 0.7) 100%);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.06) 0%, rgba(20, 20, 24, 0.75) 100%);
 }
 
 .compare-tag {
@@ -806,8 +1244,8 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .user-msg {
-  background: rgba(40, 40, 42, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(35, 35, 38, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   align-self: flex-start;
   width: 100%;
 }
@@ -825,7 +1263,7 @@ body.menu-open .burger-bar:nth-child(3) {
   align-items: center;
   gap: 10px;
   background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   color: #fca5a5;
   padding: 10px 14px;
   border-radius: 12px;
@@ -856,8 +1294,8 @@ body.menu-open .burger-bar:nth-child(3) {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   padding: 10px 14px;
   border-radius: 14px;
 }
@@ -952,6 +1390,8 @@ body.menu-open .burger-bar:nth-child(3) {
   border-radius: 28px;
   padding: 32px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .col-header {
@@ -980,8 +1420,8 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .feed-item {
-  background: rgba(30, 30, 33, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(30, 30, 34, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -992,7 +1432,7 @@ body.menu-open .burger-bar:nth-child(3) {
 
 .feed-item:hover {
   transform: translateX(4px);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .feed-badge {
@@ -1134,7 +1574,7 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .context-card {
-  background: rgba(30, 30, 33, 0.7);
+  background: rgba(30, 30, 34, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   padding: 12px 10px;
@@ -1146,13 +1586,13 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .context-card:hover {
-  background: rgba(45, 45, 50, 0.9);
+  background: rgba(45, 45, 50, 0.95);
   border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
 }
 
 .context-card.active-card {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   border-color: #ffffff;
   box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
 }
@@ -1185,7 +1625,7 @@ body.menu-open .burger-bar:nth-child(3) {
 
 /* Live Card Inspector */
 .card-inspector {
-  background: rgba(18, 18, 20, 0.9);
+  background: rgba(18, 18, 22, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 14px;
   padding: 14px;
@@ -1228,6 +1668,8 @@ body.menu-open .burger-bar:nth-child(3) {
   border-radius: 28px;
   padding: 32px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .project-header-bar {
@@ -1335,7 +1777,7 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .ver-tab {
-  background: rgba(35, 35, 38, 0.8);
+  background: rgba(35, 35, 40, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   padding: 6px 14px;
@@ -1359,7 +1801,7 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .version-diff-card {
-  background: rgba(18, 18, 20, 0.85);
+  background: rgba(18, 18, 22, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 24px;
@@ -1393,7 +1835,7 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .diff-col {
-  background: rgba(25, 25, 28, 0.6);
+  background: rgba(25, 25, 30, 0.7);
   border-radius: 12px;
   padding: 16px;
 }
@@ -1506,11 +1948,13 @@ body.menu-open .burger-bar:nth-child(3) {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(30, 30, 33, 0.85);
+  background: rgba(30, 30, 35, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   padding: 8px 18px 8px 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.2s ease;
 }
@@ -1592,22 +2036,24 @@ body.menu-open .burger-bar:nth-child(3) {
 .step-card {
   display: flex;
   gap: 20px;
-  background: rgba(24, 24, 27, 0.5);
+  background: rgba(24, 24, 28, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
   padding: 24px;
   transition: all 0.3s ease;
   cursor: pointer;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .step-card:hover {
   border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(30, 30, 34, 0.7);
+  background: rgba(32, 32, 36, 0.75);
 }
 
 .step-card.active-step {
   border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(40, 40, 44, 0.85);
+  background: rgba(40, 40, 46, 0.88);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 
@@ -1647,11 +2093,13 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .product-window {
-  background: #18181b;
+  background: rgba(24, 24, 28, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 24px;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .window-bar {
@@ -1659,7 +2107,7 @@ body.menu-open .burger-bar:nth-child(3) {
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  background: #121214;
+  background: rgba(18, 18, 20, 0.9);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1694,7 +2142,7 @@ body.menu-open .burger-bar:nth-child(3) {
 
 /* Chrome Extension Mockup inside Window */
 .ext-mockup {
-  background: #202023;
+  background: rgba(32, 32, 36, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   padding: 20px;
@@ -1852,6 +2300,8 @@ body.menu-open .burger-bar:nth-child(3) {
   border-radius: 28px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .play-controls {
@@ -1859,7 +2309,7 @@ body.menu-open .burger-bar:nth-child(3) {
   align-items: center;
   gap: 20px;
   padding: 20px 24px;
-  background: #141416;
+  background: rgba(20, 20, 24, 0.85);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1936,7 +2386,7 @@ body.menu-open .burger-bar:nth-child(3) {
 }
 
 .payload-code {
-  background: #09090b;
+  background: rgba(9, 9, 11, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   padding: 20px;
@@ -1968,6 +2418,8 @@ body.menu-open .burger-bar:nth-child(3) {
   flex-direction: column;
   gap: 12px;
   transition: transform 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .privacy-card:hover {
@@ -2002,7 +2454,7 @@ body.menu-open .burger-bar:nth-child(3) {
    9) SECTION 9: FINAL CTA
    ========================================================================== */
 .final-cta-card {
-  background: linear-gradient(180deg, rgba(30, 30, 34, 0.8) 0%, rgba(15, 15, 18, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(30, 30, 35, 0.82) 0%, rgba(15, 15, 20, 0.95) 100%);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 36px;
   padding: clamp(48px, 8vh, 80px) clamp(24px, 4vw, 48px);
@@ -2011,6 +2463,8 @@ body.menu-open .burger-bar:nth-child(3) {
   flex-direction: column;
   align-items: center;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 .final-badge {
@@ -2072,9 +2526,11 @@ body.menu-open .burger-bar:nth-child(3) {
    ========================================================================== */
 .site-footer {
   width: 100%;
-  background: #09090b;
+  background: rgba(9, 9, 11, 0.95);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 60px clamp(16px, 4vw, 36px) 36px;
+  position: relative;
+  z-index: 2;
 }
 
 .footer-container {
@@ -2574,7 +3030,8 @@ body.menu-open .burger-bar:nth-child(3) {
   .anim,
   .anim-pulse,
   .hl-line,
-  .reveal-on-scroll {
+  .reveal-on-scroll,
+  .ambient-orb {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;

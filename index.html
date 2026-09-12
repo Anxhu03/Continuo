@@ -37,15 +37,83 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Full-bleed background video for the Hero section -->
-    <div class="bg" id="bg-hero">
-      <video class="bg-video" autoplay muted loop playsinline>
-        <source
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4"
-          type="video/mp4"
-        />
-      </video>
-      <div class="bg-overlay"></div>
+    <!-- =================================================================
+         GLOBAL CONTINUOUS AMBIENT BACKGROUND SYSTEM
+         Multi-layered: Base Void -> Grid -> Noise -> Video -> Dynamic Auras -> Canvas -> Vignette
+         ================================================================= -->
+    <div class="continuo-ambient-system" id="ambient-system" aria-hidden="true">
+      <!-- Layer 0: Technical coordinate micro-grid with scroll parallax -->
+      <div class="ambient-grid-overlay" id="ambient-grid-overlay"></div>
+
+      <!-- Layer 0.5: Analog SVG Noise/Grain Overlay (Prevents dark-mode color banding) -->
+      <div class="ambient-noise-overlay"></div>
+
+      <!-- Layer 1: Looping Video Background with Scroll-Interpolated Cross-Fade -->
+      <div class="ambient-video-layer" id="ambient-video-layer">
+        <video class="bg-video" id="bg-video-el" autoplay muted loop playsinline>
+          <source
+            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260809_012548_ef22562c-c0ae-4816-ad9d-f8922af4e6a7.mp4"
+            type="video/mp4"
+          />
+        </video>
+        <div class="ambient-video-gradient"></div>
+      </div>
+
+      <!-- Layer 2: Dedicated Cross-Fading Atmospheric Aura Layers per Section -->
+      <div class="aura-container" id="aura-container">
+        <!-- Hero Aura: Indigo & Sky Radiance -->
+        <div class="aura-layer aura-hero active">
+          <div class="aura-glow aura-hero-1"></div>
+          <div class="aura-glow aura-hero-2"></div>
+          <div class="aura-glow aura-hero-3"></div>
+        </div>
+        <!-- Problem Aura: Disconnected Crimson & Amber Fractures -->
+        <div class="aura-layer aura-problem">
+          <div class="aura-glow aura-problem-1"></div>
+          <div class="aura-glow aura-problem-2"></div>
+        </div>
+        <!-- Engine Aura: Electric Cyan & Data Ingestion Emerald -->
+        <div class="aura-layer aura-engine">
+          <div class="aura-glow aura-engine-1"></div>
+          <div class="aura-glow aura-engine-2"></div>
+        </div>
+        <!-- Memory Aura: Calm Persistent Sapphire & Indigo -->
+        <div class="aura-layer aura-memory">
+          <div class="aura-glow aura-memory-1"></div>
+          <div class="aura-glow aura-memory-2"></div>
+        </div>
+        <!-- Mesh Aura: Multi-Node Transit Violet -->
+        <div class="aura-layer aura-mesh">
+          <div class="aura-glow aura-mesh-1"></div>
+          <div class="aura-glow aura-mesh-2"></div>
+        </div>
+        <!-- How It Works Aura: Flowing Context Emerald -->
+        <div class="aura-layer aura-how">
+          <div class="aura-glow aura-how-1"></div>
+          <div class="aura-glow aura-how-2"></div>
+        </div>
+        <!-- Playground Aura: Directional Handoff Cyan -->
+        <div class="aura-layer aura-playground">
+          <div class="aura-glow aura-playground-1"></div>
+          <div class="aura-glow aura-playground-2"></div>
+        </div>
+        <!-- Privacy Aura: Calibrated Steel & Slate -->
+        <div class="aura-layer aura-privacy">
+          <div class="aura-glow aura-privacy-1"></div>
+          <div class="aura-glow aura-privacy-2"></div>
+        </div>
+        <!-- CTA Aura: Maximum Luminous Radiance -->
+        <div class="aura-layer aura-cta">
+          <div class="aura-glow aura-cta-1"></div>
+          <div class="aura-glow aura-cta-2"></div>
+        </div>
+      </div>
+
+      <!-- Layer 3: Interactive Context-Flow Canvas (Particles & Node Connections) -->
+      <canvas class="ambient-canvas" id="continuo-ambient-canvas"></canvas>
+
+      <!-- Layer 4: Vignette & Reading Contrast Mask -->
+      <div class="ambient-vignette"></div>
     </div>
 
     <!-- Sticky Header -->
@@ -97,7 +165,7 @@
       <!-- =================================================================
            SECTION 1: HERO SECTION (Exact Visual Identity Preserved)
            ================================================================= -->
-      <section class="hero-section" id="hero">
+      <section class="hero-section" id="hero" data-ambient-theme="hero">
         <div class="hero-inner">
           <!-- Trust Row -->
           <div class="trust-row anim" style="--d: 0.05s" id="hero-trust">
@@ -237,10 +305,19 @@
         </a>
       </section>
 
+      <!-- Atmospheric Transition Bridge: Flowing downward context stream -->
+      <div class="section-ambient-bridge bridge-hero-to-problem" aria-hidden="true">
+        <div class="bridge-stream">
+          <div class="bridge-line-pulse"></div>
+          <div class="bridge-chip"><i class="fa-solid fa-arrow-down"></i> Context Flowing</div>
+          <div class="bridge-line-pulse"></div>
+        </div>
+      </div>
+
       <!-- =================================================================
            SECTION 2: THE PROBLEM / CONTEXT FRACTURE
            ================================================================= -->
-      <section class="section problem-section" id="problem">
+      <section class="section problem-section" id="problem" data-ambient-theme="problem">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">The AI Context Wall</div>
@@ -320,7 +397,7 @@
       <!-- =================================================================
            SECTION 3: THE INTERACTIVE CONTEXT ENGINE (The Core Tech)
            ================================================================= -->
-      <section class="section engine-section" id="engine">
+      <section class="section engine-section" id="engine" data-ambient-theme="engine">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">Core Technology</div>
@@ -468,7 +545,7 @@
       <!-- =================================================================
            SECTION 4: INTERACTIVE PROJECT MEMORY (Version Timeline & Diff)
            ================================================================= -->
-      <section class="section memory-section" id="memory">
+      <section class="section memory-section" id="memory" data-ambient-theme="memory">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">Project Memory</div>
@@ -554,7 +631,7 @@
       <!-- =================================================================
            SECTION 5: AI PROVIDER MESH
            ================================================================= -->
-      <section class="section mesh-section" id="providers">
+      <section class="section mesh-section" id="providers" data-ambient-theme="mesh">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">Model Agnostic</div>
@@ -629,7 +706,7 @@
       <!-- =================================================================
            SECTION 6: STICKY "HOW CONTINUO WORKS" & UI PREVIEWS
            ================================================================= -->
-      <section class="section sticky-walkthrough-section" id="how-it-works">
+      <section class="section sticky-walkthrough-section" id="how-it-works" data-ambient-theme="how">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">The Workflow</div>
@@ -760,7 +837,7 @@
       <!-- =================================================================
            SECTION 7: LIVE INTERACTIVE HANDOFF PLAYGROUND
            ================================================================= -->
-      <section class="section playground-section" id="handoff-playground">
+      <section class="section playground-section" id="handoff-playground" data-ambient-theme="playground">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">Interactive Playground</div>
@@ -847,7 +924,7 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
       <!-- =================================================================
            SECTION 8: PRIVACY & ARCHITECTURE
            ================================================================= -->
-      <section class="section privacy-section" id="privacy">
+      <section class="section privacy-section" id="privacy" data-ambient-theme="privacy">
         <div class="section-container">
           <div class="section-header reveal-on-scroll">
             <div class="badge-pill">Privacy First</div>
@@ -883,7 +960,7 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
       <!-- =================================================================
            SECTION 9: FINAL CTA & CONCLUSION
            ================================================================= -->
-      <section class="section final-cta-section" id="cta-section">
+      <section class="section final-cta-section" id="cta-section" data-ambient-theme="cta">
         <div class="section-container">
           <div class="final-cta-card reveal-on-scroll">
             <div class="final-badge">Start In Seconds</div>

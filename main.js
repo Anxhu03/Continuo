@@ -1,17 +1,21 @@
 /**
- * CONTINUO — Interactive Motion Engine & Storytelling Controller
- * Features:
- * 1. IntersectionObserver Stats Count-Up
- * 2. Header Scroll Blur & ScrollSpy Navigation
- * 3. Scroll Reveal Animations
- * 4. Interactive Context Engine Inspector (9 Structured Nodes)
- * 5. Interactive Project Memory Version Diff Switcher
- * 6. Sticky Walkthrough Step Controller & Window Morphing
- * 7. Live Interactive Handoff Playground & 1-Click Clipboard Copy
- * 8. Mobile Drawer Sheet Menu with ARIA Accessibility
+ * CONTINUO — Interactive Motion Engine & Living Ambient Background System
+ *
+ * Modules:
+ * 1. Global Continuo Ambient Background Engine (Canvas Context-Flow + Dynamic Aura Orbs)
+ * 2. Section Scroll-Tracking & Atmosphere State Switcher
+ * 3. Stats Count-Up Engine (easeOutCubic)
+ * 4. Header Scroll Blur & ScrollSpy Navigation
+ * 5. Scroll Reveal Animations
+ * 6. Interactive Context Engine Inspector (9 Structured Nodes)
+ * 7. Interactive Project Memory Version Diff Switcher
+ * 8. Sticky Walkthrough Step Controller & Window Morphing
+ * 9. Live Interactive Handoff Playground & 1-Click Clipboard Copy
+ * 10. Mobile Drawer Sheet Menu with ARIA Accessibility
  */
 
 document.addEventListener("DOMContentLoaded", () => {
+  initAmbientEngine();
   initStatsCountUp();
   initHeaderScroll();
   initScrollSpy();
@@ -24,7 +28,556 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================================================
-   1. Stats Count-Up Engine (easeOutCubic, exact formulas)
+   1. GLOBAL CONTINUOUS AMBIENT BACKGROUND SYSTEM
+   Canvas Context-Flow Particles + Dynamic Atmospheric Aura Layers
+   ========================================================================== */
+function initAmbientEngine() {
+  const ambientSystem = document.getElementById("ambient-system");
+  const canvas = document.getElementById("continuo-ambient-canvas");
+  const videoLayer = document.getElementById("ambient-video-layer");
+  const gridOverlay = document.getElementById("ambient-grid-overlay");
+  const auraContainer = document.getElementById("aura-container");
+  if (!ambientSystem || !canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  // Check reduced motion
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)"
+  ).matches;
+
+  // Section-specific atmosphere profiles
+  const themeProfiles = {
+    hero: {
+      rgb: [255, 255, 255],
+      dash: [],
+      speed: 1.0,
+      flowX: 0,
+      packetColor: "#38bdf8",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    problem: {
+      rgb: [239, 68, 68],
+      dash: [4, 6],
+      speed: 0.6,
+      flowX: 0,
+      packetColor: "#ef4444",
+      brokenPackets: true,
+      hasOrbit: false,
+    },
+    engine: {
+      rgb: [56, 189, 248],
+      dash: [],
+      speed: 1.35,
+      flowX: 0.25,
+      packetColor: "#00f2fe",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    memory: {
+      rgb: [99, 102, 241],
+      dash: [2, 4],
+      speed: 0.7,
+      flowX: 0,
+      packetColor: "#818cf8",
+      brokenPackets: false,
+      hasOrbit: true,
+    },
+    mesh: {
+      rgb: [168, 85, 247],
+      dash: [],
+      speed: 1.1,
+      flowX: 0.35,
+      packetColor: "#c084fc",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    how: {
+      rgb: [16, 185, 129],
+      dash: [],
+      speed: 1.2,
+      flowX: 0.45,
+      packetColor: "#10b981",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    playground: {
+      rgb: [56, 189, 248],
+      dash: [],
+      speed: 1.25,
+      flowX: 0.5,
+      packetColor: "#38bdf8",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    privacy: {
+      rgb: [148, 163, 184],
+      dash: [3, 3],
+      speed: 0.8,
+      flowX: 0,
+      packetColor: "#94a3b8",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+    cta: {
+      rgb: [255, 255, 255],
+      dash: [],
+      speed: 1.35,
+      flowX: 0.3,
+      packetColor: "#ffffff",
+      brokenPackets: false,
+      hasOrbit: false,
+    },
+  };
+
+  let currentTheme = "hero";
+  let targetProfile = themeProfiles.hero;
+
+  // Interpolated visual values for buttery smooth transition
+  let activeR = 255,
+    activeG = 255,
+    activeB = 255;
+  let activeSpeed = 1.0;
+  let activeFlowX = 0;
+
+  // Switch atmosphere smoothly
+  function switchAtmosphere(theme) {
+    if (!theme || !themeProfiles[theme] || theme === currentTheme) return;
+    currentTheme = theme;
+    targetProfile = themeProfiles[theme];
+
+    // Hardware-accelerated cross-fade of dedicated aura layers
+    const auraLayers = document.querySelectorAll(".aura-layer");
+    auraLayers.forEach((layer) => {
+      if (layer.classList.contains(`aura-${theme}`)) {
+        layer.classList.add("active");
+      } else {
+        layer.classList.remove("active");
+      }
+    });
+
+    // Update ambient-system container class
+    ambientSystem.className = `continuo-ambient-system theme-${theme}`;
+  }
+
+  // Observe all sections with data-ambient-theme
+  const sections = document.querySelectorAll("section[data-ambient-theme]");
+  if (sections.length && "IntersectionObserver" in window) {
+    const themeObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const theme = entry.target.getAttribute("data-ambient-theme");
+            switchAtmosphere(theme);
+          }
+        });
+      },
+      { threshold: 0.25 }
+    );
+
+    sections.forEach((sec) => themeObserver.observe(sec));
+  }
+
+  // Scroll listener: Cross-fade video & apply subtle 3D optical parallax
+  window.addEventListener(
+    "scroll",
+    () => {
+      const scrollY = window.scrollY;
+      const heroHeight = window.innerHeight;
+
+      // Video opacity transition
+      if (videoLayer) {
+        if (scrollY < heroHeight) {
+          const ratio = 1 - scrollY / heroHeight;
+          videoLayer.style.opacity = (0.18 + ratio * 0.7).toFixed(2);
+        } else if (currentTheme === "cta") {
+          videoLayer.style.opacity = "0.32";
+        } else {
+          videoLayer.style.opacity = "0.08";
+        }
+      }
+
+      // Parallax shifts on background layers (safe modulo loop for grid)
+      if (gridOverlay && !prefersReducedMotion) {
+        gridOverlay.style.transform = `translate3d(0, ${
+          -(scrollY * 0.04) % 60
+        }px, 0)`;
+      }
+      if (auraContainer && !prefersReducedMotion) {
+        auraContainer.style.transform = `translate3d(0, ${-(
+          scrollY * 0.05
+        )}px, 0)`;
+      }
+    },
+    { passive: true }
+  );
+
+  // If user prefers reduced motion, draw calm starfield & return
+  if (prefersReducedMotion) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+    for (let i = 0; i < 45; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        Math.random() * canvas.width,
+        Math.random() * canvas.height,
+        1.2,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+    return;
+  }
+
+  // Canvas DPR and Resizing
+  let width = 0;
+  let height = 0;
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resizeCanvas() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+  }
+
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas, { passive: true });
+
+  // Mouse / Pointer Interaction (Gentle, subtle aura)
+  const mouse = {
+    x: width / 2,
+    y: height / 2,
+    targetX: width / 2,
+    targetY: height / 2,
+    active: false,
+  };
+
+  const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  if (!isCoarsePointer) {
+    window.addEventListener(
+      "mousemove",
+      (e) => {
+        mouse.targetX = e.clientX;
+        mouse.targetY = e.clientY;
+        mouse.active = true;
+      },
+      { passive: true }
+    );
+
+    document.addEventListener("mouseleave", () => {
+      mouse.active = false;
+    });
+  }
+
+  // Context-Flow Node Structure (Adaptive for mobile, tablet, desktop)
+  const isMobile = width <= 768;
+  const isTablet = width > 768 && width <= 1024;
+  const nodeCount = isMobile ? 18 : isTablet ? 32 : Math.min(50, Math.floor(width / 28));
+  const nodes = [];
+
+  class ContextNode {
+    constructor() {
+      this.reset(true);
+    }
+
+    reset(initial = false) {
+      this.x = Math.random() * width;
+      this.y = initial ? Math.random() * height : -20;
+      this.baseRadius = 1.2 + Math.random() * 1.8;
+      this.radius = this.baseRadius;
+
+      // Gentle drift speed
+      this.vx = (Math.random() - 0.5) * 0.4;
+      this.vy = 0.15 + Math.random() * 0.35;
+
+      // Color variation (white, cyan, soft violet)
+      const r = Math.random();
+      if (r < 0.5) {
+        this.color = "rgba(255, 255, 255, 0.4)";
+        this.packetColor = "#ffffff";
+      } else if (r < 0.8) {
+        this.color = "rgba(56, 189, 248, 0.5)";
+        this.packetColor = "#38bdf8";
+      } else {
+        this.color = "rgba(168, 85, 247, 0.45)";
+        this.packetColor = "#a855f7";
+      }
+
+      this.pulsePhase = Math.random() * Math.PI * 2;
+      this.pulseSpeed = 0.02 + Math.random() * 0.03;
+    }
+
+    update(speedMult, flowX) {
+      this.x += (this.vx + flowX) * speedMult;
+      this.y += this.vy * speedMult;
+
+      // Gentle pulse
+      this.pulsePhase += this.pulseSpeed;
+      this.radius = this.baseRadius + Math.sin(this.pulsePhase) * 0.45;
+
+      // Subtle mouse deflection
+      if (mouse.active) {
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 130;
+
+        if (dist < maxDist && dist > 0) {
+          const force = (1 - dist / maxDist) * 1.4;
+          this.x += (dx / dist) * force;
+          this.y += (dy / dist) * force;
+        }
+      }
+
+      // Wrap boundaries
+      if (this.x < -30) this.x = width + 30;
+      if (this.x > width + 30) this.x = -30;
+      if (this.y > height + 30) {
+        this.reset(false);
+      }
+    }
+
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, Math.max(0.6, this.radius), 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
+  }
+
+  for (let i = 0; i < nodeCount; i++) {
+    nodes.push(new ContextNode());
+  }
+
+  // Orbiting Satellite Memory Nodes (For Project Memory theme)
+  const memoryAnchors = [
+    { xRatio: 0.28, yRatio: 0.42, angle: 0, speed: 0.015, radius: 26 },
+    { xRatio: 0.72, yRatio: 0.58, angle: Math.PI, speed: 0.012, radius: 32 },
+  ];
+
+  // Traveling Data Packets between nodes
+  class DataPacket {
+    constructor() {
+      this.nodeA = null;
+      this.nodeB = null;
+      this.progress = 0;
+      this.speed = 0.015;
+      this.color = "#38bdf8";
+      this.active = false;
+      this.isBroken = false;
+      this.breakPoint = 0.5;
+    }
+
+    spawn(a, b, color, isBroken = false) {
+      this.nodeA = a;
+      this.nodeB = b;
+      this.progress = 0;
+      this.speed = 0.012 + Math.random() * 0.02;
+      this.color = color || "#38bdf8";
+      this.active = true;
+      this.isBroken = isBroken;
+      this.breakPoint = 0.35 + Math.random() * 0.35;
+    }
+
+    update() {
+      if (!this.active) return;
+      this.progress += this.speed;
+
+      // If broken packet (e.g. Problem section token wall), vanish at breakPoint
+      if (this.isBroken && this.progress >= this.breakPoint) {
+        this.active = false;
+        return;
+      }
+
+      if (this.progress >= 1) {
+        this.active = false;
+      }
+    }
+
+    draw() {
+      if (!this.active || !this.nodeA || !this.nodeB) return;
+      const curX = this.nodeA.x + (this.nodeB.x - this.nodeA.x) * this.progress;
+      const curY = this.nodeA.y + (this.nodeB.y - this.nodeA.y) * this.progress;
+
+      let alpha = 1;
+      if (this.isBroken) {
+        alpha = Math.max(0, 1 - this.progress / this.breakPoint);
+      }
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.arc(curX, curY, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  const packetPool = [];
+  const maxPackets = isMobile ? 7 : isTablet ? 12 : 18;
+  for (let i = 0; i < maxPackets; i++) {
+    packetPool.push(new DataPacket());
+  }
+
+  function triggerPacket(a, b, color, isBroken) {
+    const idlePacket = packetPool.find((p) => !p.active);
+    if (idlePacket) {
+      idlePacket.spawn(a, b, color, isBroken);
+    }
+  }
+
+  // Animation Loop (60 FPS optimized)
+  let animationId = null;
+  let lastPacketTime = 0;
+
+  function render(timestamp) {
+    ctx.clearRect(0, 0, width, height);
+
+    // Smoothly interpolate RGB and dynamics toward target profile
+    activeR += (targetProfile.rgb[0] - activeR) * 0.05;
+    activeG += (targetProfile.rgb[1] - activeG) * 0.05;
+    activeB += (targetProfile.rgb[2] - activeB) * 0.05;
+    activeSpeed += (targetProfile.speed - activeSpeed) * 0.05;
+    activeFlowX += (targetProfile.flowX - activeFlowX) * 0.05;
+
+    // Smooth mouse lerp
+    mouse.x += (mouse.targetX - mouse.x) * 0.08;
+    mouse.y += (mouse.targetY - mouse.y) * 0.08;
+
+    // Subtle cursor ambient aura
+    if (mouse.active) {
+      const gradient = ctx.createRadialGradient(
+        mouse.x,
+        mouse.y,
+        0,
+        mouse.x,
+        mouse.y,
+        170
+      );
+      gradient.addColorStop(0, "rgba(56, 189, 248, 0.06)");
+      gradient.addColorStop(0.6, "rgba(99, 102, 241, 0.02)");
+      gradient.addColorStop(1, "transparent");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // Connect close nodes
+    const connectionDist = isMobile ? 80 : isTablet ? 105 : 125;
+    const rInt = Math.round(activeR);
+    const gInt = Math.round(activeG);
+    const bInt = Math.round(activeB);
+
+    for (let i = 0; i < nodes.length; i++) {
+      nodes[i].update(activeSpeed, activeFlowX);
+      nodes[i].draw();
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < connectionDist) {
+          const alpha = (1 - dist / connectionDist) * 0.18;
+
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+
+          if (targetProfile.dash.length) {
+            ctx.setLineDash(targetProfile.dash);
+          } else {
+            ctx.setLineDash([]);
+          }
+
+          ctx.strokeStyle = `rgba(${rInt}, ${gInt}, ${bInt}, ${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Trigger context packets
+          if (
+            timestamp - lastPacketTime > (isMobile ? 360 : 200) &&
+            Math.random() < 0.07
+          ) {
+            triggerPacket(
+              nodes[i],
+              nodes[j],
+              targetProfile.packetColor,
+              targetProfile.brokenPackets && Math.random() < 0.45
+            );
+            lastPacketTime = timestamp;
+          }
+        }
+      }
+    }
+
+    // Draw orbiting memory structures when in Memory section
+    if (targetProfile.hasOrbit) {
+      memoryAnchors.forEach((anchor) => {
+        const ax = width * anchor.xRatio;
+        const ay = height * anchor.yRatio;
+        anchor.angle += anchor.speed;
+
+        // Central anchor node
+        ctx.beginPath();
+        ctx.arc(ax, ay, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(99, 102, 241, 0.65)";
+        ctx.shadowColor = "#818cf8";
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Orbit ring
+        ctx.beginPath();
+        ctx.arc(ax, ay, anchor.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(99, 102, 241, 0.12)";
+        ctx.setLineDash([2, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Orbiting satellite particle
+        const sx = ax + Math.cos(anchor.angle) * anchor.radius;
+        const sy = ay + Math.sin(anchor.angle) * anchor.radius;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#38bdf8";
+        ctx.fill();
+      });
+    }
+
+    // Update and draw packets
+    for (let i = 0; i < packetPool.length; i++) {
+      packetPool[i].update();
+      packetPool[i].draw();
+    }
+
+    animationId = requestAnimationFrame(render);
+  }
+
+  // Start animation loop
+  animationId = requestAnimationFrame(render);
+
+  // Pause when document hidden to conserve CPU/battery
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      if (animationId) cancelAnimationFrame(animationId);
+    } else {
+      animationId = requestAnimationFrame(render);
+    }
+  });
+}
+
+/* ==========================================================================
+   2. Stats Count-Up Engine (easeOutCubic, exact formulas)
    ========================================================================== */
 function initStatsCountUp() {
   const statElements = document.querySelectorAll(".stat-val");
@@ -92,7 +645,7 @@ function initStatsCountUp() {
 }
 
 /* ==========================================================================
-   2. Header Scroll Blur & ScrollSpy Navigation
+   3. Header Scroll Blur & ScrollSpy Navigation
    ========================================================================== */
 function initHeaderScroll() {
   let ticking = false;
@@ -139,7 +692,7 @@ function initScrollSpy() {
 }
 
 /* ==========================================================================
-   3. Scroll Reveal Animations (IntersectionObserver)
+   4. Scroll Reveal Animations (IntersectionObserver)
    ========================================================================== */
 function initScrollReveals() {
   const revealElements = document.querySelectorAll(".reveal-on-scroll");
@@ -165,7 +718,7 @@ function initScrollReveals() {
 }
 
 /* ==========================================================================
-   4. Interactive Context Engine Inspector (9 Structured Nodes)
+   5. Interactive Context Engine Inspector (9 Structured Nodes)
    ========================================================================== */
 function initContextEngineInspector() {
   const contextDetails = {
@@ -252,7 +805,7 @@ function initContextEngineInspector() {
 }
 
 /* ==========================================================================
-   5. Interactive Project Memory Version Diff Switcher
+   6. Interactive Project Memory Version Diff Switcher
    ========================================================================== */
 function initProjectMemoryDiff() {
   const diffData = {
@@ -335,7 +888,7 @@ function initProjectMemoryDiff() {
 }
 
 /* ==========================================================================
-   6. Sticky Walkthrough Step Controller & Window Morphing
+   7. Sticky Walkthrough Step Controller & Window Morphing
    ========================================================================== */
 function initWalkthroughSteps() {
   const stepCards = document.querySelectorAll(".step-card");
@@ -490,7 +1043,7 @@ function initWalkthroughSteps() {
 }
 
 /* ==========================================================================
-   7. Live Interactive Handoff Playground & 1-Click Clipboard Copy
+   8. Live Interactive Handoff Playground & 1-Click Clipboard Copy
    ========================================================================== */
 function initHandoffPlayground() {
   const sourceSelect = document.getElementById("source-ai-select");
@@ -553,24 +1106,25 @@ Continue directly from the CURRENT WORKING STATE for ${destName}. Do NOT restart
   if (sourceSelect) sourceSelect.addEventListener("change", updateCode);
   if (destSelect) destSelect.addEventListener("change", updateCode);
 
-  // Copy button
   if (copyBtn) {
     copyBtn.addEventListener("click", () => {
       const text = codeBlock ? codeBlock.textContent : "";
       if (!text) return;
 
-      navigator.clipboard.writeText(text).then(() => {
-        showToast("Handoff payload copied to clipboard!");
-      }).catch(() => {
-        // Fallback
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
-        showToast("Handoff payload copied to clipboard!");
-      });
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          showToast("Handoff payload copied to clipboard!");
+        })
+        .catch(() => {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+          showToast("Handoff payload copied to clipboard!");
+        });
     });
   }
 
@@ -585,7 +1139,7 @@ Continue directly from the CURRENT WORKING STATE for ${destName}. Do NOT restart
 }
 
 /* ==========================================================================
-   8. Mobile Drawer Sheet Menu Controller
+   9. Mobile Drawer Sheet Menu Controller
    ========================================================================== */
 function initMobileMenu() {
   const burgerBtn = document.getElementById("burger-btn");
