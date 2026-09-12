@@ -195,7 +195,8 @@ body {
   border-radius: 50%;
   filter: blur(48px);
   pointer-events: none;
-  mix-blend-mode: screen;
+  transform: translateZ(0);
+  will-change: transform, opacity;
 }
 
 /* Hero Auras: Deep Indigo, Electric Sky & Radiant Violet */
@@ -474,7 +475,7 @@ body.scrolled .header-container {
 
 /* 1. Left: Brand Link (Unboxed Floating Logo Mark + Wordmark) */
 .brand-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   height: 48px;
   gap: 10px;
@@ -488,79 +489,45 @@ body.scrolled .header-container {
   cursor: pointer;
 }
 
-.brand-mark,
-.logo-btn,
-.glass-logo {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.logo-img {
   width: 28px;
   height: 28px;
-  line-height: 1;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 0 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: visible !important;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  object-fit: contain;
+  display: block;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+  z-index: 1;
+  /* Pure glowing white mark with soft, emitted luminosity */
+  filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+  transition: filter 0.3s ease, transform 0.3s ease;
 }
 
-.glass-reflection-dome {
-  display: none !important;
-}
-
-.brand-link:hover .brand-mark,
-.brand-link:hover .glass-logo {
-  transform: translateY(-1px) scale(1.05);
-}
-
-.brand-link:active .brand-mark,
-.brand-link:active .glass-logo {
-  transform: scale(0.96);
+.brand-link:hover .logo-img {
+  filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.5));
+  transform: scale(1.06);
 }
 
 .brand-wordmark {
   display: inline-flex;
   align-items: center;
-  height: 100%;
-  font-family: var(--font-display);
-  font-size: 15px;
   line-height: 1;
+  font-family: var(--font-sans);
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: #ffffff;
   text-transform: uppercase;
-  transition: color 0.25s ease, text-shadow 0.25s ease;
+  margin: 0;
+  padding: 0;
   user-select: none;
+  transition: color 0.25s ease, text-shadow 0.25s ease;
 }
 
 .brand-link:hover .brand-wordmark {
   color: #ffffff;
   text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
-}
-
-.logo-img {
-  width: 26px;
-  height: 26px;
-  object-fit: contain;
-  display: block;
-  margin: 0;
-  padding: 0;
-  vertical-align: middle;
-  z-index: 1;
-  /* Pure glowing white mark with soft, emitted luminosity */
-  filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.35));
-  transition: filter 0.3s ease, transform 0.3s ease;
-}
-
-.brand-link:hover .logo-img {
-  filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.55));
-  transform: scale(1.06);
 }
 
 /* 2. Center: Floating Glass Navigation Pill */
@@ -1686,64 +1653,138 @@ body.menu-open .burger-bar:nth-child(3) {
   line-height: 1.4;
 }
 
-/* Engine Core Orb Column */
+/* Engine Core Column & Central Orbit/Logo System */
 .engine-core-column {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 20px 0;
+  padding: 16px 0;
 }
 
-.engine-core-orb {
+/* Mathematically centered orbit/glow/logo system */
+.center-engine-core {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 124px;
+  height: 124px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  margin-bottom: 16px;
 }
 
-.orb-ring {
+/* Atmospheric subtle cyan/violet radiant surrounding glow */
+.center-glow {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 136px;
+  height: 136px;
   border-radius: 50%;
-  border: 1px dashed rgba(255, 255, 255, 0.3);
-  animation: rotateOrb 16s linear infinite;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 72%);
+  filter: blur(12px);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.ring-2 {
-  inset: -10px;
-  border-color: rgba(56, 189, 248, 0.25);
-  animation-direction: reverse;
-}
-
-.orb-logo {
-  position: relative;
+/* Concentric rotating orbit rings sharing exact mathematical center */
+.center-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  pointer-events: none;
   z-index: 2;
-  width: 54px;
-  height: 54px;
+}
+
+.center-orbit.orbit-outer {
+  width: 114px;
+  height: 114px;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  animation: orbitClockwise 20s linear infinite;
+}
+
+.center-orbit.orbit-inner {
+  width: 82px;
+  height: 82px;
+  border: 1px dashed rgba(56, 189, 248, 0.35);
+  animation: orbitCounterClockwise 14s linear infinite;
+}
+
+/* Orbiting nodes */
+.orbit-node {
+  position: absolute;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
-  display: grid;
-  place-items: center;
 }
 
-.orb-logo img {
-  width: 68%;
-  height: 68%;
-  object-fit: contain;
+.orbit-node.node-1 {
+  top: -3px;
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 6px;
+  background: var(--accent-cyan, #38bdf8);
+  box-shadow: 0 0 8px #38bdf8;
 }
 
-@keyframes rotateOrb {
+.orbit-node.node-2 {
+  bottom: -3px;
+  left: calc(50% - 2.5px);
+  width: 5px;
+  height: 5px;
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+}
+
+@keyframes orbitClockwise {
   from {
-    transform: rotate(0deg);
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   to {
-    transform: rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
+}
+
+@keyframes orbitCounterClockwise {
+  from {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+}
+
+/* Central Continuo floating logo - NO card, NO background, NO border */
+.center-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.center-logo-img {
+  width: 44px;
+  height: 44px;
+  display: block;
+  object-fit: contain;
+  margin: 0;
+  padding: 0;
+  /* Glowing pure white mark with soft ambient bloom */
+  filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.45));
 }
 
 .engine-core-title {
@@ -1759,7 +1800,7 @@ body.menu-open .burger-bar:nth-child(3) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .core-tag {
@@ -1771,19 +1812,45 @@ body.menu-open .burger-bar:nth-child(3) {
   color: #d4d4d8;
 }
 
-.core-arrow-indicator {
+/* Data Flow Indicator & Directional Arrows */
+.engine-flow-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #71717a;
   font-size: 18px;
-  animation: arrowPulse 1.5s infinite ease-in-out;
 }
 
-@keyframes arrowPulse {
+.flow-arrow {
+  animation: arrowPulseHorizontal 1.8s infinite ease-in-out;
+}
+
+.desktop-only {
+  display: inline-block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@keyframes arrowPulseHorizontal {
   0%, 100% {
     transform: translateX(0);
     opacity: 0.4;
   }
   50% {
     transform: translateX(6px);
+    opacity: 1;
+  }
+}
+
+@keyframes arrowPulseVertical {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(6px);
     opacity: 1;
   }
 }
@@ -3435,18 +3502,23 @@ body.menu-open .burger-bar:nth-child(3) {
   }
 
   .engine-core-column {
-    flex-direction: row;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    gap: 20px;
-    padding: 10px 0;
+    gap: 12px;
+    padding: 16px 0;
   }
 
-  .engine-core-orb {
-    margin-bottom: 0;
+  .desktop-only {
+    display: none !important;
   }
 
-  .core-arrow-indicator {
-    transform: rotate(90deg);
+  .mobile-only {
+    display: inline-block !important;
+  }
+
+  .flow-arrow.mobile-only {
+    animation: arrowPulseVertical 1.8s infinite ease-in-out;
   }
 
   .walkthrough-layout {
