@@ -230,9 +230,9 @@
 
           <!-- CTA Buttons -->
           <div class="cta-group anim-pulse" style="--d: 0.45s">
-            <a href="#how-it-works" class="cta-btn" id="hero-cta">
-              <span>Add to Chrome</span>
-              <i class="fa-solid fa-arrow-down-long" style="margin-left: 8px; font-size: 12px;"></i>
+            <a href="install.html" class="cta-btn" id="hero-cta" title="Install Continuo Chrome Extension">
+              <span>Install Extension</span>
+              <i class="fa-brands fa-chrome" style="margin-left: 8px; font-size: 13px;"></i>
             </a>
             <a href="#engine" class="cta-secondary-btn">
               <span>See Context Engine</span>
@@ -1096,9 +1096,9 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
               No complex setup. No recurring prompt explanations.
             </p>
             <div class="final-actions">
-              <a href="#how-it-works" class="cta-btn" id="footer-cta-btn">
-                <span>Add to Chrome</span>
-                <i class="fa-solid fa-arrow-up-right-from-square" style="margin-left: 8px; font-size: 13px;"></i>
+              <a href="install.html" class="cta-btn" id="footer-cta-btn" title="Install Continuo Chrome Extension">
+                <span>Install Extension</span>
+                <i class="fa-brands fa-chrome" style="margin-left: 8px; font-size: 13px;"></i>
               </a>
               <a href="#handoff-playground" class="cta-secondary-btn">
                 <span>Try Playground</span>
@@ -1823,101 +1823,6 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
       </div>
     </div>
 
-    <!-- Sub-Modal: Chrome Extension Developer Installation Guide (Section 29) -->
-    <div class="submodal-overlay" id="extension-install-modal" aria-hidden="true" style="display: none;">
-      <div class="submodal-card glass-modal ext-install-card" role="dialog" aria-modal="true" aria-labelledby="ext-modal-title">
-        <div class="glass-specular-edge"></div>
-
-        <div class="submodal-header">
-          <div class="auth-header-brand">
-            <div class="auth-brand-emblem">
-              <img src="assets/logo.webp" alt="Continuo" class="auth-emblem-img" width="22" height="22" />
-            </div>
-            <div class="auth-header-copy">
-              <h3 id="ext-modal-title" class="auth-title">Install Continuo Extension</h3>
-              <span class="auth-subtitle">Developer Mode Installation (Unpacked Manifest V3)</span>
-            </div>
-          </div>
-          <button class="submodal-close" id="btn-close-ext-modal" aria-label="Close installation modal">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="submodal-body">
-          <p class="ext-modal-lead">
-            Continuo is available as an unpacked Chrome Extension during the developer preview.
-            Follow these 8 steps to install:
-          </p>
-
-          <ol class="ext-step-list">
-            <li>
-              <span class="step-num">1</span>
-              <div class="step-content">
-                <strong>Download or clone the repository</strong>
-                <code>git clone https://github.com/Anxhu03/Continuo.git</code>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">2</span>
-              <div class="step-content">
-                <strong>Open Chrome Extensions</strong>
-                <span>Navigate to <code>chrome://extensions</code> in your browser address bar.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">3</span>
-              <div class="step-content">
-                <strong>Enable Developer Mode</strong>
-                <span>Toggle the <strong>Developer mode</strong> switch in the top-right corner.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">4</span>
-              <div class="step-content">
-                <strong>Click "Load unpacked"</strong>
-                <span>Click the <strong>Load unpacked</strong> button in the top-left toolbar.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">5</span>
-              <div class="step-content">
-                <strong>Select the extension directory</strong>
-                <span>Choose the <code>Continuo/extension</code> folder from your cloned repository.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">6</span>
-              <div class="step-content">
-                <strong>Pin Continuo</strong>
-                <span>Click the Extensions puzzle icon in Chrome and pin Continuo to your toolbar.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">7</span>
-              <div class="step-content">
-                <strong>Open your AI platform</strong>
-                <span>Go to <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>.</span>
-              </div>
-            </li>
-            <li>
-              <span class="step-num">8</span>
-              <div class="step-content">
-                <strong>Click Continuo to capture!</strong>
-                <span>Click the Continuo extension icon and click <strong>Save Context</strong>.</span>
-              </div>
-            </li>
-          </ol>
-
-          <div class="ext-modal-footer">
-            <button class="continuo-btn continuo-btn-primary full-width" id="btn-ext-got-it" type="button">
-              <span>Got It, Let's Go</span>
-              <i class="fa-solid fa-arrow-right btn-icon"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Mobile Drawer Overlay & Sheet -->
     <div class="mobile-overlay" id="mobile-overlay" aria-hidden="true"></div>
     <div class="mobile-sheet" id="mobile-sheet" role="dialog" aria-modal="true" hidden>
@@ -1927,7 +1832,8 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
         <a href="#engine" class="mobile-link" style="--link-idx: 2">Context Engine</a>
         <a href="#memory" class="mobile-link" style="--link-idx: 3">Project Memory</a>
         <a href="#how-it-works" class="mobile-link" style="--link-idx: 4">How It Works</a>
-        <a href="#handoff-playground" class="mobile-signin-btn" style="--link-idx: 5">Try Handoff</a>
+        <a href="install.html" class="mobile-link" style="--link-idx: 5"><i class="fa-brands fa-chrome" style="margin-right: 6px;"></i> Install Extension</a>
+        <button type="button" class="mobile-signin-btn" id="mobile-ws-btn" style="--link-idx: 6">Open Workspace</button>
       </nav>
     </div>
 
@@ -1940,7 +1846,8 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
     <!-- Lenis Smooth Scroll Engine -->
     <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"></script>
 
-    <!-- Main Script -->
+    <!-- Configuration & Main Scripts -->
+    <script src="config.js"></script>
     <script src="main.js" defer></script>
   </body>
 </html>

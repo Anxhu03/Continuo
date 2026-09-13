@@ -14,6 +14,15 @@
  * 10. Mobile Drawer Sheet Menu with ARIA Accessibility
  */
 
+/**
+ * CONTINUO GLOBAL EXTENSION DISTRIBUTION CONFIGURATION
+ * Reads from config.js (window.CHROME_EXTENSION_STORE_URL) or defaults to null.
+ */
+const CHROME_EXTENSION_STORE_URL =
+  typeof window !== "undefined" && window.CHROME_EXTENSION_STORE_URL !== undefined
+    ? window.CHROME_EXTENSION_STORE_URL
+    : null;
+
 document.addEventListener("DOMContentLoaded", () => {
   initLenisSmoothScroll();
   initAmbientEngine();
@@ -27,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initWalkthroughSteps();
   initHandoffPlayground();
   initMobileMenu();
+  initExtensionCta();
   initContinuoWorkspaceApp();
 });
 
@@ -1352,8 +1362,6 @@ function initContinuoWorkspaceApp() {
   const headerLaunchBtn = document.getElementById("header-launch-btn");
   const headerSigninBtn = document.getElementById("header-signin-btn");
   const navAuthLabel = document.getElementById("nav-auth-label");
-  const heroCtaBtn = document.getElementById("hero-cta");
-  const footerCtaBtn = document.getElementById("footer-cta-btn");
   const wsProjectSelect = document.getElementById("ws-project-select");
   const wsBtnNewProject = document.getElementById("ws-btn-new-project");
   const wsVerChip = document.getElementById("ws-ver-chip");
@@ -2358,46 +2366,6 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   }
 
   // =========================================================================
-  // Chrome Extension Installation Guide Modal (Section 29)
-  // =========================================================================
-  function openExtensionInstallModal() {
-    if (extInstallModal) {
-      extInstallModal.style.display = "flex";
-      document.body.style.overflow = "hidden";
-      if (lenisInstance) lenisInstance.stop();
-    }
-  }
-
-  function closeExtensionInstallModal() {
-    if (extInstallModal) {
-      extInstallModal.style.display = "none";
-      document.body.style.overflow = "";
-      if (lenisInstance) lenisInstance.start();
-    }
-  }
-
-  if (heroCtaBtn) {
-    heroCtaBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      openExtensionInstallModal();
-    });
-  }
-  if (footerCtaBtn) {
-    footerCtaBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      openExtensionInstallModal();
-    });
-  }
-  if (btnCloseExtModal) btnCloseExtModal.addEventListener("click", closeExtensionInstallModal);
-  if (btnExtGotIt) btnExtGotIt.addEventListener("click", closeExtensionInstallModal);
-
-  if (extInstallModal) {
-    extInstallModal.addEventListener("click", (e) => {
-      if (e.target === extInstallModal) closeExtensionInstallModal();
-    });
-  }
-
-  // =========================================================================
   // Workspace Open & Close
   // =========================================================================
   async function openWorkspace() {
@@ -2412,11 +2380,16 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   function closeWorkspace() {
     wsOverlay.classList.remove("active");
     document.body.style.overflow = "";
+    if (window.location.hash === "#workspace") {
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    }
     if (lenisInstance) lenisInstance.start();
   }
 
+  const mobileWsBtn = document.getElementById("mobile-ws-btn");
   if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
   if (headerSigninBtn) headerSigninBtn.addEventListener("click", openWorkspace);
+  if (mobileWsBtn) mobileWsBtn.addEventListener("click", openWorkspace);
   if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);
 
   wsOverlay.addEventListener("click", (e) => {
@@ -2425,15 +2398,25 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (extInstallModal && extInstallModal.style.display === "flex") {
-        closeExtensionInstallModal();
-      } else if (newProjectModal && newProjectModal.style.display === "flex") {
+      if (newProjectModal && newProjectModal.style.display === "flex") {
         closeNewProjectModal();
       } else if (authModal && authModal.style.display === "flex") {
         closeAuthModal();
       } else if (wsOverlay.classList.contains("active")) {
         closeWorkspace();
       }
+    }
+  });
+
+  // Handle direct navigation to #workspace from external pages like install.html
+  if (window.location.hash === "#workspace") {
+    setTimeout(() => {
+      openWorkspace();
+    }, 250);
+  }
+  window.addEventListener("hashchange", () => {
+    if (window.location.hash === "#workspace") {
+      openWorkspace();
     }
   });
 
@@ -2444,3 +2427,74 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   });
 }
 
+/* ==========================================================================
+   EXTENSION INSTALLATION CTA ENGINE
+   Responsible strictly for Chrome Extension installation flow.
+   NEVER routes to Workspace, /app, /workspace, or dashboard.
+   ========================================================================== */
+function initExtensionCta() {
+  const heroCtaBtn = document.getElementById("hero-cta");
+  const footerCtaBtn = document.getElementById("footer-cta-btn");
+  const mobileInstallLink = document.querySelector('a.mobile-link[href="install.html"]');
+  const storeUrl =
+    typeof window !== "undefined" && window.CHROME_EXTENSION_STORE_URL !== undefined
+      ? window.CHROME_EXTENSION_STORE_URL
+      : (typeof CHROME_EXTENSION_STORE_URL !== "undefined" ? CHROME_EXTENSION_STORE_URL : null);
+  const isProduction = Boolean(storeUrl);
+
+  const heroCtaText = heroCtaBtn ? heroCtaBtn.querySelector("span") : null;
+  const footerCtaText = footerCtaBtn ? footerCtaBtn.querySelector("span") : null;
+
+  if (isProduction) {
+    if (heroCtaText) heroCtaText.textContent = "Add to Chrome";
+    if (footerCtaText) footerCtaText.textContent = "Add to Chrome";
+    if (mobileInstallLink) {
+      mobileInstallLink.innerHTML = '<i class="fa-brands fa-chrome" style="margin-right: 6px;"></i> Add to Chrome';
+      mobileInstallLink.href = storeUrl;
+      mobileInstallLink.target = "_blank";
+      mobileInstallLink.rel = "noopener noreferrer";
+    }
+    if (heroCtaBtn) {
+      heroCtaBtn.href = storeUrl;
+      heroCtaBtn.setAttribute("title", "Add Continuo to Google Chrome from Chrome Web Store");
+    }
+    if (footerCtaBtn) {
+      footerCtaBtn.href = storeUrl;
+      footerCtaBtn.setAttribute("title", "Add Continuo to Google Chrome from Chrome Web Store");
+    }
+  } else {
+    if (heroCtaText) heroCtaText.textContent = "Install Extension";
+    if (footerCtaText) footerCtaText.textContent = "Install Extension";
+    if (mobileInstallLink) {
+      mobileInstallLink.innerHTML = '<i class="fa-brands fa-chrome" style="margin-right: 6px;"></i> Install Extension';
+      mobileInstallLink.href = "install.html";
+      mobileInstallLink.removeAttribute("target");
+      mobileInstallLink.removeAttribute("rel");
+    }
+    if (heroCtaBtn) {
+      heroCtaBtn.href = "install.html";
+      heroCtaBtn.setAttribute("title", "Install Continuo Chrome Extension (Development Build)");
+    }
+    if (footerCtaBtn) {
+      footerCtaBtn.href = "install.html";
+      footerCtaBtn.setAttribute("title", "Install Continuo Chrome Extension (Development Build)");
+    }
+  }
+
+  function navigateToAddExtension(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isProduction && storeUrl) {
+      window.open(storeUrl, "_blank", "noopener,noreferrer");
+    } else {
+      window.location.href = "install.html";
+    }
+  }
+
+  if (heroCtaBtn) {
+    heroCtaBtn.addEventListener("click", navigateToAddExtension);
+  }
+
+  if (footerCtaBtn) {
+    footerCtaBtn.addEventListener("click", navigateToAddExtension);
+  }
+}

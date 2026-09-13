@@ -21,7 +21,7 @@ class BaseProviderAdapter:
         raise NotImplementedError
 
 class UniversalHandoffFormatter:
-    """Formats standardized, cross-AI context payloads adhering to Section 8 schema."""
+    """Formats standardized, cross-AI context payloads adhering to token-efficient continuation schema."""
 
     @staticmethod
     def format_payload(context: Dict[str, Any], project_name: str, custom_instructions: Optional[str] = None) -> str:
@@ -29,69 +29,63 @@ class UniversalHandoffFormatter:
         goal = context.get("objective") or "Develop and refine project features."
         current_state = context.get("current_state") or "In active development."
 
-        # Requirements & Constraints
-        reqs = context.get("requirements", [])
-        consts = context.get("constraints", [])
-        combined_reqs = reqs + [f"[Constraint] {c}" for c in consts]
-        reqs_md = "\n".join(f"- {r}" for r in combined_reqs) if combined_reqs else "- Continue according to standard engineering best practices."
-
-        # Decisions
-        decs = context.get("decisions", []) + context.get("design_decisions", [])
-        decs_md = "\n".join(f"- {d}" for d in decs) if decs else "- No conflicting architectural decisions recorded."
-
-        # Completed Work
+        # Completed
         completed = context.get("completed_work", [])
-        completed_md = "\n".join(f"- {c}" for c in completed) if completed else "- Initial setup and baseline configuration completed."
+        completed_md = "\n".join(f"- {c}" for c in completed) if completed else "- Core baseline architecture established."
 
-        # Problems / Unresolved Issues / Failed attempts
+        # Important decisions
+        decs = context.get("decisions", []) + context.get("design_decisions", [])
+        decs_md = "\n".join(f"- {d}" for d in decs) if decs else "- Standard architectural patterns applied."
+
+        # Constraints & Requirements
+        consts = context.get("constraints", [])
+        reqs = context.get("requirements", [])
+        combined_consts = consts + reqs
+        consts_md = "\n".join(f"- {c}" for c in combined_consts) if combined_consts else "- Follow standard engineering quality and security guidelines."
+
+        # Known problems & unresolved issues
         problems = context.get("open_problems", []) + context.get("errors", [])
         failed = context.get("failed_attempts", [])
-        combined_issues = problems + [f"[Do Not Repeat] {f}" for f in failed]
-        issues_md = "\n".join(f"- {p}" for p in combined_issues) if combined_issues else "- No active blockers or unresolved errors."
+        combined_problems = problems + [f"[Do not repeat] {f}" for f in failed]
+        problems_md = "\n".join(f"- {p}" for p in combined_problems) if combined_problems else "- None recorded."
 
-        # Files / Code context
+        # Important files / code context
         files = context.get("files_context", [])
-        files_md = "\n".join(f"- `{f}`" for f in files) if files else "- Project root repository files."
+        files_md = f"\n\nFiles in scope:\n" + "\n".join(f"- `{f}`" for f in files) if files else ""
 
-        # Next steps
+        # Next task / steps
         next_steps = context.get("next_steps", [])
-        next_md = "\n".join(f"{i+1}. {s}" for i, s in enumerate(next_steps)) if next_steps else "1. Review current state and proceed with next planned task."
+        next_task = "\n".join(f"{i+1}. {s}" for i, s in enumerate(next_steps)) if next_steps else "1. Proceed with the next planned engineering milestone."
 
-        custom_directive = f"\n\n## Custom directive\n{custom_instructions}" if custom_instructions else ""
+        custom_directive = f"\n\nDirective:\n{custom_instructions}" if custom_instructions else ""
 
-        return f"""# Continue this project
+        return f"""You are continuing an existing project.
 
-## Project
+Project:
 {project_name} ({version})
 
-## Goal
+Goal:
 {goal}
 
-## Current state
+Current state:
 {current_state}
 
-## Important requirements
-{reqs_md}
-
-## Decisions already made
-{decs_md}
-
-## Completed work
+Completed:
 {completed_md}
 
-## Problems / unresolved issues
-{issues_md}
+Important decisions:
+{decs_md}
 
-## Important files or code context
-{files_md}
+Constraints:
+{consts_md}
 
-## Next step
-{next_md}
-{custom_directive}
-## Instructions for continuing
-You are continuing this project directly from the CURRENT STATE above.
-Do not restart from scratch, do not ask the user to re-explain, and do not repeat completed work or failed attempts.
-Acknowledge receipt and proceed directly with Next Step 1."""
+Known problems:
+{problems_md}{files_md}
+
+Next task:
+{next_task}{custom_directive}
+
+Continue from the current state. Do not restart the project or repeat completed work."""
 
 class ClaudeProviderAdapter(BaseProviderAdapter):
     """Formats context for Anthropic Claude models."""
