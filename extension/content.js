@@ -21,59 +21,85 @@ function extractActiveConversation() {
   let title = document.title || "AI Session";
   let turns = [];
 
+  // Helper to sanitize extracted text
+  const cleanText = (str) => {
+    if (!str) return "";
+    return str
+      .replace(/\b(Copy code|Copy|Edit|Share|Regenerate|Read aloud|Was this response better or worse\?)\b/gi, "")
+      .trim();
+  };
+
   if (host.includes("openai.com") || host.includes("chatgpt.com")) {
     provider = "chatgpt";
-    // ChatGPT message selector
-    const messageNodes = document.querySelectorAll("[data-message-author-role]");
+    // ChatGPT modern conversation turn selectors
+    const messageNodes = document.querySelectorAll("[data-message-author-role], article[data-testid^='conversation-turn']");
     if (messageNodes.length > 0) {
       messageNodes.forEach((node) => {
-        const role = node.getAttribute("data-message-author-role");
+        const role = node.getAttribute("data-message-author-role") ||
+                     (node.querySelector("[data-message-author-role='user']") ? "user" : "assistant");
         const roleLabel = role === "user" ? "User" : "Assistant";
-        const text = node.innerText.trim();
-        if (text) {
+        const text = cleanText(node.innerText);
+        if (text && text.length > 2) {
           turns.push(`${roleLabel}: ${text}`);
         }
       });
     } else {
-      // Fallback for newer or older ChatGPT layouts
-      const articles = document.querySelectorAll("article");
+      // Fallback for alternate ChatGPT layouts
+      const articles = document.querySelectorAll("article, .text-message");
       articles.forEach((art) => {
-        const text = art.innerText.trim();
-        if (text) turns.push(text);
+        const text = cleanText(art.innerText);
+        if (text && text.length > 2) turns.push(text);
       });
     }
   } else if (host.includes("claude.ai")) {
     provider = "claude";
     // Claude message containers
-    const humanNodes = document.querySelectorAll(".font-user-message, [data-testid='user-message']");
-    const claudeNodes = document.querySelectorAll(".font-claude-message, [data-testid='assistant-message']");
-    
-    // Generic fallback: all message containers
-    const allContainers = document.querySelectorAll(".grid-cols-1");
-    if (allContainers.length > 0) {
-      allContainers.forEach((c) => {
-        const text = c.innerText.trim();
-        if (text) turns.push(text);
+    const messageTurns = document.querySelectorAll("[data-testid='user-message'], [data-testid='assistant-message'], .font-user-message, .font-claude-message");
+    if (messageTurns.length > 0) {
+      messageTurns.forEach((node) => {
+        const isUser = node.matches("[data-testid='user-message'], .font-user-message");
+        const roleLabel = isUser ? "User" : "Assistant";
+        const text = cleanText(node.innerText);
+        if (text && text.length > 2) {
+          turns.push(`${roleLabel}: ${text}`);
+        }
       });
+    } else {
+      // Generic fallback for Claude
+      const allContainers = document.querySelectorAll(".grid-cols-1, [data-is-streaming]");
+      if (allContainers.length > 0) {
+        allContainers.forEach((c) => {
+          const text = cleanText(c.innerText);
+          if (text && text.length > 2) turns.push(text);
+        });
+      }
     }
   } else if (host.includes("gemini.google.com")) {
     provider = "gemini";
-    const userPrompts = document.querySelectorAll(".user-query, .query-text");
-    const modelResponses = document.querySelectorAll(".model-response, .response-content");
+    // Gemini prompt and response selectors
+    const queryNodes = document.querySelectorAll(".user-query, .query-text, user-query-content");
+    const responseNodes = document.querySelectorAll(".model-response, .response-content, message-content");
     
-    userPrompts.forEach((up, idx) => {
-      turns.push(`User: ${up.innerText.trim()}`);
-      if (modelResponses[idx]) {
-        turns.push(`Assistant: ${modelResponses[idx].innerText.trim()}`);
+    if (queryNodes.length > 0 || responseNodes.length > 0) {
+      const maxLen = Math.max(queryNodes.length, responseNodes.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (queryNodes[i]) {
+          const uText = cleanText(queryNodes[i].innerText);
+          if (uText) turns.push(`User: ${uText}`);
+        }
+        if (responseNodes[i]) {
+          const aText = cleanText(responseNodes[i].innerText);
+          if (aText) turns.push(`Assistant: ${aText}`);
+        }
       }
-    });
+    }
   }
 
-  // Generic fallback if selector didn't catch specific tags
+  // Generic fallback if selectors didn't catch specific tags
   if (turns.length === 0) {
     const mainContent = document.querySelector("main") || document.body;
-    const text = mainContent.innerText.substring(0, 8000);
-    turns.push(text);
+    const text = cleanText(mainContent.innerText).substring(0, 12000);
+    if (text) turns.push(text);
   }
 
   const rawTranscript = turns.join("\n\n");

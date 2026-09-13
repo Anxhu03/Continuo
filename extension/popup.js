@@ -445,40 +445,36 @@ Next step: Verify cross-AI continuation links for ChatGPT, Claude, and Gemini.`;
     // Structured fallback matching Section 8 if backend is unreachable
     if (!payloadText) {
       const projName = projectSelect.options[projectSelect.selectedIndex]?.text || "Continuo Project";
-      payloadText = `# Continue this project
+      payloadText = `You are continuing an existing project.
 
-## Project
+Project:
 ${projName}
 
-## Goal
+Goal:
 Cross-AI context continuity without losing engineering decisions.
 
-## Current state
+Current state:
 Working context captured by Continuo and formatted for continuation.
 
-## Important requirements
-- Preserve all architectural constraints and security policies
-- Maintain provider neutrality
-
-## Decisions already made
-- Context stored in structured Project Memory
-- Version-controlled snapshots
-
-## Completed work
+Completed:
 - Core continuity pipeline verified
 - Browser extension capture operational
 
-## Problems / unresolved issues
+Important decisions:
+- Context stored in structured Project Memory
+- Version-controlled snapshots
+
+Constraints:
+- Preserve all architectural constraints and security policies
+- Maintain provider neutrality
+
+Known problems:
 - Direct API gateway connectivity is currently in offline/local fallback
 
-## Important files or code context
-- Continuo Chrome Extension and Context Engine
+Next task:
+1. Continue the task seamlessly in ${humanName}.
 
-## Next step
-Continue the task seamlessly in ${humanName}.
-
-## Instructions for continuing
-Read the context above and pick up from the next step directly.`;
+Continue from the current state. Do not restart the project or repeat completed work.`;
     }
 
     // 1. Copy to clipboard
