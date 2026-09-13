@@ -660,36 +660,185 @@ function initHeaderScroll() {
   }
 }
 
-function initScrollSpy() {
-  const sections = document.querySelectorAll("section[id]");
-  const navLinks = document.querySelectorAll(".nav-link, .mobile-link");
-  if (!sections.length || !navLinks.length) return;
+/* ==========================================================================
+   3.5 Unified Navigation State & URL Hash Synchronization Engine
+   ========================================================================== */
+const PRIMARY_NAV_IDS = ["hero", "problem", "engine", "memory", "how-it-works"];
+const SECTION_NAV_MAP = {
+  hero: "hero",
+  problem: "problem",
+  engine: "engine",
+  memory: "memory",
+  providers: "memory",
+  "how-it-works": "how-it-works",
+  "handoff-playground": "how-it-works",
+  security: "how-it-works",
+  privacy: "how-it-works",
+  "cta-install": "how-it-works",
+};
 
+let currentActiveSectionId = "hero";
+let isNavProgrammaticScroll = false;
+
+function setActiveNav(targetSectionId, updateUrl = true) {
+  const mappedId = SECTION_NAV_MAP[targetSectionId] || targetSectionId;
+  if (!PRIMARY_NAV_IDS.includes(mappedId)) return;
+
+  currentActiveSectionId = mappedId;
+
+  // Desktop Navigation Pill Links
+  const desktopLinks = document.querySelectorAll(".nav-link");
+  desktopLinks.forEach((link) => {
+    const href = link.getAttribute("href");
+    const isActive = href === `#${mappedId}`;
+    link.classList.toggle("active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
+  });
+
+  // Mobile Navigation Drawer Links
+  const mobileLinks = document.querySelectorAll(".mobile-link");
+  mobileLinks.forEach((link) => {
+    const href = link.getAttribute("href");
+    if (href && href.startsWith("#")) {
+      const isActive = href === `#${mappedId}`;
+      link.classList.toggle("active", isActive);
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
+    }
+  });
+
+  // Keep browser URL hash synchronized without jumping
+  if (updateUrl && typeof history !== "undefined" && history.replaceState) {
+    const currentHash = window.location.hash;
+    const targetHash = mappedId === "hero" ? "" : `#${mappedId}`;
+    if (currentHash !== targetHash && currentHash !== "#workspace") {
+      const newUrl =
+        window.location.pathname + window.location.search + targetHash;
+      history.replaceState(null, document.title, newUrl);
+    }
+  }
+}
+
+// Expose globally for verification/diagnostics
+if (typeof window !== "undefined") {
+  window.setActiveNav = setActiveNav;
+}
+
+function updateActiveNavFromScroll() {
+  if (isNavProgrammaticScroll) return;
+
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  const viewportHeight = window.innerHeight;
+  const documentHeight = document.documentElement.scrollHeight;
+
+  // If at the top of the page -> always Hero / Home
+  if (scrollY < 80) {
+    setActiveNav("hero", true);
+    return;
+  }
+
+  // If scrolled to the bottom of the page -> always How It Works (final section)
+  if (scrollY + viewportHeight >= documentHeight - 60) {
+    setActiveNav("how-it-works", true);
+    return;
+  }
+
+  // Determine section from top down with floating header offset
+  const headerOffset = 110;
+  let activeId = "hero";
+
+  for (const id of PRIMARY_NAV_IDS) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const top = el.offsetTop - headerOffset;
+    if (scrollY >= top) {
+      activeId = id;
+    }
+  }
+
+  setActiveNav(activeId, true);
+}
+
+function handleInitialHashNavigation() {
+  const hash = window.location.hash;
+  if (!hash) {
+    setActiveNav("hero", false);
+    return;
+  }
+
+  if (hash === "#workspace") {
+    setTimeout(() => {
+      if (typeof window.openWorkspace === "function") window.openWorkspace();
+    }, 200);
+    return;
+  }
+
+  const rawId = hash.slice(1);
+  const mappedId = SECTION_NAV_MAP[rawId] || rawId;
+  const target = document.getElementById(rawId) || document.getElementById(mappedId);
+
+  if (target) {
+    // Immediately illuminate correct nav item so Home is NEVER shown erroneously
+    setActiveNav(mappedId, false);
+
+    isNavProgrammaticScroll = true;
+    setTimeout(() => {
+      if (lenisInstance) {
+        lenisInstance.scrollTo(target, {
+          offset: mappedId === "hero" ? 0 : -76,
+          immediate: true,
+        });
+      } else {
+        target.scrollIntoView({ behavior: "auto", block: "start" });
+      }
+      setTimeout(() => {
+        isNavProgrammaticScroll = false;
+        setActiveNav(mappedId, false);
+      }, 100);
+    }, 60);
+  }
+}
+
+function initScrollSpy() {
+  // IntersectionObserver serves as a secondary boundary validator
   if ("IntersectionObserver" in window) {
     const spyObserver = new IntersectionObserver(
       (entries) => {
+        if (isNavProgrammaticScroll) return;
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const id = entry.target.getAttribute("id");
-            navLinks.forEach((link) => {
-              const href = link.getAttribute("href");
-              if (href === `#${id}`) {
-                link.classList.add("active");
-              } else if (href && href.startsWith("#")) {
-                link.classList.remove("active");
-              }
-            });
+            const rawId = entry.target.getAttribute("id");
+            if (rawId && SECTION_NAV_MAP[rawId]) {
+              setActiveNav(SECTION_NAV_MAP[rawId], true);
+            }
           }
         });
       },
       {
-        rootMargin: "-20% 0px -60% 0px",
-        threshold: 0,
+        rootMargin: "-25% 0px -45% 0px",
+        threshold: 0.1,
       }
     );
 
-    sections.forEach((sec) => spyObserver.observe(sec));
+    PRIMARY_NAV_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) spyObserver.observe(el);
+    });
   }
+
+  // Listen to native scroll as well as Lenis
+  window.addEventListener("scroll", updateActiveNavFromScroll, { passive: true });
+
+  // Handle browser Back / Forward history
+  window.addEventListener("popstate", handleInitialHashNavigation);
+  window.addEventListener("hashchange", handleInitialHashNavigation);
 }
 
 /* ==========================================================================
@@ -728,73 +877,65 @@ function initLenisSmoothScroll() {
     "(prefers-reduced-motion: reduce)"
   ).matches;
 
-  if (prefersReducedMotion || typeof Lenis === "undefined") {
-    // Accessible instant/native navigation for reduced motion
-    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-      anchor.addEventListener("click", (e) => {
-        const href = anchor.getAttribute("href");
-        if (!href || href === "#") return;
-        const target = document.querySelector(href);
-        if (target) {
-          e.preventDefault();
-          if (document.body.classList.contains("menu-open")) {
-            document.body.classList.remove("menu-open");
-            const burger = document.getElementById("burger-btn");
-            const sheet = document.getElementById("mobile-sheet");
-            if (burger) burger.setAttribute("aria-expanded", "false");
-            if (sheet) sheet.hidden = true;
-          }
-          target.scrollIntoView({ behavior: "auto", block: "start" });
-        }
-      });
-    });
-    return;
-  }
-
   // Single authoritative Lenis instance
-  lenisInstance = new Lenis({
-    duration: 1.15,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    orientation: "vertical",
-    gestureOrientation: "vertical",
-    smoothWheel: true,
-    wheelMultiplier: 1.0,
-    touchMultiplier: 1.2,
-    infinite: false,
-  });
+  if (!prefersReducedMotion && typeof Lenis !== "undefined") {
+    lenisInstance = new Lenis({
+      duration: 1.15,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.2,
+      infinite: false,
+    });
 
-  function raf(time) {
-    lenisInstance.raf(time);
+    function raf(time) {
+      lenisInstance.raf(time);
+      requestAnimationFrame(raf);
+    }
     requestAnimationFrame(raf);
+
+    // Synchronize background grid and header scrolled state
+    const gridOverlay = document.getElementById("ambient-grid-overlay");
+    lenisInstance.on("scroll", (e) => {
+      const scrollY = e.scroll;
+
+      // Header scrolled state
+      if (scrollY > 30) {
+        document.body.classList.add("scrolled");
+      } else {
+        document.body.classList.remove("scrolled");
+      }
+
+      // Optical grid parallax
+      if (gridOverlay) {
+        gridOverlay.style.transform = `translate3d(0, ${-(scrollY * 0.04) % 60}px, 0)`;
+      }
+
+      updateActiveNavFromScroll();
+    });
   }
-  requestAnimationFrame(raf);
-
-  // Consolidated Lenis scroll listener (synchronizes header state and background grid parallax)
-  const gridOverlay = document.getElementById("ambient-grid-overlay");
-  lenisInstance.on("scroll", (e) => {
-    const scrollY = e.scroll;
-
-    // Header scrolled state
-    if (scrollY > 30) {
-      document.body.classList.add("scrolled");
-    } else {
-      document.body.classList.remove("scrolled");
-    }
-
-    // Grid optical parallax (safe modulo loop, running in lockstep with RAF)
-    if (gridOverlay) {
-      gridOverlay.style.transform = `translate3d(0, ${-(scrollY * 0.04) % 60}px, 0)`;
-    }
-  });
 
   // Wire internal anchor navigation to Lenis scrollTo with calculated header offset
   document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
     anchor.addEventListener("click", (e) => {
       const href = anchor.getAttribute("href");
       if (!href || href === "#") return;
+
+      // Workspace trigger link
+      if (href === "#workspace") {
+        e.preventDefault();
+        if (typeof window.openWorkspace === "function") {
+          window.openWorkspace();
+        }
+        return;
+      }
+
       const target = document.querySelector(href);
       if (target) {
         e.preventDefault();
+
         // Close mobile menu if opened
         if (document.body.classList.contains("menu-open")) {
           document.body.classList.remove("menu-open");
@@ -804,20 +945,48 @@ function initLenisSmoothScroll() {
           if (sheet) sheet.hidden = true;
         }
 
-        // Landing offset accounts for floating header; #hero scrolls to absolute top
-        const isHero = target.getAttribute("id") === "hero";
-        lenisInstance.scrollTo(target, {
-          offset: isHero ? 0 : -76,
-          duration: 1.15,
-          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        });
+        const rawId = href.replace("#", "");
+        const mappedId = SECTION_NAV_MAP[rawId] || rawId;
+
+        // Immediately update active state so UI responds instantly
+        setActiveNav(mappedId, true);
+
+        isNavProgrammaticScroll = true;
+        const isHero = rawId === "hero";
+
+        if (lenisInstance) {
+          lenisInstance.scrollTo(target, {
+            offset: isHero ? 0 : -76,
+            duration: 1.15,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            onComplete: () => {
+              isNavProgrammaticScroll = false;
+              updateActiveNavFromScroll();
+            },
+          });
+        } else {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          setTimeout(() => {
+            isNavProgrammaticScroll = false;
+            updateActiveNavFromScroll();
+          }, 600);
+        }
+
+        // Safety fallback to unlock scroll spy
+        setTimeout(() => {
+          isNavProgrammaticScroll = false;
+        }, 1300);
       }
     });
   });
 
-  // Ensure Lenis keeps dimensions accurately calibrated across image loads and viewport changes
+  // Handle direct URL hashes on initial page load / refresh
+  handleInitialHashNavigation();
+
+  // Keep dimensions calibrated across image loads and viewport resizes
   window.addEventListener("load", () => {
     if (lenisInstance) lenisInstance.resize();
+    handleInitialHashNavigation();
   });
   window.addEventListener("resize", () => {
     if (lenisInstance) lenisInstance.resize();
@@ -861,51 +1030,51 @@ function initContextEngineInspector() {
     },
     requirements: {
       title: "EXTRACTED REQUIREMENTS",
-      tag: "Deterministic specs",
+      tag: "4 verified functional specs",
       content:
-        '1. Chrome Extension (Manifest V3) for zero-friction DOM capture.\n2. Deterministic Context Package schema adhering to JSON Schema standard.\n3. One-click destination handoff prompt generation for Claude & Cursor.\n4. Zero training data storage guarantee.',
+        '1. Chrome Extension (Manifest V3) for zero-friction DOM capture.\n2. Deterministic Context Package schema adhering to JSON Schema standard.\n3. One-click destination handoff prompt generation for Claude, Gemini, and Cursor.\n4. Strict multi-tenant data isolation and zero training data storage guarantee.',
     },
     decisions: {
       title: "LOCKED ARCHITECTURAL DECISIONS",
       tag: "3 Decisions Recorded",
       content:
-        '• Migrated backend prototype from Flask to FastAPI for async schema validation.\n• Database: Supabase PostgreSQL with Row Level Security (RLS) policies.\n• Auth: Supabase Auth with JWT refresh token rotation in httpOnly cookies.',
+        '• Migrated backend prototype from Flask to FastAPI for async schema validation.\n• Database: SQLite/PostgreSQL with strict user-level multi-tenant project isolation.\n• Auth: JSON Web Tokens (JWT) with secure Bearer authentication.',
     },
     constraints: {
-      title: "HARD CONSTRAINTS & LIMITS",
-      tag: "Non-negotiable parameters",
+      title: "TECHNICAL CONSTRAINTS & LIMITATIONS",
+      tag: "2 Hard Constraints",
       content:
-        '• Must run within Chrome MV3 service worker lifecycle without background persistence.\n• No external third-party tracking or conversation content telemetry.\n• Total payload size compressed under 4,000 tokens for universal LLM context entry.',
+        '• Chrome MV3: Manifest V3 background service workers with declarative content scripts.\n• Privacy & Security: Zero third-party telemetry, zero LLM retraining on captured user data.\n• Token Budget: Standardized handoff format compressed under 400 tokens for clean model ingestion.',
     },
     files: {
       title: "FILES & CODE ARTIFACTS",
       tag: "Active repository context",
       content:
-        '• api/routers/context.py (Context extraction pipeline)\n• packages/schema/context.json (Shared TypeScript/Pydantic schema)\n• apps/extension/src/content.ts (Supported AI DOM reader)\n• supabase/migrations/001_init.sql (RLS table schema)',
+        '• backend/routers/context.py (Context extraction pipeline)\n• backend/services/handoff_generator.py (Cross-model transfer prompt compiler)\n• extension/content.js (Multi-selector conversation reader)\n• extension/popup.js (Context continuity user flow)',
     },
     state: {
       title: "CURRENT WORKING STATE",
-      tag: "Milestone: v1.2",
+      tag: "Milestone: v1.2 Production MVP",
       content:
-        'FastAPI API server running at /api/v1. Context generation pipeline tested with 94% completeness score. Active branch: feat/claude-handoff. Ready to implement RLS policies.',
+        'FastAPI API server running at /api/v1. Context generation pipeline tested with 94% completeness score. Active branch: main. Multi-tenant isolation verified across 15 authorization checkpoints.',
     },
     failed: {
       title: "FAILED ATTEMPTS & DEAD ENDS",
       tag: "Prevents repeated mistakes",
       content:
-        '• Attempted in-memory dictionary caching: Caused state desync across horizontal workers.\n• Attempted raw asyncpg connection pool: Event loop conflict in sub-task threads.',
+        '• Attempted in-memory dictionary caching: Caused state desync across horizontal workers.\n• Attempted raw asyncpg connection pool: Event loop conflict in sub-task threads.\n• Attempted auto-typing via synthetic DOM events: Blocked by modern browser security models.',
     },
     problems: {
       title: "OPEN PROBLEMS & BLOCKERS",
       tag: "1 Blocker Tagged",
       content:
-        '1. CORS pre-flight origin mismatch on Chrome Extension localhost development endpoint. (Fix queued: Add chrome-extension:// to FastAPI allow_origins).',
+        '1. Chrome Web Store developer dashboard verification pending (manual submission step after distribution packaging).',
     },
     next: {
       title: "PRIORITIZED NEXT STEPS",
       tag: "Actionable tasks",
       content:
-        '1. Authorize Supabase RLS policies for multi-tenant workspace tables.\n2. Finalize Manifest V3 popup review editor component.\n3. Execute integration handoff from ChatGPT to Claude 3.7.',
+        '1. Complete Chrome Web Store submission with packaged dist/continuo-extension.zip.\n2. Deploy public FastAPI backend with TLS certificates.\n3. Add optional OAuth provider logins (GitHub / Google).',
     },
   };
 
@@ -915,21 +1084,37 @@ function initContextEngineInspector() {
   const tagEl = document.querySelector(".inspector-tag");
 
   cards.forEach((card) => {
-    card.addEventListener("click", () => {
-      cards.forEach((c) => c.classList.remove("active-card"));
+    function activateCard() {
+      cards.forEach((c) => {
+        c.classList.remove("active-card");
+        c.setAttribute("aria-pressed", "false");
+      });
       card.classList.add("active-card");
+      card.setAttribute("aria-pressed", "true");
 
       const key = card.getAttribute("data-key");
       const data = contextDetails[key];
 
       if (data && titleEl && contentEl) {
-        contentEl.style.opacity = "0";
+        contentEl.style.transition = "opacity 0.15s ease, transform 0.15s ease";
+        contentEl.style.opacity = "0.4";
+        contentEl.style.transform = "translateY(3px)";
+
         setTimeout(() => {
           titleEl.textContent = data.title;
           if (tagEl) tagEl.textContent = data.tag;
           contentEl.textContent = data.content;
           contentEl.style.opacity = "1";
+          contentEl.style.transform = "translateY(0)";
         }, 150);
+      }
+    }
+
+    card.addEventListener("click", activateCard);
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        activateCard();
       }
     });
   });
@@ -943,6 +1128,9 @@ function initProjectMemoryDiff() {
     v1: {
       title: "Inception v1.0 — Architecture Proposal",
       badge: "ChatGPT Exploration",
+      health: "78% Draft",
+      activeAi: "ChatGPT",
+      lastSync: "3 days ago",
       added: [
         "Initial monorepo directory layout (apps/web, apps/extension)",
         "Draft specification of Context Package schema",
@@ -951,11 +1139,16 @@ function initProjectMemoryDiff() {
       modified: [
         "Project description updated from 'AI bookmark' to 'Universal Context Bridge'",
       ],
-      removed: ["Scrapped direct DOM auto-typing concept due to browser security constraints"],
+      removed: [
+        "Scrapped direct DOM auto-typing concept due to browser security constraints",
+      ],
     },
     v2: {
       title: "Refactor v1.1 — Backend & Auth Migration",
       badge: "ChatGPT → Claude Session",
+      health: "88% In Progress",
+      activeAi: "ChatGPT + Claude",
+      lastSync: "Yesterday, 21:15",
       added: [
         "FastAPI framework with Pydantic v2 validation models",
         "Supabase Auth integration with JWT token parsing",
@@ -965,11 +1158,16 @@ function initProjectMemoryDiff() {
         "Replaced Flask with FastAPI for asynchronous performance",
         "Upgraded extension manifest from V2 to Manifest V3",
       ],
-      removed: ["Removed raw local session storage in favor of encrypted cookie headers"],
+      removed: [
+        "Removed raw local session storage in favor of encrypted cookie headers",
+      ],
     },
     v3: {
       title: "What Changed in v1.2 — Current Production State",
       badge: "ChatGPT → Claude Handoff",
+      health: "94% Complete",
+      activeAi: "ChatGPT → Claude",
+      lastSync: "Today, 16:40",
       added: [
         "Supabase RLS access policies for user workspace isolation",
         "JWT refresh token rotation flow with secure cookie headers",
@@ -992,16 +1190,31 @@ function initProjectMemoryDiff() {
   const addedEl = document.getElementById("diff-added");
   const modifiedEl = document.getElementById("diff-modified");
   const removedEl = document.getElementById("diff-removed");
+  const diffCols = document.querySelectorAll(".diff-col");
 
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
+  // Project header metadata elements
+  const metaHealthEl = document.querySelector(".proj-meta-group .meta-val.highlight-green");
+  const metaAiEl = document.querySelectorAll(".proj-meta-group .meta-item")[1]?.querySelector(".meta-val");
+  const metaSyncEl = document.querySelectorAll(".proj-meta-group .meta-item")[2]?.querySelector(".meta-val");
 
-      const ver = tab.getAttribute("data-ver");
-      const data = diffData[ver];
-      if (!data) return;
+  function applyVersion(verKey) {
+    const data = diffData[verKey];
+    if (!data) return;
 
+    tabs.forEach((t) => {
+      const isCurrent = t.getAttribute("data-ver") === verKey;
+      t.classList.toggle("active", isCurrent);
+      t.setAttribute("aria-selected", isCurrent ? "true" : "false");
+    });
+
+    // Animate content transition
+    const diffCard = document.getElementById("version-diff-card");
+    if (diffCard) {
+      diffCard.style.transition = "opacity 0.15s ease";
+      diffCard.style.opacity = "0.7";
+    }
+
+    setTimeout(() => {
       if (titleEl) titleEl.textContent = data.title;
       if (badgeEl) badgeEl.textContent = data.badge;
 
@@ -1013,6 +1226,47 @@ function initProjectMemoryDiff() {
       }
       if (removedEl) {
         removedEl.innerHTML = data.removed.map((item) => `<li>${item}</li>`).join("");
+      }
+
+      if (metaHealthEl) metaHealthEl.textContent = data.health;
+      if (metaAiEl) metaAiEl.textContent = data.activeAi;
+      if (metaSyncEl) metaSyncEl.textContent = data.lastSync;
+
+      // Clear any column filter highlight when version changes
+      diffCols.forEach((col) => col.classList.remove("active-col"));
+
+      if (diffCard) diffCard.style.opacity = "1";
+    }, 150);
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const verKey = tab.getAttribute("data-ver");
+      applyVersion(verKey);
+    });
+
+    tab.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        tab.click();
+      }
+    });
+  });
+
+  // Interactive diff columns (Added, Modified, Removed)
+  diffCols.forEach((col) => {
+    col.addEventListener("click", () => {
+      const wasActive = col.classList.contains("active-col");
+      diffCols.forEach((c) => c.classList.remove("active-col"));
+      if (!wasActive) {
+        col.classList.add("active-col");
+      }
+    });
+
+    col.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        col.click();
       }
     });
   });
@@ -2181,15 +2435,6 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     }
   }
 
-  if (headerSigninBtn) {
-    headerSigninBtn.addEventListener("click", () => {
-      if (authToken && currentUser) {
-        openWorkspace();
-      } else {
-        openAuthModal();
-      }
-    });
-  }
   if (wsUserPill) wsUserPill.addEventListener("click", openAuthModal);
   if (btnCloseAuth) btnCloseAuth.addEventListener("click", closeAuthModal);
 
@@ -2374,6 +2619,10 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     document.body.style.overflow = "hidden";
     if (lenisInstance) lenisInstance.stop();
 
+    if (window.location.hash !== "#workspace") {
+      history.replaceState(null, document.title, window.location.pathname + window.location.search + "#workspace");
+    }
+
     try {
       await ensureAuthenticated();
       await loadProjects();
@@ -2391,10 +2640,21 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     if (lenisInstance) lenisInstance.start();
   }
 
+  // Expose workspace controllers globally
+  window.openWorkspace = openWorkspace;
+  window.closeWorkspace = closeWorkspace;
+
   const mobileWsBtn = document.getElementById("mobile-ws-btn");
+  const footerWsLink = document.getElementById("footer-ws-link");
   if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
   if (headerSigninBtn) headerSigninBtn.addEventListener("click", openWorkspace);
   if (mobileWsBtn) mobileWsBtn.addEventListener("click", openWorkspace);
+  if (footerWsLink) {
+    footerWsLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      openWorkspace();
+    });
+  }
   if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);
 
   wsOverlay.addEventListener("click", (e) => {

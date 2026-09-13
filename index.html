@@ -504,55 +504,55 @@
               </div>
               <div class="cards-grid" id="context-cards-grid">
                 <!-- Card 1: GOAL -->
-                <div class="context-card active-card" data-key="goal">
+                <div class="context-card active-card" data-key="goal" role="button" tabindex="0" aria-label="Inspect Goal" aria-pressed="true">
                   <div class="card-icon"><i class="fa-solid fa-bullseye"></i></div>
                   <div class="card-title">GOAL</div>
                   <div class="card-preview">Autonomous AI continuity layer</div>
                 </div>
                 <!-- Card 2: REQUIREMENTS -->
-                <div class="context-card" data-key="requirements">
+                <div class="context-card" data-key="requirements" role="button" tabindex="0" aria-label="Inspect Requirements" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-list-check"></i></div>
                   <div class="card-title">REQUIREMENTS</div>
                   <div class="card-preview">4 verified functional specs</div>
                 </div>
                 <!-- Card 3: DECISIONS -->
-                <div class="context-card" data-key="decisions">
+                <div class="context-card" data-key="decisions" role="button" tabindex="0" aria-label="Inspect Decisions" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-gavel"></i></div>
                   <div class="card-title">DECISIONS</div>
                   <div class="card-preview">FastAPI backend, Supabase Auth</div>
                 </div>
                 <!-- Card 4: CONSTRAINTS -->
-                <div class="context-card" data-key="constraints">
+                <div class="context-card" data-key="constraints" role="button" tabindex="0" aria-label="Inspect Constraints" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-lock"></i></div>
                   <div class="card-title">CONSTRAINTS</div>
                   <div class="card-preview">Chrome MV3, Zero training data retention</div>
                 </div>
                 <!-- Card 5: FILES & CODE -->
-                <div class="context-card" data-key="files">
+                <div class="context-card" data-key="files" role="button" tabindex="0" aria-label="Inspect Files and Code" aria-pressed="false">
                   <div class="card-icon"><i class="fa-regular fa-file-code"></i></div>
                   <div class="card-title">FILES & CODE</div>
                   <div class="card-preview">5 core architecture files</div>
                 </div>
                 <!-- Card 6: CURRENT STATE -->
-                <div class="context-card" data-key="state">
+                <div class="context-card" data-key="state" role="button" tabindex="0" aria-label="Inspect Current State" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
                   <div class="card-title">CURRENT STATE</div>
                   <div class="card-preview">v1.2: Context extraction ready</div>
                 </div>
                 <!-- Card 7: FAILED ATTEMPTS -->
-                <div class="context-card" data-key="failed">
+                <div class="context-card" data-key="failed" role="button" tabindex="0" aria-label="Inspect Failed Attempts" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-ban"></i></div>
                   <div class="card-title">FAILED ATTEMPTS</div>
                   <div class="card-preview">2 dead ends permanently logged</div>
                 </div>
                 <!-- Card 8: OPEN PROBLEMS -->
-                <div class="context-card" data-key="problems">
+                <div class="context-card" data-key="problems" role="button" tabindex="0" aria-label="Inspect Open Problems" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-bug"></i></div>
                   <div class="card-title">OPEN PROBLEMS</div>
                   <div class="card-preview">1 pending CORS edge case</div>
                 </div>
                 <!-- Card 9: NEXT STEPS -->
-                <div class="context-card" data-key="next">
+                <div class="context-card" data-key="next" role="button" tabindex="0" aria-label="Inspect Next Steps" aria-pressed="false">
                   <div class="card-icon"><i class="fa-solid fa-arrow-right-long"></i></div>
                   <div class="card-title">NEXT STEPS</div>
                   <div class="card-preview">Destination handoff & review</div>
@@ -632,7 +632,7 @@
                 <span class="diff-badge" id="diff-badge">ChatGPT → Claude Handoff</span>
               </div>
               <div class="diff-grid" id="diff-items">
-                <div class="diff-col added-col">
+                <div class="diff-col added-col" data-col="added" role="button" tabindex="0" aria-label="Filter Added items">
                   <div class="diff-col-title"><i class="fa-solid fa-circle-plus"></i> Added</div>
                   <ul class="diff-list" id="diff-added">
                     <li>Supabase RLS access policies for user workspace isolation</li>
@@ -640,14 +640,14 @@
                     <li>Context schema validation test suite</li>
                   </ul>
                 </div>
-                <div class="diff-col modified-col">
+                <div class="diff-col modified-col" data-col="modified" role="button" tabindex="0" aria-label="Filter Modified items">
                   <div class="diff-col-title"><i class="fa-solid fa-pen"></i> Modified</div>
                   <ul class="diff-list" id="diff-modified">
                     <li>Backend framework: Migrated from Flask prototype to production FastAPI</li>
                     <li>Database schema: Added foreign key constraint on project_id</li>
                   </ul>
                 </div>
-                <div class="diff-col removed-col">
+                <div class="diff-col removed-col" data-col="removed" role="button" tabindex="0" aria-label="Filter Removed and Rejected items">
                   <div class="diff-col-title"><i class="fa-solid fa-circle-minus"></i> Removed / Rejected</div>
                   <ul class="diff-list" id="diff-removed">
                     <li>In-memory session cache (caused multi-node state desync)</li>
@@ -1137,6 +1137,7 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
                 <a href="#memory">Project Memory</a>
                 <a href="#providers">AI Provider Mesh</a>
                 <a href="#handoff-playground">Handoff Playground</a>
+                <a href="#workspace" class="footer-ws-link" id="footer-ws-link">Continuo Workspace</a>
               </div>
               <div class="footer-col">
                 <span class="col-head">Platforms</span>
