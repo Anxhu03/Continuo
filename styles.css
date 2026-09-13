@@ -1666,8 +1666,8 @@ body.menu-open .burger-bar:nth-child(3) {
 /* Mathematically centered orbit/glow/logo system */
 .center-engine-core {
   position: relative;
-  width: 124px;
-  height: 124px;
+  width: 136px;
+  height: 136px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1681,40 +1681,60 @@ body.menu-open .burger-bar:nth-child(3) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 136px;
-  height: 136px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(168, 85, 247, 0.12) 50%, transparent 72%);
-  filter: blur(12px);
+  filter: blur(14px);
   pointer-events: none;
   z-index: 1;
 }
 
-/* Concentric rotating orbit rings sharing exact mathematical center */
-.center-orbit {
+/* Concentric orbit positioners sharing the EXACT mathematical center */
+.center-orbit-positioner {
   position: absolute;
   top: 50%;
   left: 50%;
-  border-radius: 50%;
+  transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
-.center-orbit.orbit-outer {
-  width: 114px;
-  height: 114px;
+.center-orbit-positioner.orbit-outer-pos {
+  width: 124px;
+  height: 124px;
+}
+
+.center-orbit-positioner.orbit-inner-pos {
+  width: 88px;
+  height: 88px;
+}
+
+/* Concentric rotating elements - rotate strictly around their own center (50% 50%) */
+.center-orbit-rotator {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-sizing: border-box;
+  transform-origin: 50% 50%;
+}
+
+.orbit-outer-rot {
   border: 1px dashed rgba(255, 255, 255, 0.25);
-  animation: orbitClockwise 20s linear infinite;
+  animation: pureOrbitClockwise 22s linear infinite;
 }
 
-.center-orbit.orbit-inner {
-  width: 82px;
-  height: 82px;
+.orbit-inner-rot {
   border: 1px dashed rgba(56, 189, 248, 0.35);
-  animation: orbitCounterClockwise 14s linear infinite;
+  animation: pureOrbitCounterClockwise 15s linear infinite;
 }
 
-/* Orbiting nodes */
+/* Orbiting nodes attached directly to rotator rings */
 .orbit-node {
   position: absolute;
   border-radius: 50%;
@@ -1738,21 +1758,22 @@ body.menu-open .burger-bar:nth-child(3) {
   box-shadow: 0 0 8px #a855f7;
 }
 
-@keyframes orbitClockwise {
+/* Pure rotation keyframes - NO translate, so the mathematical center remains inviolate */
+@keyframes pureOrbitClockwise {
   from {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: rotate(0deg);
   }
   to {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: rotate(360deg);
   }
 }
 
-@keyframes orbitCounterClockwise {
+@keyframes pureOrbitCounterClockwise {
   from {
-    transform: translate(-50%, -50%) rotate(360deg);
+    transform: rotate(360deg);
   }
   to {
-    transform: translate(-50%, -50%) rotate(0deg);
+    transform: rotate(0deg);
   }
 }
 
