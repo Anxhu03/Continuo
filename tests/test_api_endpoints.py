@@ -83,10 +83,11 @@ def test_full_api_workflow(client):
     })
     assert handoff_resp.status_code == 201
     handoff_data = handoff_resp.json()
-    assert "<project_context" in handoff_data["formatted_payload"]
+    assert "# Continue this project" in handoff_data["formatted_payload"]
+    assert "## Instructions for continuing" in handoff_data["formatted_payload"]
     assert "https://claude.ai/new" in handoff_data["destination_url"]
 
-    # 9. Verify Security: User B cannot access User A's project
+    # 9. Verify Strict Security: User B cannot access User A's project, context, versions, or handoffs
     reg_b = client.post("/api/v1/auth/register", json={
         "email": "engineer_b@continuo.ai",
         "password": "Password456!",
@@ -95,8 +96,25 @@ def test_full_api_workflow(client):
     token_b = reg_b.json()["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
-    forbidden_resp = client.get(f"/api/v1/projects/{project_id}", headers=headers_b)
-    assert forbidden_resp.status_code == 403
+    # User B cannot read User A's project
+    forbidden_proj = client.get(f"/api/v1/projects/{project_id}", headers=headers_b)
+    assert forbidden_proj.status_code == 403
+
+    # User B cannot read User A's context
+    forbidden_ctx = client.get(f"/api/v1/context/projects/{project_id}/context", headers=headers_b)
+    assert forbidden_ctx.status_code == 403
+
+    # User B cannot read User A's versions
+    forbidden_ver = client.get(f"/api/v1/versions/projects/{project_id}", headers=headers_b)
+    assert forbidden_ver.status_code == 403
+
+    # User B cannot generate handoffs for User A's project
+    forbidden_ho = client.post("/api/v1/handoffs", headers=headers_b, json={
+        "project_id": project_id,
+        "source_provider": "chatgpt",
+        "destination_provider": "claude"
+    })
+    assert forbidden_ho.status_code == 403
 
 def test_auth_rejection_and_context_patching(client):
     # Test invalid login rejection
@@ -150,6 +168,7 @@ def test_auth_rejection_and_context_patching(client):
         "source_provider": "cursor",
         "destination_provider": "chatgpt"
     }).json()
-    assert "CONTINUO CONTEXT PACKAGE" in gpt_handoff["formatted_payload"]
+    assert "# Continue this project" in gpt_handoff["formatted_payload"]
     assert "https://chatgpt.com/" in gpt_handoff["destination_url"]
+
 
