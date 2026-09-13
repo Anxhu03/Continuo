@@ -12,66 +12,108 @@
 <body>
   <div class="popup-shell">
     <!-- Clean Minimal Header -->
-    <div class="popup-header">
+    <header class="popup-header">
       <div class="brand-group">
         <div class="brand-ring">
           <span class="brand-dot"></span>
         </div>
-        <div class="brand-text">
-          <span class="brand-title">CONTINUO</span>
-        </div>
+        <span class="brand-title">CONTINUO</span>
       </div>
       <div class="connection-status">
         <span class="status-indicator" id="status-indicator"></span>
         <span class="status-label" id="status-label">Ready</span>
       </div>
+    </header>
+
+    <!-- Copy Feedback Toast Notification -->
+    <div class="copy-toast" id="copy-toast" style="display: none;" role="status" aria-live="polite">
+      <span class="toast-icon">✓</span>
+      <span class="toast-text" id="toast-text">Context copied. Ready to continue in Claude.</span>
     </div>
 
-    <!-- Active AI Detection Status -->
-    <div class="detection-box" id="detection-box">
-      <div class="detection-status-row">
-        <span class="pulse-dot" id="pulse-dot"></span>
-        <span class="detection-status-text" id="detection-status-text">Conversation detected</span>
+    <!-- STATE 1: NO AI DETECTED PANEL -->
+    <section class="state-panel no-ai-panel" id="no-ai-panel" style="display: none;">
+      <div class="no-ai-badge">No active AI conversation detected</div>
+      <p class="no-ai-desc">
+        Continuo automatically preserves your working context on:
+      </p>
+      <ul class="supported-ai-list">
+        <li><span class="ai-bullet dot-chatgpt"></span> ChatGPT (chatgpt.com)</li>
+        <li><span class="ai-bullet dot-claude"></span> Claude (claude.ai)</li>
+        <li><span class="ai-bullet dot-gemini"></span> Google Gemini (gemini.google.com)</li>
+      </ul>
+      <div class="quick-launch-group">
+        <button class="quick-launch-btn chatgpt" id="launch-chatgpt-btn" type="button">Open ChatGPT</button>
+        <button class="quick-launch-btn claude" id="launch-claude-btn" type="button">Open Claude</button>
+        <button class="quick-launch-btn gemini" id="launch-gemini-btn" type="button">Open Gemini</button>
       </div>
-      <div class="detection-source" id="detection-source">ChatGPT (Active Tab)</div>
-    </div>
+    </section>
 
-    <!-- Project Selection -->
-    <div class="project-box">
-      <label for="ext-project-select" class="project-label">Project:</label>
-      <select id="ext-project-select" class="project-select">
-        <option value="" disabled selected>Loading projects...</option>
-      </select>
-    </div>
+    <!-- STATE 2, 3, 4: ACTIVE AI DETECTED & CAPTURE PANEL -->
+    <section class="state-panel active-ai-panel" id="active-ai-panel">
+      <!-- Active Provider Detection Banner -->
+      <div class="detection-box" id="detection-box">
+        <div class="detection-status-row">
+          <span class="pulse-dot" id="pulse-dot"></span>
+          <span class="detection-status-text" id="detection-status-text">ChatGPT detected</span>
+        </div>
+        <div class="detection-source" id="detection-source">Active conversation ready</div>
+      </div>
 
-    <!-- Context Readiness -->
-    <div class="context-ready-indicator" id="context-ready-indicator">
-      <span class="ready-badge">Context ready</span>
-    </div>
+      <!-- Current Project Selector & Inline Creator -->
+      <div class="project-box" id="project-box">
+        <div class="project-header-row">
+          <label for="ext-project-select" class="project-label">Current project:</label>
+          <button type="button" class="new-project-toggle-btn" id="btn-toggle-new-project" aria-expanded="false">+ New Project</button>
+        </div>
+        <select id="ext-project-select" class="project-select">
+          <option value="" disabled selected>Loading projects...</option>
+        </select>
 
-    <!-- Main Save Action Button -->
-    <button class="save-context-btn" id="btn-ext-capture" type="button">
-      <span id="btn-ext-capture-text">Save Context</span>
-    </button>
+        <!-- Inline Quick Project Creation Drawer -->
+        <div class="inline-new-project-row" id="inline-new-project-row" style="display: none;">
+          <input type="text" id="inline-project-name" class="inline-project-input" placeholder="Project name (e.g. AI Portfolio)" maxlength="60" />
+          <div class="inline-actions">
+            <button type="button" id="btn-create-inline-project" class="inline-btn-create">Create</button>
+            <button type="button" id="btn-cancel-inline-project" class="inline-btn-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
 
-    <!-- Post-Save Success & Continuation Panel -->
-    <div class="handoff-panel" id="handoff-panel" style="display: none;">
+      <!-- Context Readiness Status -->
+      <div class="context-ready-indicator" id="context-ready-indicator">
+        <span class="ready-badge"><span class="ready-dot"></span> Context ready</span>
+      </div>
+
+      <!-- Main Action Button -->
+      <button class="save-context-btn" id="btn-ext-capture" type="button">
+        <span class="btn-spinner" id="btn-spinner" style="display: none;"></span>
+        <span id="btn-ext-capture-text">Save Context</span>
+      </button>
+    </section>
+
+    <!-- STATE 5: POST-SAVE SUCCESS & CONTINUATION PANEL -->
+    <section class="state-panel handoff-panel" id="handoff-panel" style="display: none;">
       <div class="success-banner">
         <span class="check-mark">✓</span>
-        <span class="success-text">Context saved</span>
+        <div class="success-text-group">
+          <span class="success-title">Context saved</span>
+          <span class="success-subtitle">Continuo project memory updated.</span>
+        </div>
       </div>
 
+      <div class="continue-group-header">Continue with:</div>
       <div class="continue-actions">
         <button class="continue-btn chatgpt" id="btn-cont-chatgpt" type="button">
-          <span>Continue with ChatGPT</span>
+          <span class="ai-name"><span class="ai-bullet dot-chatgpt"></span> ChatGPT</span>
           <span class="arrow">→</span>
         </button>
         <button class="continue-btn claude" id="btn-cont-claude" type="button">
-          <span>Continue with Claude</span>
+          <span class="ai-name"><span class="ai-bullet dot-claude"></span> Claude</span>
           <span class="arrow">→</span>
         </button>
         <button class="continue-btn gemini" id="btn-cont-gemini" type="button">
-          <span>Continue with Gemini</span>
+          <span class="ai-name"><span class="ai-bullet dot-gemini"></span> Gemini</span>
           <span class="arrow">→</span>
         </button>
       </div>
@@ -80,22 +122,32 @@
         <span>View Project Memory</span>
         <span class="ext-link">↗</span>
       </button>
-    </div>
+    </section>
 
-    <!-- Advanced Diagnostics (Subtle Collapsible Drawer) -->
+    <!-- STATE 6: ERROR & RETRY PANEL -->
+    <section class="state-panel error-panel" id="error-panel" style="display: none;">
+      <div class="error-banner">
+        <span class="error-icon">!</span>
+        <span class="error-message" id="error-message">Unable to save context.</span>
+      </div>
+      <p class="error-hint" id="error-hint">Your conversation was preserved locally. Please check backend connectivity.</p>
+      <button class="retry-btn" id="btn-retry" type="button">Try Again</button>
+    </section>
+
+    <!-- Advanced Diagnostics (Internal Collapsible Drawer) -->
     <details class="advanced-drawer" id="advanced-drawer">
       <summary class="advanced-summary">Advanced Diagnostics</summary>
       <div class="advanced-body">
         <div class="adv-row">
-          <span>Extraction Fidelity:</span>
+          <span>Extraction Score:</span>
           <strong id="adv-fidelity">--%</strong>
         </div>
         <div class="adv-row">
-          <span>Active Version:</span>
+          <span>Project Version:</span>
           <strong id="adv-version">--</strong>
         </div>
         <div class="adv-row">
-          <span>API Gateway:</span>
+          <span>Backend API:</span>
           <strong id="adv-gateway">127.0.0.1:8008</strong>
         </div>
         <div class="adv-log" id="adv-log">Ready for user-triggered capture.</div>

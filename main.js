@@ -1363,10 +1363,23 @@ function initContinuoWorkspaceApp() {
   const wsBtnSignout = document.getElementById("ws-btn-signout");
   const wsReadinessBadge = document.getElementById("ws-readiness-badge");
   const wsReadinessText = document.getElementById("ws-readiness-text");
+  const wsOverviewTitle = document.getElementById("ws-overview-title");
+  const wsOverviewDesc = document.getElementById("ws-overview-desc");
   const wsHumanObjective = document.getElementById("ws-human-objective");
   const wsHumanState = document.getElementById("ws-human-state");
   const wsHumanCompleted = document.getElementById("ws-human-completed");
+  const wsHumanPending = document.getElementById("ws-human-pending");
   const wsHumanNext = document.getElementById("ws-human-next");
+  const wsOverviewContChatgpt = document.getElementById("ws-overview-cont-chatgpt");
+  const wsOverviewContClaude = document.getElementById("ws-overview-cont-claude");
+  const wsOverviewContGemini = document.getElementById("ws-overview-cont-gemini");
+  const wsBtnJumpMemory = document.getElementById("ws-btn-jump-memory");
+  const wsBtnJumpDiagnostics = document.getElementById("ws-btn-jump-diagnostics");
+
+  // Extension Install Modal Elements (Section 29)
+  const extInstallModal = document.getElementById("extension-install-modal");
+  const btnCloseExtModal = document.getElementById("btn-close-ext-modal");
+  const btnExtGotIt = document.getElementById("btn-ext-got-it");
 
   // DOM Elements - Tabs
   const wsTabs = document.querySelectorAll(".ws-tab");
@@ -1509,6 +1522,9 @@ function initContinuoWorkspaceApp() {
   }
 
   function signOutUser() {
+    if (authToken) {
+      apiRequest("/auth/logout", "POST").catch(() => {});
+    }
     authToken = null;
     currentUser = null;
     localStorage.removeItem("continuo_jwt");
@@ -1693,7 +1709,13 @@ function initContinuoWorkspaceApp() {
     wsCountDec.textContent = (pkg.decisions || []).length;
     wsCountFiles.textContent = (pkg.files_context || []).length;
 
-    // Human-Readable Project Memory Representation (Part 11 & 12)
+    // Human-Readable Project Memory Representation (Section 10 & 11)
+    const activeProj = currentProjects.find(p => p.id === selectedProjectId);
+    if (activeProj) {
+      if (wsOverviewTitle) wsOverviewTitle.textContent = activeProj.name;
+      if (wsOverviewDesc) wsOverviewDesc.textContent = activeProj.description || "Continuo AI Context Continuity";
+    }
+
     if (wsHumanObjective) {
       wsHumanObjective.textContent = pkg.objective || "No objective defined yet.";
     }
@@ -1707,6 +1729,15 @@ function initContinuoWorkspaceApp() {
         const li = document.createElement("li");
         li.textContent = item;
         wsHumanCompleted.appendChild(li);
+      });
+    }
+    if (wsHumanPending) {
+      wsHumanPending.innerHTML = "";
+      const pendingList = (pkg.requirements && pkg.requirements.length) ? pkg.requirements : ["Core functional features."];
+      pendingList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanPending.appendChild(li);
       });
     }
     if (wsHumanNext) {
@@ -2253,19 +2284,118 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   }
 
   // =========================================================================
-  // Workspace Tab Navigation
+  // Workspace Tab Navigation (Section 10 & 13)
   // =========================================================================
+  function switchWorkspaceTab(tabId) {
+    wsTabs.forEach((t) => {
+      if (t.getAttribute("data-tab") === tabId) {
+        t.classList.add("active");
+      } else {
+        t.classList.remove("active");
+      }
+    });
+    wsPanels.forEach((p) => {
+      if (p.id === `ws-panel-${tabId}`) {
+        p.classList.add("active");
+      } else {
+        p.classList.remove("active");
+      }
+    });
+  }
+
   wsTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      wsTabs.forEach((t) => t.classList.remove("active"));
-      wsPanels.forEach((p) => p.classList.remove("active"));
-
-      tab.classList.add("active");
       const tabId = tab.getAttribute("data-tab");
-      const panel = document.getElementById(`ws-panel-${tabId}`);
-      if (panel) panel.classList.add("active");
+      switchWorkspaceTab(tabId);
     });
   });
+
+  // Project Overview Continuation Actions (Section 11)
+  function triggerWorkspaceHandoff(destProvider, destUrl, humanName) {
+    if (!selectedProjectId) {
+      showToast("Please select a project first.");
+      return;
+    }
+
+    apiRequest("/handoffs", "POST", {
+      project_id: selectedProjectId,
+      source_provider: "continuo",
+      destination_provider: destProvider
+    }).then((data) => {
+      navigator.clipboard.writeText(data.formatted_payload).then(() => {
+        showToast(`✓ Context copied. Ready to continue in ${humanName}.`);
+        setTimeout(() => {
+          window.open(destUrl, "_blank");
+        }, 500);
+      }).catch(() => {
+        showToast(`✓ Context prepared. Ready for ${humanName}.`);
+        window.open(destUrl, "_blank");
+      });
+    }).catch((err) => {
+      showToast("Could not generate handoff: " + (err.message || "Backend offline"));
+    });
+  }
+
+  if (wsOverviewContChatgpt) {
+    wsOverviewContChatgpt.addEventListener("click", () => triggerWorkspaceHandoff("chatgpt", "https://chatgpt.com/", "ChatGPT"));
+  }
+  if (wsOverviewContClaude) {
+    wsOverviewContClaude.addEventListener("click", () => triggerWorkspaceHandoff("claude", "https://claude.ai/new", "Claude"));
+  }
+  if (wsOverviewContGemini) {
+    wsOverviewContGemini.addEventListener("click", () => triggerWorkspaceHandoff("gemini", "https://gemini.google.com/app", "Gemini"));
+  }
+
+  if (wsBtnJumpMemory) {
+    wsBtnJumpMemory.addEventListener("click", () => {
+      switchWorkspaceTab("memory");
+    });
+  }
+  if (wsBtnJumpDiagnostics) {
+    wsBtnJumpDiagnostics.addEventListener("click", () => {
+      switchWorkspaceTab("diagnostics");
+    });
+  }
+
+  // =========================================================================
+  // Chrome Extension Installation Guide Modal (Section 29)
+  // =========================================================================
+  function openExtensionInstallModal() {
+    if (extInstallModal) {
+      extInstallModal.style.display = "flex";
+      document.body.style.overflow = "hidden";
+      if (lenisInstance) lenisInstance.stop();
+    }
+  }
+
+  function closeExtensionInstallModal() {
+    if (extInstallModal) {
+      extInstallModal.style.display = "none";
+      document.body.style.overflow = "";
+      if (lenisInstance) lenisInstance.start();
+    }
+  }
+
+  if (heroCtaBtn) {
+    heroCtaBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openExtensionInstallModal();
+    });
+  }
+  if (footerCtaBtn) {
+    footerCtaBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      openExtensionInstallModal();
+    });
+  }
+  if (btnCloseExtModal) btnCloseExtModal.addEventListener("click", closeExtensionInstallModal);
+  if (btnExtGotIt) btnExtGotIt.addEventListener("click", closeExtensionInstallModal);
+
+  if (extInstallModal) {
+    extInstallModal.addEventListener("click", (e) => {
+      if (e.target === extInstallModal) closeExtensionInstallModal();
+    });
+  }
 
   // =========================================================================
   // Workspace Open & Close
@@ -2286,8 +2416,7 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   }
 
   if (headerLaunchBtn) headerLaunchBtn.addEventListener("click", openWorkspace);
-  if (heroCtaBtn) heroCtaBtn.addEventListener("click", openWorkspace);
-  if (footerCtaBtn) footerCtaBtn.addEventListener("click", openWorkspace);
+  if (headerSigninBtn) headerSigninBtn.addEventListener("click", openWorkspace);
   if (wsCloseBtn) wsCloseBtn.addEventListener("click", closeWorkspace);
 
   wsOverlay.addEventListener("click", (e) => {
@@ -2296,9 +2425,11 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (newProjectModal.style.display === "flex") {
+      if (extInstallModal && extInstallModal.style.display === "flex") {
+        closeExtensionInstallModal();
+      } else if (newProjectModal && newProjectModal.style.display === "flex") {
         closeNewProjectModal();
-      } else if (authModal.style.display === "flex") {
+      } else if (authModal && authModal.style.display === "flex") {
         closeAuthModal();
       } else if (wsOverlay.classList.contains("active")) {
         closeWorkspace();

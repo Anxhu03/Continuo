@@ -1222,17 +1222,17 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
 
         <!-- Navigation Tabs -->
         <div class="ws-tabs-bar">
-          <button class="ws-tab active" data-tab="capture" type="button">
-            <i class="fa-solid fa-cube"></i>
-            <span>Capture & Ingest</span>
+          <button class="ws-tab active" data-tab="overview" type="button">
+            <i class="fa-solid fa-house"></i>
+            <span>Project Overview</span>
           </button>
           <button class="ws-tab" data-tab="memory" type="button">
             <i class="fa-solid fa-layer-group"></i>
-            <span>Project Memory Editor</span>
+            <span>Project Memory</span>
           </button>
           <button class="ws-tab" data-tab="diff" type="button">
             <i class="fa-solid fa-code-compare"></i>
-            <span>Memory Diff & History</span>
+            <span>Version History & Diff</span>
           </button>
           <button class="ws-tab" data-tab="handoff" type="button">
             <i class="fa-solid fa-paper-plane"></i>
@@ -1242,12 +1242,88 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
             <i class="fa-solid fa-gauge-high"></i>
             <span>Dev Diagnostics</span>
           </button>
+          <button class="ws-tab" data-tab="capture" type="button">
+            <i class="fa-solid fa-cube"></i>
+            <span>Capture Sandbox</span>
+          </button>
         </div>
 
         <!-- Tab Panels Container -->
         <div class="ws-content-body">
-          <!-- PANEL 1: CAPTURE & INGEST -->
-          <div class="ws-panel active" id="ws-panel-capture">
+          <!-- PANEL 0: PROJECT OVERVIEW (HUMAN-FIRST PRODUCT SURFACE) -->
+          <div class="ws-panel active" id="ws-panel-overview">
+            <div class="ws-project-card-layout">
+              <div class="ws-project-badge-header">
+                <span class="badge-mini">CONTINUO PROJECT</span>
+                <h3 class="ws-project-hero-title" id="ws-overview-title">Continuo Chrome Extension</h3>
+                <p class="ws-project-hero-desc" id="ws-overview-desc">Universal AI context persistence and cross-model continuity</p>
+              </div>
+
+              <div class="ws-project-grid-sections">
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-compass"></i> What we're building</h4>
+                  <p class="ws-block-text" id="ws-human-objective">Building universal AI context continuity.</p>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-clock-rotate-left"></i> Current state</h4>
+                  <p class="ws-block-text" id="ws-human-state">Working context captured by Continuo.</p>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-circle-check"></i> Completed</h4>
+                  <ul class="ws-checklist" id="ws-human-completed">
+                    <li>Database persistence & authentication</li>
+                    <li>Manifest V3 extension capture</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-bars-progress"></i> Still working on</h4>
+                  <ul class="ws-checklist ws-pending-list" id="ws-human-pending">
+                    <li>Cross-model prompt continuity</li>
+                    <li>Version diff tracking</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block full-width">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-forward-step"></i> Next step</h4>
+                  <p class="ws-block-text highlight" id="ws-human-next">Capture conversation context from active AI tab.</p>
+                </div>
+              </div>
+
+              <!-- Continuation Actions per Section 11 -->
+              <div class="ws-overview-continue-box">
+                <h4 class="ws-continue-label">Continue with:</h4>
+                <div class="ws-continue-buttons">
+                  <button class="ws-continue-btn chatgpt" id="ws-overview-cont-chatgpt" type="button">
+                    <i class="fa-solid fa-robot"></i> ChatGPT
+                  </button>
+                  <button class="ws-continue-btn claude" id="ws-overview-cont-claude" type="button">
+                    <i class="fa-solid fa-bolt"></i> Claude
+                  </button>
+                  <button class="ws-continue-btn gemini" id="ws-overview-cont-gemini" type="button">
+                    <i class="fa-brands fa-google"></i> Gemini
+                  </button>
+                </div>
+              </div>
+
+              <!-- Secondary Actions -->
+              <div class="ws-overview-footer-links">
+                <button class="ws-btn ws-btn-secondary" id="ws-btn-jump-memory" type="button">
+                  <i class="fa-solid fa-layer-group"></i>
+                  <span>View Project Memory Details</span>
+                </button>
+                <button class="ws-text-btn" id="ws-btn-jump-diagnostics" type="button">
+                  <i class="fa-solid fa-gear"></i>
+                  <span>Dev Diagnostics</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 1: CAPTURE & INGEST SANDBOX -->
+          <div class="ws-panel" id="ws-panel-capture">
             <div class="ws-panel-grid">
               <!-- Left Input Column -->
               <div class="ws-input-col">
@@ -1742,6 +1818,101 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
           <div class="auth-footer-badge">
             <i class="fa-solid fa-shield-halved"></i>
             <span>AES-256 encrypted local persistence & JWT authentication</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sub-Modal: Chrome Extension Developer Installation Guide (Section 29) -->
+    <div class="submodal-overlay" id="extension-install-modal" aria-hidden="true" style="display: none;">
+      <div class="submodal-card glass-modal ext-install-card" role="dialog" aria-modal="true" aria-labelledby="ext-modal-title">
+        <div class="glass-specular-edge"></div>
+
+        <div class="submodal-header">
+          <div class="auth-header-brand">
+            <div class="auth-brand-emblem">
+              <img src="assets/logo.webp" alt="Continuo" class="auth-emblem-img" width="22" height="22" />
+            </div>
+            <div class="auth-header-copy">
+              <h3 id="ext-modal-title" class="auth-title">Install Continuo Extension</h3>
+              <span class="auth-subtitle">Developer Mode Installation (Unpacked Manifest V3)</span>
+            </div>
+          </div>
+          <button class="submodal-close" id="btn-close-ext-modal" aria-label="Close installation modal">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="submodal-body">
+          <p class="ext-modal-lead">
+            Continuo is available as an unpacked Chrome Extension during the developer preview.
+            Follow these 8 steps to install:
+          </p>
+
+          <ol class="ext-step-list">
+            <li>
+              <span class="step-num">1</span>
+              <div class="step-content">
+                <strong>Download or clone the repository</strong>
+                <code>git clone https://github.com/Anxhu03/Continuo.git</code>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">2</span>
+              <div class="step-content">
+                <strong>Open Chrome Extensions</strong>
+                <span>Navigate to <code>chrome://extensions</code> in your browser address bar.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">3</span>
+              <div class="step-content">
+                <strong>Enable Developer Mode</strong>
+                <span>Toggle the <strong>Developer mode</strong> switch in the top-right corner.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">4</span>
+              <div class="step-content">
+                <strong>Click "Load unpacked"</strong>
+                <span>Click the <strong>Load unpacked</strong> button in the top-left toolbar.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">5</span>
+              <div class="step-content">
+                <strong>Select the extension directory</strong>
+                <span>Choose the <code>Continuo/extension</code> folder from your cloned repository.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">6</span>
+              <div class="step-content">
+                <strong>Pin Continuo</strong>
+                <span>Click the Extensions puzzle icon in Chrome and pin Continuo to your toolbar.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">7</span>
+              <div class="step-content">
+                <strong>Open your AI platform</strong>
+                <span>Go to <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>.</span>
+              </div>
+            </li>
+            <li>
+              <span class="step-num">8</span>
+              <div class="step-content">
+                <strong>Click Continuo to capture!</strong>
+                <span>Click the Continuo extension icon and click <strong>Save Context</strong>.</span>
+              </div>
+            </li>
+          </ol>
+
+          <div class="ext-modal-footer">
+            <button class="continuo-btn continuo-btn-primary full-width" id="btn-ext-got-it" type="button">
+              <span>Got It, Let's Go</span>
+              <i class="fa-solid fa-arrow-right btn-icon"></i>
+            </button>
           </div>
         </div>
       </div>
