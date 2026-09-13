@@ -6,7 +6,7 @@
 
 ### Keep your context. Continue anywhere.
 
-**An AI-agnostic context continuity and persistent project memory layer.**
+**An AI context continuity browser extension and persistent project memory layer.**
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg)](https://python.org)
@@ -18,193 +18,325 @@
 
 ---
 
-## 1. Executive Summary
+## 1. What Continuo Does
 
-When building modern software with AI models, developers spend hours establishing architecture, refining requirements, rejecting failed approaches, and shaping constraints.
+Modern engineering work is fragmented across multiple AI systems:
+- You brainstorm and architect in **ChatGPT**.
+- You hit limits or need nuanced refactoring, so you switch to **Claude**.
+- You need deep documentation search and reasoning in **Gemini**.
+- You move to an editor agent like **Cursor**.
 
-However, hitting token limits, switching from ChatGPT to Claude, or moving to an IDE agent like Cursor causes immediate **context fracture**. The developer is forced to waste 30–60 minutes manually re-explaining the project, pasting outdated logs, and risking catastrophic architectural drift.
+Every time you switch models, your context fractures. You spend 30–60 minutes copying outdated notes, re-explaining architectural constraints, and risking critical hallucinated drift.
 
-**Continuo is the universal context continuity bridge.**
+**Continuo turns your context into a persistent, portable project memory.**
 
-It extracts a structured, deterministic **Context Package** from your conversation, eliminates conversational noise, calculates a real-time **Context Quality Score**, guards against architectural contradictions, and maintains a persistent, versioned **Project Memory**.
-
-When you are ready to continue with another model, Continuo generates a tailored, model-optimized handoff payload with zero prompt hallucination.
+Instead of managing an overwhelming dashboard, Continuo is an **extension-first companion utility**:
+1. You work naturally in ChatGPT, Claude, or Gemini.
+2. When you reach a stopping point, click the Continuo Chrome Extension.
+3. Continuo detects the AI conversation, extracts technical decisions, goals, and constraints, and saves it to **Project Memory**.
+4. Click **Continue with Claude** (or ChatGPT/Gemini). Continuo copies a clean continuation prompt to your clipboard and opens the destination AI.
+5. You paste and continue immediately—no re-explaining required.
 
 ```
-       [ ChatGPT ]  ──►  [ Claude 3.7 ]  ──►  [ Cursor Agent ]
-            │                  ▲                     ▲
-            ▼                  │                     │
-      ┌───────────────────────────────────────────────────┐
-      │             CONTINUO CONTEXT ENGINE               │
-      │   • Objective & Specs    • Locked Decisions       │
-      │   • Hard Constraints     • Failed Attempts / Bugs │
-      │   • Dynamic Quality      • Contradiction Guard    │
-      └───────────────────────────────────────────────────┘
-                               │
-                               ▼
-               [ PERSISTENT PROJECT MEMORY (v1.X) ]
+User works in ChatGPT
+        ↓
+Reaches stopping point
+        ↓
+Clicks Continuo extension
+        ↓
+Continuo understands project context
+        ↓
+User clicks "Save Context"
+        ↓
+Context stored as Project Memory
+        ↓
+User chooses another AI (e.g. Claude)
+        ↓
+Continuo generates structured handoff & copies to clipboard
+        ↓
+Claude opens, user pastes, and continues working
 ```
 
 ---
 
-## 2. Core Architectural Components
+## 2. Production Architecture
 
-### I. iOS 26 Glassmorphism Interface System
-A floating translucent glass UI (`GlassNav`, `GlassButton`, `GlassModal`) inspired by next-generation glass design languages:
-- **Translucent Layering**: Controlled backdrop blurs (`backdrop-filter: blur(32px)`) with specular edge highlights.
-- **Living Ambient Atmosphere**: Continuous canvas node-flow particle system that adapts its color frequency dynamically to the active section.
-- **Accessible & High-Contrast**: Strictly tested against WCAG contrast guidelines; all critical controls remain legible with visible focus rings.
+Continuo maintains a strict separation of concerns, ensuring provider neutrality and data isolation:
 
-### II. Core Context Engine (`backend/services/context_engine.py`)
-Continuo's guiding philosophy:
-> **Don't transfer the conversation transcript. Transfer what the next AI actually needs to continue.**
-
-The extraction pipeline heuristically decomposes noisy threads into:
-1. **Objective**: High-level technical goal.
-2. **Requirements**: Functional deliverables and specifications.
-3. **Constraints**: Non-negotiable technical limits (e.g. "Do not store plaintext passwords").
-4. **Decisions**: Locked architectural choices (e.g. "Migrated to FastAPI with SQLAlchemy").
-5. **Current State**: Verified active operational milestone.
-6. **Completed Work**: Finished tasks and applied migrations.
-7. **Pending Work**: Queued items awaiting execution.
-8. **Failed Approaches & Dead Ends**: Permanently recorded discarded paths so downstream models never repeat them.
-9. **Files & Code in Scope**: Monitored repository artifacts.
-10. **Immediate Next Steps**: Concrete instructions for the target model.
-
-### III. Dynamic Context Quality Scorer (`backend/services/quality_scorer.py`)
-A mathematical evaluator (0–100%) that measures context fidelity across four weighted dimensions:
-- **Completeness (30 pts)**: Objective depth, requirement density, and constraint specifications.
-- **Clarity & Depth (25 pts)**: File context grounding and dependency tracking.
-- **Actionability & Readiness (25 pts)**: Immediate next steps and logged failed attempts.
-- **Consistency & Contradiction Risk (20 pts)**: Real-time conflict deductions.
-
-### IV. Contradiction Detection Service (`backend/services/contradiction.py`)
-Detects mutually exclusive architectural decisions (e.g. choosing PostgreSQL earlier, then switching to MongoDB without formal reconciliation) and polar constraint violations (e.g. constraints strictly prohibiting NoSQL while a requirement specifies it).
-
-### V. Semantic Memory Versioning & Diff Engine (`backend/services/version_diff.py`)
-Maintains historical project context states (`v1.0`, `v1.1`, `v1.2`...). The visual diff engine compares any two milestones to display:
-- **Added Elements**: Green glass pills.
-- **Modified State**: Blue glass pills.
-- **Removed / Retired Paths**: Red glass pills.
-
-### VI. Tailored AI Handoff Generator (`backend/services/handoff_generator.py`)
-Formats the Context Package into the optimal dialect for the destination model:
-- **Claude (Anthropic)**: Formatted in structured XML tags (`<project_context>`, `<constraints>`, `<immediate_action_items>`) for highest adherence.
-- **ChatGPT (OpenAI)**: Formatted in dense Markdown with executive guidelines.
-- **Gemini (Google)**: Optimized structured prompt with direct goal grounding.
-- **Cursor / VS Code**: Formatted as an autonomous `.cursorrules` / agent specification.
-
-### VII. Chrome Extension Companion (Manifest V3)
-A native browser companion located in `extension/` that parses conversation bubbles in ChatGPT (`chatgpt.com`), Claude (`claude.ai`), and Gemini (`gemini.google.com`), relaying context directly into project memory with one click.
+```
+                    ┌───────────────┐
+                    │     USER      │
+                    └───────┬───────┘
+                            │
+                 ┌──────────┴──────────┐
+                 │                     │
+                 ▼                     ▼
+          CONTINUO WEBSITE      CHROME EXTENSION
+          (Project Memory UI)    (1-Click Companion)
+                 │                     │
+                 └──────────┬──────────┘
+                            ▼
+                     FASTAPI GATEWAY
+                     (REST API v1)
+                            │
+                ┌───────────┼───────────┐
+                ▼           ▼           ▼
+           AUTH SERVICE  CONTEXT     PROJECT
+           (JWT / Hash)   ENGINE      MEMORY
+                            │           │
+                            └─────┬─────┘
+                                  ▼
+                              DATABASE
+                         (SQLite / Postgres)
+                                  │
+                                  ▼
+                             AI HANDOFF
+                       (Universal Markdown)
+```
 
 ---
 
-## 3. Technology Stack
+## 3. Key Features
 
-- **Frontend**: Vanilla HTML5, Modern CSS (Design Tokens, Glassmorphism), ES6+ JavaScript.
-- **Backend**: Python 3.12+, FastAPI, Uvicorn, Pydantic v2.
-- **Database**: SQLAlchemy ORM with SQLite (development) and PostgreSQL / Supabase (production).
-- **Authentication**: Stateless JWT with secure HMAC-SHA256 password hashing.
-- **Browser Extension**: Chrome Manifest V3 (Service Worker, Content Scripts).
-- **Testing**: Pytest, HTTPX, AnyIO test client.
+- **Extension-First Experience**: 6 deterministic popup states (`NO_AI_DETECTED`, `AI_DETECTED`, `CAPTURING`, `PROCESSING`, `SUCCESS`, `ERROR`).
+- **Live Active Tab Scraping**: Safely extracts message turns directly from the DOM on `chatgpt.com`, `claude.ai`, and `gemini.google.com`.
+- **Inline Project Creation**: Create and associate new projects directly in the popup with zero context switching.
+- **Universal Markdown Handoffs**: Formats structured continuation packages using an explicit, AI-readable schema without brittle proprietary markup.
+- **Strict User Isolation**: Every endpoint verifies JWT token identity against resource ownership; no user can access another user's projects, memory, versions, or handoffs.
+- **Dynamic Quality Scorer**: Mathematical 0–100% evaluation measuring Completeness, Clarity, Actionability, and Contradiction risk.
+- **Contradiction Guard**: Detects opposing architectural choices and incompatible constraints before they propagate to downstream models.
+- **Granular Version Diffs**: Snapshot project memory versioning (`v1.0`, `v1.1`, `v1.2`) with visual additions, modifications, and removals.
+- **Honest Handoff UX**: No fake automated keystroke injection—generates verified payload, copies directly to clipboard, and opens the destination AI with immediate visual feedback (`✓ Context copied. Ready to continue in Claude.`).
 
 ---
 
-## 4. Local Setup & Quickstart
+## 4. Project Structure
+
+```
+Continuo/
+├── backend/
+│   ├── config.py                 # Pydantic environment configuration & CORS origins
+│   ├── database.py               # SQLAlchemy engine & session factory
+│   ├── main.py                   # FastAPI application gateway & middleware
+│   ├── models/                   # SQLAlchemy DB models (User, Project, ContextPackage, Versions, Handoffs)
+│   ├── routers/
+│   │   ├── auth.py               # /auth (register, login, logout, me)
+│   │   ├── projects.py           # /projects (CRUD with ownership enforcement)
+│   │   ├── context.py            # /context (capture, analyze, patch)
+│   │   ├── versions.py           # /versions (history & semantic diff)
+│   │   └── handoffs.py           # /handoffs (cross-model continuation generation)
+│   ├── schemas/                  # Pydantic v2 validation models
+│   └── services/
+│       ├── auth.py               # PBKDF2 password hashing & JWT signing
+│       ├── context_engine.py     # Deterministic heuristic extraction engine
+│       ├── quality_scorer.py     # Weighted 4-factor quality algorithm
+│       ├── contradiction.py      # Architectural decision conflict detector
+│       ├── version_diff.py       # JSON memory diff calculator
+│       └── handoff_generator.py  # Section 8 Universal Handoff Formatter
+├── extension/
+│   ├── manifest.json             # Chrome Manifest V3 configuration (minimal permissions)
+│   ├── popup.html                # 6-state popup companion interface
+│   ├── popup.css                 # Glassmorphic dark companion styling
+│   ├── popup.js                  # Extension popup state machine & controller
+│   └── content.js                # Content script extracting ChatGPT / Claude / Gemini DOM turns
+├── assets/                       # Branding, emblems, and visual assets
+├── index.html                    # Continuous landing page & Project Workspace UI
+├── styles.css                    # Design tokens, glassmorphism, and responsive styling
+├── main.js                       # Frontend workspace controller & ambient motion engine
+├── tests/                        # Pytest automated test suite
+├── .env.example                  # Environment configuration template
+├── requirements.txt              # Python production dependencies
+└── continuo.db                   # Local SQLite database (zero-setup development)
+```
+
+---
+
+## 5. Local Development Setup
 
 ### Prerequisites
 - Python 3.12 or newer
-- Node.js or modern browser (for serving static frontend)
+- Google Chrome (or Chromium-based browser: Brave, Edge)
+- Git
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Anxhu03/continuo.git
-cd continuo
+git clone https://github.com/Anxhu03/Continuo.git
+cd Continuo
 ```
 
-### 2. Configure Environment
+### 2. Configure Environment Variables
 ```bash
 cp .env.example .env
 ```
+Edit `.env` to configure your `SECRET_KEY`, `DATABASE_URL`, and `CORS_ORIGINS`.
 
-### 3. Setup Python Virtual Environment & Install Dependencies
+### 3. Backend Setup
 ```bash
+# Create virtual environment
 python -m venv .venv
 
-# On Windows:
-.\.venv\Scripts\activate
+# Activate on Windows PowerShell:
+.\.venv\Scripts\Activate.ps1
 
-# On macOS/Linux:
+# Or activate on macOS / Linux:
 source .venv/bin/activate
 
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 4. Start the FastAPI Backend Server
+Start the FastAPI development server:
 ```bash
 uvicorn backend.main:app --host 127.0.0.1 --port 8008 --reload
 ```
-The interactive API documentation is available at:
+Interactive API documentation will be available at:
 - **Swagger UI**: [http://127.0.0.1:8008/docs](http://127.0.0.1:8008/docs)
 - **ReDoc**: [http://127.0.0.1:8008/redoc](http://127.0.0.1:8008/redoc)
 
-### 5. Serve the Web Interface
-In another terminal, serve the frontend:
+### 4. Frontend Setup
+In a separate terminal:
 ```bash
-# Using Python HTTP Server:
-python -m http.server 3000
+python -m http.server 8000
 ```
-Open your browser at **[http://localhost:3000/](http://localhost:3000/)**.
+Open **[http://localhost:8000](http://localhost:8000)** in your browser.
+
+### 5. Database Setup
+- **Default (SQLite)**: Automatically initializes `continuo.db` in the repository root on startup with zero configuration.
+- **Production (PostgreSQL / Supabase)**: Update your `DATABASE_URL` in `.env`:
+  ```ini
+  DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/[DATABASE]
+  ```
+  SQLAlchemy models will create and migrate all tables automatically on server initialization.
 
 ---
 
-## 5. Running the Test Suite
+## 6. Chrome Extension Installation
 
-Execute the complete end-to-end test suite:
+Continuo operates as an unpacked Manifest V3 Chrome Extension during the developer preview:
+
+1. Clone or download this repository to your local computer.
+2. Open Google Chrome and enter `chrome://extensions` in the address bar.
+3. Toggle the **Developer mode** switch in the top-right corner to **ON**.
+4. Click the **Load unpacked** button in the top-left toolbar.
+5. In the file dialog, select the `Continuo/extension` directory.
+6. Continuo will appear in your extensions list. Click the puzzle icon in Chrome and **pin Continuo** to your toolbar.
+7. Open **ChatGPT** (`chatgpt.com`), **Claude** (`claude.ai`), or **Google Gemini** (`gemini.google.com`).
+8. Click the Continuo extension icon, select or create your project, and click **Save Context**.
+
+---
+
+## 7. Universal Handoff Prompt Schema
+
+Continuo formats cross-AI continuation packages into a clean, universal Markdown schema that downstream models ingest without conversational confusion:
+
+```markdown
+# Continue this project
+
+## Project
+Nexora Autonomous Agent (v1.1)
+
+## Goal
+Build high-throughput context continuity layer across multiple AI models.
+
+## Current state
+Working context captured by Continuo and formatted for continuation.
+
+## Important requirements
+- Support Google and GitHub OAuth providers
+- [Constraint] Never store plaintext secrets or refresh tokens in insecure cookies
+
+## Decisions already made
+- Selected FastAPI with SQLAlchemy and PyJWT for stateless verification
+- Implemented Section 8 clean Markdown handoff schema
+
+## Completed work
+- Setup database migrations for refresh_tokens table
+- Verified password hashing with PBKDF2
+
+## Problems / unresolved issues
+- [Do Not Repeat] Avoid asyncpg raw connection pool conflicts with sub-task loops
+
+## Important files or code context
+- `backend/routers/auth.py`
+- `backend/services/context_engine.py`
+
+## Next step
+1. Connect frontend auth modal and verify cross-domain CORS tokens
+
+## Instructions for continuing
+You are continuing this project directly from the CURRENT STATE above.
+Do not restart from scratch, do not ask the user to re-explain, and do not repeat completed work or failed attempts.
+Acknowledge receipt and proceed directly with Next Step 1.
+```
+
+---
+
+## 8. REST API Reference
+
+All protected routes require an `Authorization: Bearer <token>` header.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/register` | Public | Register a new user account |
+| `POST` | `/api/v1/auth/login` | Public | Authenticate with email/password; returns JWT token |
+| `POST` | `/api/v1/auth/logout` | Required | Invalidate user session |
+| `GET` | `/api/v1/auth/me` | Required | Retrieve active user profile |
+| `GET` | `/api/v1/projects` | Required | List all projects owned by the authenticated user |
+| `POST` | `/api/v1/projects` | Required | Create a new project and initialize baseline memory (`v1.0`) |
+| `GET` | `/api/v1/projects/{id}` | Required | Fetch project metadata (enforces ownership) |
+| `PATCH` | `/api/v1/projects/{id}` | Required | Update project title or description |
+| `POST` | `/api/v1/context/capture` | Required | Ingest raw dialogue, extract memory facts, bump version |
+| `POST` | `/api/v1/context/analyze` | Public | Stateless context extraction and quality preview |
+| `GET` | `/api/v1/context/projects/{id}/context` | Required | Retrieve active or versioned project context |
+| `PATCH` | `/api/v1/context/{id}` | Required | Manually curate project memory fields |
+| `GET` | `/api/v1/versions/projects/{id}` | Required | List snapshot version history |
+| `GET` | `/api/v1/versions/projects/{id}/diff` | Required | Calculate delta additions/modifications between two versions |
+| `POST` | `/api/v1/handoffs` | Required | Generate cross-AI continuation package & destination URL |
+| `GET` | `/api/v1/health` | Public | Backend connectivity & service status check |
+
+---
+
+## 9. Security & Privacy
+
+- **User Isolation**: Protected endpoints verify `project.user_id == current_user.id`. Requests targeting foreign projects immediately return HTTP 403 Forbidden.
+- **Zero Training Data Retention**: Captured context, conversation snippets, and project memories are never used to train or tune AI models.
+- **Minimal Browser Permissions**: The Chrome Extension Manifest V3 requests only `activeTab`, `storage`, and `scripting`. Host permissions are restricted strictly to `chatgpt.com`, `claude.ai`, `gemini.google.com`, and the Continuo backend API. Broad permissions like `<all_urls>` are strictly avoided.
+- **Explicit CORS Origins**: Configured via `CORS_ORIGINS` environment variable. Production disallows wildcard `*` for authenticated endpoints.
+
+---
+
+## 10. Automated Testing
+
+Run the full pytest suite:
 ```bash
-pytest -v
+.\.venv\Scripts\python -m pytest -v
 ```
 
 Test coverage includes:
-- `tests/test_api_endpoints.py`: Registration, authentication, user isolation, project creation, context capture, and multi-provider handoff generation.
-- `tests/test_context_engine.py`: Raw dialogue extraction of goals, decisions, constraints, and files.
-- `tests/test_quality_and_contradiction.py`: Dynamic mathematical scoring calibration and contradiction detection.
+- `tests/test_api_endpoints.py`: Registration, authentication, user resource isolation (403 verification), project creation, context capture, versioning diff, and handoffs.
+- `tests/test_context_engine.py`: Structured fact extraction from raw conversational turns.
+- `tests/test_quality_and_contradiction.py`: 4-dimension quality scoring and architectural contradiction detection.
 - `tests/test_version_diff.py`: Multi-version context delta calculations.
 
 ---
 
-## 6. Installing the Chrome Extension
+## 11. Roadmap
 
-1. Open `chrome://extensions/` in Chrome, Brave, or Edge.
-2. Enable **Developer mode** (top-right toggle).
-3. Click **Load unpacked**.
-4. Select the `extension/` folder in this repository.
-5. Pin Continuo to your toolbar.
-
----
-
-## 7. REST API Reference
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/v1/auth/register` | Create a new user account |
-| `POST` | `/api/v1/auth/login` | Authenticate and obtain JWT bearer token |
-| `GET` | `/api/v1/auth/me` | Fetch authenticated user profile |
-| `GET` | `/api/v1/projects` | List all user-owned projects |
-| `POST` | `/api/v1/projects` | Initialize a new persistent project memory |
-| `GET` | `/api/v1/projects/{id}` | Retrieve project metadata and active version |
-| `POST` | `/api/v1/context/capture` | Ingest raw dialogue, extract Context Package & bump version |
-| `POST` | `/api/v1/context/analyze` | Stateless extraction & quality scoring preview |
-| `GET` | `/api/v1/context/projects/{id}/context` | Fetch active Context Package |
-| `PATCH` | `/api/v1/context/{id}` | Manually edit and curate context (bumps milestone version) |
-| `GET` | `/api/v1/versions/projects/{id}` | List project version history |
-| `GET` | `/api/v1/versions/projects/{id}/diff` | Calculate semantic diff between two versions |
-| `POST` | `/api/v1/handoffs` | Generate model-tailored cross-AI handoff payload |
+- [x] Phase 1: High-fidelity visual polish & responsive landing page.
+- [x] Phase 2: Context Engine heuristic extraction & quality scoring.
+- [x] Phase 3: Project persistence, user authentication, and version diffing.
+- [x] Phase 4: Extension-first productization, 6 popup states, universal Markdown handoffs.
+- [ ] Phase 5: Chrome Web Store public listing.
+- [ ] Phase 6: Hosted Supabase PostgreSQL migration & team workspace collaboration.
 
 ---
 
-## 8. License & Privacy
+## 12. Contributing
 
-Distributed under the Apache 2.0 License. See `LICENSE` for details.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for local development guidelines, coding conventions, and pull request procedures.
 
-Continuo enforces **Zero Training Data Retention**: Conversations and context packages captured through Continuo are never used to train, evaluate, or tune any third-party AI models.
+---
+
+## 13. License
+
+Distributed under the **Apache License, Version 2.0**. See `LICENSE` for the complete license text.
