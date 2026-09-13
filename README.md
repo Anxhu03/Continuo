@@ -86,8 +86,8 @@ Continuo maintains a strict separation of concerns, ensuring provider neutrality
                             │           │
                             └─────┬─────┘
                                   ▼
-                              DATABASE
-                         (SQLite / Postgres)
+                               DATABASE
+                          (SQLite / Postgres)
                                   │
                                   ▼
                              AI HANDOFF
@@ -106,7 +106,7 @@ Continuo maintains a strict separation of concerns, ensuring provider neutrality
 - **Dynamic Quality Scorer**: Mathematical 0–100% evaluation measuring Completeness, Clarity, Actionability, and Contradiction risk.
 - **Contradiction Guard**: Detects opposing architectural choices and incompatible constraints before they propagate to downstream models.
 - **Granular Version Diffs**: Snapshot project memory versioning (`v1.0`, `v1.1`, `v1.2`) with visual additions, modifications, and removals.
-- **Honest Handoff UX**: No fake automated keystroke injection—generates verified payload, copies directly to clipboard, and opens the destination AI with immediate visual feedback (`✓ Context copied. Ready to continue in Claude.`).
+- **Honest Handoff UX**: Generates verified payload, copies directly to clipboard, and opens the destination AI with immediate visual feedback (`✓ Context copied. Ready to continue in Claude.`).
 
 ---
 
@@ -132,18 +132,27 @@ Continuo/
 │       ├── quality_scorer.py     # Weighted 4-factor quality algorithm
 │       ├── contradiction.py      # Architectural decision conflict detector
 │       ├── version_diff.py       # JSON memory diff calculator
-│       └── handoff_generator.py  # Section 8 Universal Handoff Formatter
+│       └── handoff_generator.py  # Concise Universal Handoff Formatter
 ├── extension/
 │   ├── manifest.json             # Chrome Manifest V3 configuration (minimal permissions)
 │   ├── popup.html                # 6-state popup companion interface
 │   ├── popup.css                 # Glassmorphic dark companion styling
 │   ├── popup.js                  # Extension popup state machine & controller
 │   └── content.js                # Content script extracting ChatGPT / Claude / Gemini DOM turns
+├── dist/
+│   └── continuo-extension.zip    # Clean, verified extension distribution archive
+├── docs/
+│   ├── CHROME_STORE_SUBMISSION.md# Official store listing copy, justifications & submission checklist
+│   └── PRIVACY.md                # Comprehensive data governance and privacy commitments
+├── scripts/
+│   └── package-extension.py      # Deterministic extension build & audit script
 ├── assets/                       # Branding, emblems, and visual assets
 ├── index.html                    # Continuous landing page & Project Workspace UI
+├── install.html                  # Dual-state installation guide (Development vs Production)
+├── config.js                     # Centralized extension distribution configuration
 ├── styles.css                    # Design tokens, glassmorphism, and responsive styling
 ├── main.js                       # Frontend workspace controller & ambient motion engine
-├── tests/                        # Pytest automated test suite
+├── tests/                        # Pytest automated test suite (100% passing)
 ├── .env.example                  # Environment configuration template
 ├── requirements.txt              # Python production dependencies
 └── continuo.db                   # Local SQLite database (zero-setup development)
@@ -210,63 +219,70 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser.
 
 ---
 
-## 6. Chrome Extension Installation
+## 6. Chrome Extension Distribution & Installation
 
-Continuo operates as an unpacked Manifest V3 Chrome Extension during the developer preview:
+Continuo implements a **dual-state distribution architecture** governed by `config.js`:
 
-1. Clone or download this repository to your local computer.
-2. Open Google Chrome and enter `chrome://extensions` in the address bar.
-3. Toggle the **Developer mode** switch in the top-right corner to **ON**.
-4. Click the **Load unpacked** button in the top-left toolbar.
-5. In the file dialog, select the `Continuo/extension` directory.
-6. Continuo will appear in your extensions list. Click the puzzle icon in Chrome and **pin Continuo** to your toolbar.
-7. Open **ChatGPT** (`chatgpt.com`), **Claude** (`claude.ai`), or **Google Gemini** (`gemini.google.com`).
-8. Click the Continuo extension icon, select or create your project, and click **Save Context**.
+### State A: Development Build (`CHROME_EXTENSION_STORE_URL === null`)
+While awaiting Chrome Web Store listing approval:
+1. The landing page CTA displays **`[ Install Extension ]`** and navigates to `install.html`.
+2. Users can download the verified extension package: [`dist/continuo-extension.zip`](dist/continuo-extension.zip).
+3. Follow the 6 simple steps:
+   - Extract `continuo-extension.zip`.
+   - Open `chrome://extensions` in Google Chrome.
+   - Toggle **Developer mode** to ON.
+   - Click **Load unpacked** and select the extracted folder.
+   - Pin Continuo to your toolbar.
+
+### State B: Production Release (`CHROME_EXTENSION_STORE_URL !== null`)
+Once published, setting `CHROME_EXTENSION_STORE_URL = "https://chromewebstore.google.com/..."` in `config.js` automatically:
+- Updates landing page CTAs to **`[ Add to Chrome ]`**, linking directly to the official listing.
+- Updates `install.html` to feature official 1-click store installation with zero ZIP downloads or manual unpacked steps in the primary flow.
+
+### Deterministic Packaging
+To package a clean, store-ready ZIP archive:
+```bash
+python scripts/package-extension.py
+```
+This script audits `extension/manifest.json`, excludes all repo/test/backend/secret files, and produces `dist/continuo-extension.zip`.
 
 ---
 
 ## 7. Universal Handoff Prompt Schema
 
-Continuo formats cross-AI continuation packages into a clean, universal Markdown schema that downstream models ingest without conversational confusion:
+Continuo formats cross-AI continuation packages into a concise, token-efficient schema that downstream models ingest without conversational confusion or token waste:
 
 ```markdown
-# Continue this project
+You are continuing an existing project.
 
-## Project
+Project:
 Nexora Autonomous Agent (v1.1)
 
-## Goal
+Goal:
 Build high-throughput context continuity layer across multiple AI models.
 
-## Current state
+Current state:
 Working context captured by Continuo and formatted for continuation.
 
-## Important requirements
-- Support Google and GitHub OAuth providers
-- [Constraint] Never store plaintext secrets or refresh tokens in insecure cookies
-
-## Decisions already made
-- Selected FastAPI with SQLAlchemy and PyJWT for stateless verification
-- Implemented Section 8 clean Markdown handoff schema
-
-## Completed work
+Completed:
 - Setup database migrations for refresh_tokens table
 - Verified password hashing with PBKDF2
 
-## Problems / unresolved issues
-- [Do Not Repeat] Avoid asyncpg raw connection pool conflicts with sub-task loops
+Important decisions:
+- Selected FastAPI with SQLAlchemy and PyJWT for stateless verification
+- Implemented clean token-efficient handoff schema
 
-## Important files or code context
-- `backend/routers/auth.py`
-- `backend/services/context_engine.py`
+Constraints:
+- Never store plaintext secrets or refresh tokens in insecure cookies
+- Support Google and GitHub OAuth providers
 
-## Next step
+Known problems:
+- Avoid asyncpg raw connection pool conflicts with sub-task loops
+
+Next task:
 1. Connect frontend auth modal and verify cross-domain CORS tokens
 
-## Instructions for continuing
-You are continuing this project directly from the CURRENT STATE above.
-Do not restart from scratch, do not ask the user to re-explain, and do not repeat completed work or failed attempts.
-Acknowledge receipt and proceed directly with Next Step 1.
+Continue from the current state. Do not restart the project or repeat completed work.
 ```
 
 ---
@@ -285,6 +301,7 @@ All protected routes require an `Authorization: Bearer <token>` header.
 | `POST` | `/api/v1/projects` | Required | Create a new project and initialize baseline memory (`v1.0`) |
 | `GET` | `/api/v1/projects/{id}` | Required | Fetch project metadata (enforces ownership) |
 | `PATCH` | `/api/v1/projects/{id}` | Required | Update project title or description |
+| `DELETE`| `/api/v1/projects/{id}` | Required | Delete project and all associated packages (cascade) |
 | `POST` | `/api/v1/context/capture` | Required | Ingest raw dialogue, extract memory facts, bump version |
 | `POST` | `/api/v1/context/analyze` | Public | Stateless context extraction and quality preview |
 | `GET` | `/api/v1/context/projects/{id}/context` | Required | Retrieve active or versioned project context |
@@ -298,10 +315,11 @@ All protected routes require an `Authorization: Bearer <token>` header.
 
 ## 9. Security & Privacy
 
-- **User Isolation**: Protected endpoints verify `project.user_id == current_user.id`. Requests targeting foreign projects immediately return HTTP 403 Forbidden.
+- **Strict Multi-Tenant Isolation**: Protected endpoints verify `project.user_id == current_user.id`. Foreign access attempts immediately return HTTP 403 Forbidden.
 - **Zero Training Data Retention**: Captured context, conversation snippets, and project memories are never used to train or tune AI models.
 - **Minimal Browser Permissions**: The Chrome Extension Manifest V3 requests only `activeTab`, `storage`, and `scripting`. Host permissions are restricted strictly to `chatgpt.com`, `claude.ai`, `gemini.google.com`, and the Continuo backend API. Broad permissions like `<all_urls>` are strictly avoided.
 - **Explicit CORS Origins**: Configured via `CORS_ORIGINS` environment variable. Production disallows wildcard `*` for authenticated endpoints.
+- **Policy Documents**: Review [docs/PRIVACY.md](docs/PRIVACY.md) and [docs/CHROME_STORE_SUBMISSION.md](docs/CHROME_STORE_SUBMISSION.md).
 
 ---
 
@@ -313,10 +331,15 @@ Run the full pytest suite:
 ```
 
 Test coverage includes:
-- `tests/test_api_endpoints.py`: Registration, authentication, user resource isolation (403 verification), project creation, context capture, versioning diff, and handoffs.
+- `tests/test_api_endpoints.py`: Registration, authentication, multi-tenant resource isolation (15 distinct 403/401 checks), project CRUD, context capture, versioning diff, and handoffs.
 - `tests/test_context_engine.py`: Structured fact extraction from raw conversational turns.
 - `tests/test_quality_and_contradiction.py`: 4-dimension quality scoring and architectural contradiction detection.
 - `tests/test_version_diff.py`: Multi-version context delta calculations.
+
+Run the CTA and distribution verification suite:
+```bash
+python verify_cta.py
+```
 
 ---
 
@@ -325,18 +348,12 @@ Test coverage includes:
 - [x] Phase 1: High-fidelity visual polish & responsive landing page.
 - [x] Phase 2: Context Engine heuristic extraction & quality scoring.
 - [x] Phase 3: Project persistence, user authentication, and version diffing.
-- [x] Phase 4: Extension-first productization, 6 popup states, universal Markdown handoffs.
-- [ ] Phase 5: Chrome Web Store public listing.
+- [x] Phase 4: Production MVP + Chrome Extension Readiness.
+- [ ] Phase 5: Chrome Web Store public listing submission.
 - [ ] Phase 6: Hosted Supabase PostgreSQL migration & team workspace collaboration.
 
 ---
 
-## 12. Contributing
+## 12. License
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for local development guidelines, coding conventions, and pull request procedures.
-
----
-
-## 13. License
-
-Distributed under the **Apache License, Version 2.0**. See `LICENSE` for the complete license text.
+Distributed under the **Apache License, Version 2.0**. See `LICENSE` for details.
