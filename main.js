@@ -18,10 +18,11 @@
  * CONTINUO GLOBAL EXTENSION DISTRIBUTION CONFIGURATION
  * Reads from config.js (window.CHROME_EXTENSION_STORE_URL) or defaults to null.
  */
-const CHROME_EXTENSION_STORE_URL =
-  typeof window !== "undefined" && window.CHROME_EXTENSION_STORE_URL !== undefined
+function getExtensionStoreUrl() {
+  return typeof window !== "undefined" && window.CHROME_EXTENSION_STORE_URL !== undefined
     ? window.CHROME_EXTENSION_STORE_URL
     : null;
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initLenisSmoothScroll();
@@ -2369,12 +2370,16 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   // Workspace Open & Close
   // =========================================================================
   async function openWorkspace() {
-    await ensureAuthenticated();
-    await loadProjects();
-
     wsOverlay.classList.add("active");
     document.body.style.overflow = "hidden";
     if (lenisInstance) lenisInstance.stop();
+
+    try {
+      await ensureAuthenticated();
+      await loadProjects();
+    } catch (err) {
+      console.warn("Continuo: Background sync failed:", err);
+    }
   }
 
   function closeWorkspace() {
@@ -2436,10 +2441,7 @@ function initExtensionCta() {
   const heroCtaBtn = document.getElementById("hero-cta");
   const footerCtaBtn = document.getElementById("footer-cta-btn");
   const mobileInstallLink = document.querySelector('a.mobile-link[href="install.html"]');
-  const storeUrl =
-    typeof window !== "undefined" && window.CHROME_EXTENSION_STORE_URL !== undefined
-      ? window.CHROME_EXTENSION_STORE_URL
-      : (typeof CHROME_EXTENSION_STORE_URL !== "undefined" ? CHROME_EXTENSION_STORE_URL : null);
+  const storeUrl = getExtensionStoreUrl();
   const isProduction = Boolean(storeUrl);
 
   const heroCtaText = heroCtaBtn ? heroCtaBtn.querySelector("span") : null;
