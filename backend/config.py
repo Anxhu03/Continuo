@@ -19,14 +19,16 @@ class Settings(BaseModel):
     # Database Configuration (SQLite default with zero setup, PostgreSQL/Supabase ready)
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./continuo.db")
     
-    # CORS Origins
+    # CORS Origins (configurable via environment variable)
     CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        origin.strip()
+        for origin in os.getenv("CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ] or [
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "chrome-extension://*",
-        "*"
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
 
 settings = Settings()

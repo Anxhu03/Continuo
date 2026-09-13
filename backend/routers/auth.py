@@ -62,3 +62,13 @@ def login(login_in: UserLogin, db: Session = Depends(get_db)):
 def get_me(current_user: User = Depends(get_current_user)):
     """Retrieve profile of currently authenticated user."""
     return current_user
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(current_user: User = Depends(get_current_user)):
+    """Acknowledge client session termination."""
+    return {
+        "status": "success",
+        "message": f"Successfully signed out {current_user.email} from Continuo.",
+        "user_id": current_user.id
+    }
+
