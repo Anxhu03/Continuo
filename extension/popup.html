@@ -17,7 +17,10 @@
         <div class="brand-ring">
           <span class="brand-dot"></span>
         </div>
-        <span class="brand-title">CONTINUO</span>
+        <div class="brand-titles">
+          <span class="brand-title">CONTINUO</span>
+          <span class="brand-tagline">Keep your context. Continue anywhere.</span>
+        </div>
       </div>
       <div class="connection-status">
         <span class="status-indicator" id="status-indicator"></span>
@@ -33,13 +36,18 @@
 
     <!-- STATE 0: NOT AUTHENTICATED PANEL -->
     <section class="state-panel auth-panel" id="auth-panel" style="display: none;">
-      <div class="auth-badge">Authentication Required</div>
+      <div class="auth-badge">Sign in to Continuo</div>
       <p class="auth-desc">
-        Sign in to save project memory and keep your context across models.
+        Your projects and saved context are securely synced across all your AI assistants.
       </p>
-      <button class="save-context-btn" id="btn-open-login" type="button">
-        Open Continuo to Sign In
-      </button>
+      <div class="auth-btn-row">
+        <button class="save-context-btn" id="btn-open-login" type="button">
+          Sign In
+        </button>
+        <button class="view-memory-btn" id="btn-open-register" type="button">
+          Create Account
+        </button>
+      </div>
 
       <!-- Optional Inline Quick Login Form -->
       <div class="quick-auth-drawer">
@@ -57,9 +65,9 @@
 
     <!-- STATE 1: NO AI DETECTED PANEL -->
     <section class="state-panel no-ai-panel" id="no-ai-panel" style="display: none;">
-      <div class="no-ai-badge">No active AI conversation detected</div>
+      <div class="no-ai-badge">Unsupported page</div>
       <p class="no-ai-desc">
-        Continuo automatically preserves your working context on:
+        Open a supported AI conversation to capture context:
       </p>
       <ul class="supported-ai-list">
         <li><span class="ai-bullet dot-chatgpt"></span> ChatGPT (chatgpt.com)</li>
@@ -73,7 +81,7 @@
       </div>
     </section>
 
-    <!-- STATE 2, 3, 4: ACTIVE AI DETECTED & CAPTURE PANEL -->
+    <!-- STATE 2, 3: ACTIVE AI DETECTED & CAPTURE PANEL -->
     <section class="state-panel active-ai-panel" id="active-ai-panel">
       <!-- Active Provider Detection Banner -->
       <div class="detection-box" id="detection-box">
@@ -84,16 +92,19 @@
         <div class="detection-source" id="detection-source">Active conversation ready</div>
       </div>
 
-      <!-- Honest Empty Chat Warning (Part 3) -->
+      <!-- Honest Empty Chat Warning -->
       <div class="empty-chat-notice" id="empty-chat-notice" style="display: none;">
         <span class="notice-icon">ℹ</span>
-        <span id="empty-chat-text">No conversation detected. Open a ChatGPT, Claude, or Gemini conversation to save context.</span>
+        <div class="notice-text-group">
+          <strong id="empty-chat-heading">No conversation turns detected yet.</strong>
+          <span id="empty-chat-text">Start chatting with your AI assistant first, then save your context.</span>
+        </div>
       </div>
 
       <!-- Current Project Selector & Inline Creator -->
       <div class="project-box" id="project-box">
         <div class="project-header-row">
-          <label for="ext-project-select" class="project-label">Current project:</label>
+          <label for="ext-project-select" class="project-label">Project</label>
           <button type="button" class="new-project-toggle-btn" id="btn-toggle-new-project" aria-expanded="false">+ New Project</button>
         </div>
         <select id="ext-project-select" class="project-select">
@@ -110,9 +121,13 @@
         </div>
       </div>
 
-      <!-- Context Readiness Status -->
-      <div class="context-ready-indicator" id="context-ready-indicator">
-        <span class="ready-badge" id="ready-badge-pill"><span class="ready-dot" id="ready-dot"></span> <span id="ready-text">Context ready</span></span>
+      <!-- Live Conversation Turn Preview -->
+      <div class="conversation-preview-box" id="conversation-preview-box">
+        <div class="preview-header-row">
+          <span class="preview-label">Conversation</span>
+          <span class="ready-badge" id="ready-badge-pill"><span class="ready-dot" id="ready-dot"></span> <span id="ready-text">Context ready</span></span>
+        </div>
+        <div class="preview-snippet" id="conversation-preview-text">"Waiting for dialogue..."</div>
       </div>
 
       <!-- Main Action Button -->
@@ -122,13 +137,13 @@
       </button>
     </section>
 
-    <!-- STATE 5: POST-SAVE SUCCESS & CONTINUATION PANEL -->
+    <!-- STATE 4: POST-SAVE SUCCESS & CONTINUATION PANEL -->
     <section class="state-panel handoff-panel" id="handoff-panel" style="display: none;">
       <div class="success-banner">
         <span class="check-mark">✓</span>
         <div class="success-text-group">
           <span class="success-title">Context saved</span>
-          <span class="success-subtitle">Continuo project memory updated.</span>
+          <span class="success-subtitle">Project memory updated.</span>
         </div>
       </div>
 
@@ -154,13 +169,13 @@
       </button>
     </section>
 
-    <!-- STATE 6: ERROR & RETRY PANEL -->
+    <!-- STATE 5: ERROR & RETRY PANEL -->
     <section class="state-panel error-panel" id="error-panel" style="display: none;">
       <div class="error-banner">
         <span class="error-icon">!</span>
         <span class="error-message" id="error-message">Unable to save context.</span>
       </div>
-      <p class="error-hint" id="error-hint">Your conversation was preserved locally. Please check backend connectivity.</p>
+      <p class="error-hint" id="error-hint">Check your connection and try again.</p>
       <button class="retry-btn" id="btn-retry" type="button">Try Again</button>
     </section>
 

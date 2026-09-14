@@ -47,18 +47,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   const isContinuoHost = host === "localhost" || host === "127.0.0.1" || host.includes("continuo");
   if (isContinuoHost) {
     try {
-      const syncToken = () => {
-        const token = localStorage.getItem("continuo_jwt");
-        const user = localStorage.getItem("continuo_user");
-        if (token && chrome.storage && chrome.storage.local) {
-          chrome.storage.local.set({
-            continuo_jwt: token,
-            continuo_user: user ? JSON.parse(user) : null
-          });
+      const syncToken = (explicitToken, explicitUser) => {
+        let token = explicitToken;
+        let user = explicitUser;
+        if (token === undefined) {
+          token = localStorage.getItem("continuo_jwt");
+        }
+        if (user === undefined) {
+          const rawUser = localStorage.getItem("continuo_user");
+          user = rawUser ? JSON.parse(rawUser) : null;
+        }
+        if (chrome.storage && chrome.storage.local) {
+          if (token) {
+            chrome.storage.local.set({
+              continuo_jwt: token,
+              continuo_user: user
+            });
+          } else {
+            chrome.storage.local.remove(["continuo_jwt", "continuo_user"]);
+          }
         }
       };
+
+      // Initial read
       syncToken();
-      window.addEventListener("storage", syncToken);
+
+      // Listen for standard storage events from other tabs
+      window.addEventListener("storage", () => syncToken());
+
+      // Listen for instantaneous custom DOM event dispatched by main.js in same tab
+      window.addEventListener("continuo_auth_sync", (e) => {
+        if (e && e.detail) {
+          syncToken(e.detail.token, e.detail.user);
+        } else {
+          syncToken();
+        }
+      });
     } catch (e) {
       // Passive sync attempt
     }
@@ -90,16 +114,24 @@ function inspectConversationState() {
       provider: null,
       conversationFound: false,
       messageCount: 0,
+      snippet: "",
       title: document.title || "Unknown Page"
     };
   }
 
   const turns = extractTurnsForProvider(provider);
+  let snippet = "";
+  if (turns.length > 0) {
+    const latest = turns[turns.length - 1];
+    snippet = latest.length > 130 ? latest.substring(0, 127) + "..." : latest;
+  }
+
   return {
     success: true,
     provider,
     conversationFound: turns.length > 0,
     messageCount: turns.length,
+    snippet,
     title: document.title || `${provider.toUpperCase()} Conversation`
   };
 }

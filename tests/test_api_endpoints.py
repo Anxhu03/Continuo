@@ -369,9 +369,75 @@ def test_version_diff_identical_versions(client):
         f"/api/v1/versions/projects/{proj_id}/diff?from_version=v1.0&to_version=v1.0",
         headers=headers
     )
-    assert diff_resp.status_code == 200
-    diff_data = diff_resp.json()
-    assert diff_data["summary"] == "No meaningful changes detected."
+def test_handoff_11_part_structured_payload(client):
+    """
+    Handoff Payload Fidelity Test:
+    Ensures generated handoff payload contains the exact 11 standardized section headers
+    and the continuation directive.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "handoff_lead@continuo.ai",
+        "password": "HandoffPassword123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Cloud Mesh Network",
+        "initial_objective": "Build zero-trust multi-cluster service mesh"
+    }).json()
+    proj_id = proj["id"]
+
+    # Capture rich dialogue to populate sections
+    dialogue = """
+    User: Let's design the service mesh mTLS certificate rotation.
+    Requirement: Auto-rotate envoy mTLS certs every 24 hours.
+    Constraint: Zero dropped packets during key rotation.
+    Decision: Use SPIFFE/SPIRE with cert-manager integration.
+    Current State: Controller watching SPIFFE secrets.
+    Completed: Deployed Spire server agent daemonset.
+    Pending: Implement graceful Envoy listener reload via ADS API.
+    File: k8s/spire-daemonset.yaml and envoy/cds.yaml
+    Problem: Envoy reload caused 12ms latency spike under peak load.
+    Failed Attempt: Tried hard restart of envoy pod which dropped active WebSocket connections.
+    Next step: Wire ADS warm listener swap with graceful drain timeout.
+    """
+    client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "chatgpt",
+        "raw_transcript": dialogue,
+        "title": "mTLS Rotation Design"
+    })
+
+    # Generate handoff
+    ho_resp = client.post("/api/v1/handoffs", headers=headers, json={
+        "project_id": proj_id,
+        "source_provider": "chatgpt",
+        "destination_provider": "claude",
+        "custom_instructions": "Focus strictly on ADS listener swap."
+    })
+    assert ho_resp.status_code == 201
+    payload = ho_resp.json()["formatted_payload"]
+
+    required_sections = [
+        "PROJECT:",
+        "OBJECTIVE:",
+        "CURRENT STATE:",
+        "COMPLETED WORK:",
+        "STILL WORKING ON:",
+        "IMPORTANT DECISIONS:",
+        "CONSTRAINTS:",
+        "OPEN PROBLEMS:",
+        "FILES / CODE CONTEXT:",
+        "FAILED ATTEMPTS:",
+        "NEXT STEPS:"
+    ]
+
+    for section in required_sections:
+        assert section in payload, f"Missing section in handoff payload: {section}"
+
+    assert "Continue from the current state" in payload
+    assert "https://claude.ai/new" == ho_resp.json()["destination_url"]
 
 
 

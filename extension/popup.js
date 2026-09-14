@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Auth Panel Elements
   const btnOpenLogin = document.getElementById("btn-open-login");
+  const btnOpenRegister = document.getElementById("btn-open-register");
   const btnToggleQuickAuth = document.getElementById("btn-toggle-quick-auth");
   const quickAuthBox = document.getElementById("quick-auth-box");
   const quickEmail = document.getElementById("quick-email");
@@ -43,6 +44,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const detectionSource = document.getElementById("detection-source");
   const emptyChatNotice = document.getElementById("empty-chat-notice");
   const emptyChatText = document.getElementById("empty-chat-text");
+  const conversationPreviewBox = document.getElementById("conversation-preview-box");
+  const conversationPreviewText = document.getElementById("conversation-preview-text");
   const projectSelect = document.getElementById("ext-project-select");
   const btnToggleNewProject = document.getElementById("btn-toggle-new-project");
   const inlineNewProjectRow = document.getElementById("inline-new-project-row");
@@ -262,6 +265,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           conversationDetected = true;
           detectedTurnCount = state.messageCount;
           emptyChatNotice.style.display = "none";
+          if (conversationPreviewBox) conversationPreviewBox.style.display = "block";
+          if (conversationPreviewText) {
+            conversationPreviewText.textContent = state.snippet ? `"${state.snippet}"` : `${state.messageCount} conversation turns detected and ready to capture into project memory.`;
+          }
           captureBtn.disabled = false;
           captureBtnText.textContent = "Save Context";
           readyDot.style.background = "#34d399";
@@ -270,8 +277,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           // Empty new chat or no conversation turns on page
           conversationDetected = false;
           detectedTurnCount = 0;
+          if (conversationPreviewBox) conversationPreviewBox.style.display = "none";
           emptyChatNotice.style.display = "flex";
-          emptyChatText.textContent = `No conversation detected. Open or start a ${detectedProvider.toUpperCase()} conversation to save context.`;
+          emptyChatText.textContent = `No conversation detected. Open or start a ${detectedProvider ? detectedProvider.toUpperCase() : 'AI'} conversation to save context.`;
           captureBtn.disabled = true;
           captureBtnText.textContent = "Open a conversation to save";
           readyDot.style.background = "#eab308";
@@ -286,6 +294,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         detectionSource.textContent = "Simulated Session";
         conversationDetected = true;
         detectedTurnCount = 4;
+        if (conversationPreviewBox) conversationPreviewBox.style.display = "block";
+        if (conversationPreviewText) {
+          conversationPreviewText.textContent = '"Simulated conversation context turns ready for capture."';
+        }
         showPanel("active-ai");
       }
     } catch (err) {
@@ -547,7 +559,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("Backend handoff call failed:", err);
     }
 
-    // Clean structured context fallback if offline
+    // Clean structured context fallback if offline (strict 11-section format)
     if (!payloadText) {
       const projName = projectSelect.options[projectSelect.selectedIndex]?.text || "Continuo Project";
       payloadText = `You are continuing an existing project.
@@ -559,10 +571,31 @@ OBJECTIVE:
 Continue development from established project state without repetition.
 
 CURRENT STATE:
-Working context captured by Continuo.
+Working context captured by Continuo extension.
 
-NEXT STEP:
-Continue the implementation seamlessly in ${humanName}.
+COMPLETED WORK:
+- Baseline architecture and project state recorded.
+
+STILL WORKING ON:
+- Seamless cross-AI session continuation.
+
+IMPORTANT DECISIONS:
+- User-scoped project memory persistence.
+
+CONSTRAINTS:
+- Preserve architectural fidelity and existing styling tokens.
+
+OPEN PROBLEMS:
+- None reported in active session.
+
+FILES / CODE CONTEXT:
+- Extension controller and workspace integration points.
+
+FAILED ATTEMPTS:
+- None.
+
+NEXT STEPS:
+- Continue implementation seamlessly in ${humanName}.
 
 Continue from this state without asking the user to repeat previously established context.`;
     }
@@ -602,6 +635,10 @@ Continue from this state without asking the user to repeat previously establishe
   // Auth Panel Actions
   if (btnOpenLogin) {
     btnOpenLogin.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
+  }
+
+  if (btnOpenRegister) {
+    btnOpenRegister.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
   }
 
   if (btnToggleQuickAuth) {
@@ -653,6 +690,21 @@ Continue from this state without asking the user to repeat previously establishe
       } finally {
         btnSubmitQuickLogin.disabled = false;
         btnSubmitQuickLogin.textContent = "Sign In";
+      }
+    });
+  }
+
+  // Cross-tab reactive auth sync via chrome.storage.onChanged
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener(async (changes, areaName) => {
+      if (areaName === "local" && (changes.continuo_jwt || changes.continuo_user)) {
+        const hasSession = await checkAuthSession();
+        if (hasSession) {
+          await loadProjects();
+          await inspectActiveTab();
+        } else {
+          showPanel("auth");
+        }
       }
     });
   }

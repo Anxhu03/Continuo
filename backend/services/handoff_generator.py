@@ -29,63 +29,79 @@ class UniversalHandoffFormatter:
         goal = context.get("objective") or "Develop and refine project features."
         current_state = context.get("current_state") or "In active development."
 
-        # Completed
+        # Completed Work
         completed = context.get("completed_work", [])
         completed_md = "\n".join(f"- {c}" for c in completed) if completed else "- Core baseline architecture established."
 
-        # Important decisions
+        # Still Working On / Pending Requirements
+        reqs = context.get("requirements", [])
+        pending_md = "\n".join(f"- {r}" for r in reqs) if reqs else "- Next functional milestone."
+
+        # Important Decisions
         decs = context.get("decisions", []) + context.get("design_decisions", [])
         decs_md = "\n".join(f"- {d}" for d in decs) if decs else "- Standard architectural patterns applied."
 
-        # Constraints & Requirements
+        # Constraints
         consts = context.get("constraints", [])
-        reqs = context.get("requirements", [])
-        combined_consts = consts + reqs
-        consts_md = "\n".join(f"- {c}" for c in combined_consts) if combined_consts else "- Follow standard engineering quality and security guidelines."
+        consts_md = "\n".join(f"- {c}" for c in consts) if consts else "- Standard engineering quality and security guidelines."
 
-        # Known problems & unresolved issues
+        # Open Problems
         problems = context.get("open_problems", []) + context.get("errors", [])
-        failed = context.get("failed_attempts", [])
-        combined_problems = problems + [f"[Do not repeat] {f}" for f in failed]
-        problems_md = "\n".join(f"- {p}" for p in combined_problems) if combined_problems else "- None recorded."
+        problems_md = "\n".join(f"- {p}" for p in problems) if problems else "- None recorded."
 
-        # Important files / code context
+        # Files / Code Context
         files = context.get("files_context", [])
-        files_md = f"\n\nFiles in scope:\n" + "\n".join(f"- `{f}`" for f in files) if files else ""
+        files_md = "\n".join(f"- `{f}`" for f in files) if files else "- None tagged."
 
-        # Next task / steps
+        # Failed Attempts
+        failed = context.get("failed_attempts", [])
+        failed_md = "\n".join(f"- [Do not repeat] {f}" for f in failed) if failed else "- None logged."
+
+        # Next Steps
         next_steps = context.get("next_steps", [])
-        next_task = "\n".join(f"{i+1}. {s}" for i, s in enumerate(next_steps)) if next_steps else "1. Proceed with the next planned engineering milestone."
+        next_steps_md = "\n".join(f"{i+1}. {s}" for i, s in enumerate(next_steps)) if next_steps else "1. Proceed with the next planned engineering milestone."
 
-        custom_directive = f"\n\nDirective:\n{custom_instructions}" if custom_instructions else ""
+        custom_directive = f"\nDIRECTIVE:\n{custom_instructions}\n" if custom_instructions else ""
 
         return f"""You are continuing an existing project.
 
-Project:
+PROJECT:
 {project_name} ({version})
 
-Goal:
+OBJECTIVE:
 {goal}
 
-Current state:
+CURRENT STATE:
 {current_state}
 
-Completed:
+COMPLETED WORK:
 {completed_md}
 
-Important decisions:
+STILL WORKING ON:
+{pending_md}
+
+IMPORTANT DECISIONS:
 {decs_md}
 
-Constraints:
+CONSTRAINTS:
 {consts_md}
 
-Known problems:
-{problems_md}{files_md}
+OPEN PROBLEMS:
+{problems_md}
 
-Next task:
-{next_task}{custom_directive}
+FILES / CODE CONTEXT:
+{files_md}
 
-Continue from the current state. Do not restart the project or repeat completed work."""
+FAILED ATTEMPTS:
+{failed_md}
+
+NEXT STEPS:
+{next_steps_md}
+{custom_directive}
+Continue from the current state. Continue from this project state.
+Do not restart the project.
+Do not repeat completed work.
+Preserve the existing decisions and constraints."""
 
 class ClaudeProviderAdapter(BaseProviderAdapter):
     """Formats context for Anthropic Claude models."""

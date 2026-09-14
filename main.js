@@ -795,6 +795,10 @@ function handleInitialHashNavigation() {
         lenisInstance.scrollTo(target, {
           offset: mappedId === "hero" ? 0 : -76,
           immediate: true,
+          onComplete: () => {
+            isNavProgrammaticScroll = false;
+            setActiveNav(mappedId, false);
+          }
         });
       } else {
         target.scrollIntoView({ behavior: "auto", block: "start" });
@@ -802,7 +806,7 @@ function handleInitialHashNavigation() {
       setTimeout(() => {
         isNavProgrammaticScroll = false;
         setActiveNav(mappedId, false);
-      }, 100);
+      }, 400);
     }, 60);
   }
 }
@@ -962,14 +966,14 @@ function initLenisSmoothScroll() {
             easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
             onComplete: () => {
               isNavProgrammaticScroll = false;
-              updateActiveNavFromScroll();
+              setActiveNav(mappedId, true);
             },
           });
         } else {
           target.scrollIntoView({ behavior: "smooth", block: "start" });
           setTimeout(() => {
             isNavProgrammaticScroll = false;
-            updateActiveNavFromScroll();
+            setActiveNav(mappedId, true);
           }, 600);
         }
 
@@ -1822,6 +1826,16 @@ function initContinuoWorkspaceApp() {
         chrome.storage.local.remove(["continuo_jwt", "continuo_user"]);
       }
     }
+
+    // Instant zero-latency sync to content script running in the same tab
+    try {
+      window.dispatchEvent(new CustomEvent("continuo_auth_sync", {
+        detail: {
+          token: authToken,
+          user: currentUser
+        }
+      }));
+    } catch (e) {}
   }
 
   function signOutUser() {
@@ -2509,7 +2523,9 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
   function closeAuthModal() {
     authModal.style.display = "none";
     authModal.setAttribute("aria-hidden", "true");
-    if (lenisInstance && (!wsOverlay || !wsOverlay.classList.contains("active"))) {
+    if (!authToken && wsOverlay && wsOverlay.classList.contains("active")) {
+      closeWorkspace();
+    } else if (lenisInstance && (!wsOverlay || !wsOverlay.classList.contains("active"))) {
       lenisInstance.start();
     }
   }
