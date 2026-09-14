@@ -6,7 +6,7 @@
     <title>Install Continuo — Chrome Extension Setup</title>
     <meta
       name="description"
-      content="Step-by-step developer installation guide for the Continuo Chrome Extension. Save your AI context across ChatGPT, Claude, and Gemini with one click."
+      content="Install Continuo so your project context stays with you across ChatGPT, Claude, and Gemini with one click."
     />
     <meta name="theme-color" content="#000000" />
 
@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
@@ -27,10 +27,15 @@
       referrerpolicy="no-referrer"
     />
 
+    <!-- Lenis Smooth Scroll Stylesheet -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.css" />
+
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="styles.css" />
+    <!-- Dedicated Installation Onboarding Stylesheet -->
+    <link rel="stylesheet" href="install.css" />
 
-    <!-- Configuration -->
+    <!-- Centralized Distribution Configuration (Single Source of Truth) -->
     <script src="config.js"></script>
   </head>
   <body class="install-page-body">
@@ -71,7 +76,7 @@
             <i class="fa-solid fa-layer-group ws-nav-icon"></i>
             <span>Workspace</span>
           </a>
-          <a href="index.html" class="glass-btn glass-btn-primary" title="Back to Continuo Home">
+          <a href="index.html" class="glass-btn glass-btn-primary" id="nav-home-link" title="Back to Continuo Home">
             <span>Back to Home</span>
             <i class="fa-solid fa-arrow-right btn-icon"></i>
           </a>
@@ -88,25 +93,39 @@
              STATE A: DEVELOPMENT BUILD (CHROME_EXTENSION_STORE_URL === null)
              ================================================================= -->
         <div id="install-dev-state" class="install-state-view">
-          <!-- Top Header Group -->
-          <div class="install-card-header">
+          <!-- 1. Installation Hero -->
+          <div class="install-hero-section">
             <div class="install-emblem-wrap">
-              <img src="assets/logo.webp" alt="Continuo" class="install-emblem-img" width="48" height="48" />
+              <img src="assets/logo.webp" alt="Continuo Emblem" class="install-emblem-img" width="48" height="48" />
             </div>
-            <div class="install-badge-pill">
+            
+            <div class="install-badge-pill" id="install-badge">
               <span class="install-badge-dot"></span>
               <span>DEVELOPMENT BUILD</span>
             </div>
-            <h1 class="install-title">Install the development build</h1>
-            <p class="install-tagline">"Continuo's Chrome Web Store release is currently being prepared."</p>
+
+            <div class="install-headline-label">CONTINUO</div>
+            <h1 class="install-title" id="install-title">Install the development build</h1>
+            
+            <p class="install-tagline-quote">"Keep your context. Continue anywhere."</p>
+            <p class="install-hero-support">
+              Bring Continuo into your AI conversations and save your project context whenever you're ready to switch models.
+            </p>
 
             <!-- Primary Direct Download Action -->
             <div class="install-hero-download-wrap">
-              <a href="dist/continuo-extension.zip" download="continuo-extension.zip" class="continuo-btn continuo-btn-primary install-hero-download-btn" id="btn-download-hero">
+              <a
+                href="dist/continuo-extension.zip"
+                download="continuo-extension.zip"
+                class="install-hero-download-btn"
+                id="btn-download-hero"
+                title="Download Continuo Extension package (ZIP)"
+              >
                 <i class="fa-solid fa-cloud-arrow-down"></i>
                 <span>Download Continuo Extension</span>
                 <span class="download-size-pill">ZIP</span>
               </a>
+              <span class="hero-cta-subtext">Developer preview • Manual installation required</span>
             </div>
           </div>
 
@@ -115,23 +134,77 @@
             <i class="fa-solid fa-circle-info notice-icon"></i>
             <div class="notice-text">
               <strong>Development Extension Setup:</strong>
-              Continuo's Chrome Web Store release is currently being prepared.
-              For now, you can install the development extension package manually in 6 simple steps.
+              Chrome Web Store installation is not available yet. Continuo's Chrome Web Store release is currently being prepared. Use the development build below to get started in 6 simple steps.
             </div>
           </div>
 
-          <!-- 6 Step Installation Walkthrough -->
+          <!-- 2. Visual Progress Timeline (Interactive Stepper) -->
+          <div class="install-timeline-wrapper" aria-label="Installation Progress Overview">
+            <div class="timeline-heading-row">
+              <h3 class="timeline-heading">
+                <i class="fa-solid fa-list-check"></i>
+                <span>How it works</span>
+              </h3>
+              <span class="timeline-hint">6 quick steps</span>
+            </div>
+
+            <div class="install-stepper-track" id="install-stepper-track">
+              <div class="stepper-connecting-line">
+                <div class="stepper-progress-fill" id="stepper-progress-fill"></div>
+              </div>
+
+              <a href="#step-01" class="stepper-node active" id="node-step-01" title="Step 1: Download">
+                <div class="stepper-disc"><i class="fa-solid fa-download"></i></div>
+                <span class="stepper-label">DOWNLOAD</span>
+              </a>
+
+              <a href="#step-02" class="stepper-node" id="node-step-02" title="Step 2: Enable">
+                <div class="stepper-disc"><i class="fa-brands fa-chrome"></i></div>
+                <span class="stepper-label">ENABLE</span>
+              </a>
+
+              <a href="#step-04" class="stepper-node" id="node-step-04" title="Step 4: Extract">
+                <div class="stepper-disc"><i class="fa-solid fa-folder-open"></i></div>
+                <span class="stepper-label">EXTRACT</span>
+              </a>
+
+              <a href="#step-05" class="stepper-node" id="node-step-05" title="Step 5: Load">
+                <div class="stepper-disc"><i class="fa-solid fa-puzzle-piece"></i></div>
+                <span class="stepper-label">LOAD</span>
+              </a>
+
+              <a href="#step-06" class="stepper-node" id="node-step-06" title="Step 6: Pin">
+                <div class="stepper-disc"><i class="fa-solid fa-thumbtack"></i></div>
+                <span class="stepper-label">PIN</span>
+              </a>
+
+              <a href="#ready-state" class="stepper-node" id="node-ready-state" title="Ready to Use">
+                <div class="stepper-disc"><i class="fa-solid fa-check"></i></div>
+                <span class="stepper-label">READY</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 3. Beginner-Friendly 6 Steps Walkthrough -->
           <div class="install-steps-container">
             <!-- STEP 1 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-01" data-step-index="0">
               <div class="step-badge">STEP 01</div>
               <div class="step-body">
-                <h3 class="step-heading">Download Continuo</h3>
+                <h3 class="step-heading">
+                  <i class="fa-solid fa-download"></i>
+                  <span>Download Continuo</span>
+                </h3>
                 <p class="step-desc">
-                  Download the Continuo extension package (.zip).
+                  Download the extension package to your computer.
                 </p>
                 <div class="step-action-row">
-                  <a href="dist/continuo-extension.zip" download="continuo-extension.zip" class="download-package-btn" id="btn-download-step">
+                  <a
+                    href="dist/continuo-extension.zip"
+                    download="continuo-extension.zip"
+                    class="download-package-btn"
+                    id="btn-download-step"
+                  >
                     <i class="fa-solid fa-arrow-down-to-line"></i>
                     <span>Download Continuo Extension</span>
                     <span class="package-ext-tag">continuo-extension.zip</span>
@@ -141,16 +214,19 @@
             </div>
 
             <!-- STEP 2 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-02" data-step-index="1">
               <div class="step-badge">STEP 02</div>
               <div class="step-body">
-                <h3 class="step-heading">Open Chrome Extensions</h3>
+                <h3 class="step-heading">
+                  <i class="fa-brands fa-chrome"></i>
+                  <span>Open Chrome Extensions</span>
+                </h3>
                 <p class="step-desc">
-                  Open a new tab in Google Chrome, navigate to <code>chrome://extensions</code> in your address bar, and press Enter.
+                  Open Chrome's extension manager by navigating to <code>chrome://extensions</code> in your address bar.
                 </p>
                 <div class="code-copy-row">
                   <code id="chrome-url">chrome://extensions</code>
-                  <div class="btn-cluster" style="display: flex; gap: 8px;">
+                  <div class="code-btn-group">
                     <button type="button" class="copy-code-btn" id="btn-copy-url" aria-label="Copy extensions URL">
                       <i class="fa-regular fa-copy"></i>
                       <span>Copy URL</span>
@@ -165,32 +241,41 @@
             </div>
 
             <!-- STEP 3 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-03" data-step-index="1">
               <div class="step-badge">STEP 03</div>
               <div class="step-body">
-                <h3 class="step-heading">Enable Developer Mode</h3>
+                <h3 class="step-heading">
+                  <i class="fa-solid fa-toggle-on"></i>
+                  <span>Turn on Developer Mode (Enable Developer Mode)</span>
+                </h3>
                 <p class="step-desc">
-                  Turn on <strong>Developer mode</strong> using the toggle switch in the top-right corner of the Extensions page.
+                  Enable Developer mode so Chrome can load the development version. Turn on the toggle switch in the top-right corner of the Extensions page.
                 </p>
               </div>
             </div>
 
             <!-- STEP 4 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-04" data-step-index="2">
               <div class="step-badge">STEP 04</div>
               <div class="step-body">
-                <h3 class="step-heading">Extract Continuo</h3>
+                <h3 class="step-heading">
+                  <i class="fa-solid fa-file-zipper"></i>
+                  <span>Extract Continuo</span>
+                </h3>
                 <p class="step-desc">
-                  Extract the downloaded <code>continuo-extension.zip</code> file to a folder on your computer.
+                  Open the downloaded ZIP and extract it to a folder on your computer.
                 </p>
               </div>
             </div>
 
             <!-- STEP 5 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-05" data-step-index="3">
               <div class="step-badge">STEP 05</div>
               <div class="step-body">
-                <h3 class="step-heading">Load Continuo</h3>
+                <h3 class="step-heading">
+                  <i class="fa-solid fa-folder-open"></i>
+                  <span>Load Continuo</span>
+                </h3>
                 <p class="step-desc">
                   Click <strong>Load unpacked</strong> and select the extracted Continuo extension folder.
                 </p>
@@ -198,49 +283,199 @@
             </div>
 
             <!-- STEP 6 -->
-            <div class="install-step-item">
+            <div class="install-step-item" id="step-06" data-step-index="4">
               <div class="step-badge">STEP 06</div>
               <div class="step-body">
-                <h3 class="step-heading">Pin Continuo</h3>
+                <h3 class="step-heading">
+                  <i class="fa-solid fa-thumbtack"></i>
+                  <span>Pin Continuo</span>
+                </h3>
                 <p class="step-desc">
-                  Pin Continuo to your Chrome toolbar so it's always ready with one click during AI conversations.
+                  Pin Continuo to your Chrome toolbar so it's always available during AI conversations.
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- Success Status & Quick Launch Actions -->
-          <div class="install-ready-card">
+          <!-- 4. "What Happens Next?" Section -->
+          <section class="what-next-section" aria-label="What happens next">
+            <div class="what-next-header">
+              <span class="what-next-badge">Workflow</span>
+              <h2 class="what-next-title">WHAT HAPPENS NEXT?</h2>
+              <p class="what-next-subtitle">
+                Continuo works quietly in the background during your existing workflow.
+              </p>
+            </div>
+
+            <div class="what-next-grid">
+              <div class="what-next-card">
+                <div class="what-next-step-num">01</div>
+                <h3 class="what-next-card-title">Open ChatGPT, Claude, or Gemini</h3>
+                <p class="what-next-card-desc">
+                  Visit any of the supported AI platforms in Chrome where you normally brainstorm, code, or design.
+                </p>
+              </div>
+
+              <div class="what-next-card">
+                <div class="what-next-step-num">02</div>
+                <h3 class="what-next-card-title">Start or open a project conversation</h3>
+                <p class="what-next-card-desc">
+                  Work normally on your task, discuss architectural decisions, solve bugs, or refine prompts.
+                </p>
+              </div>
+
+              <div class="what-next-card">
+                <div class="what-next-step-num">03</div>
+                <h3 class="what-next-card-title">Click Continuo and save your context</h3>
+                <p class="what-next-card-desc">
+                  One click saves the conversation's essence to project memory, ready to hand off immediately.
+                </p>
+              </div>
+            </div>
+
+            <div class="what-next-callout">
+              <div class="what-next-callout-main">"That's it."</div>
+              <div class="what-next-callout-sub">Continuo takes care of the complicated part. The complexity stays inside the engine, not in the user interface.</div>
+            </div>
+          </section>
+
+          <!-- 5. Real Extension Preview Mockup -->
+          <section class="extension-preview-section" aria-label="Extension Preview">
+            <div class="ext-preview-header">
+              <span class="ext-preview-badge">Extension Preview</span>
+              <h2 class="ext-preview-title">What You'll Experience</h2>
+              <p class="ext-preview-subtitle">
+                A clean, one-click companion that lives right in your Chrome toolbar.
+              </p>
+            </div>
+
+            <div class="ext-mockup-outer">
+              <div class="ext-mockup-glow"></div>
+              <div class="ext-mockup-frame">
+                <!-- Top Bar -->
+                <div class="mockup-top-bar">
+                  <div class="mockup-brand">
+                    <div class="mockup-brand-ring">
+                      <span class="mockup-brand-dot"></span>
+                    </div>
+                    <span class="mockup-brand-text">CONTINUO</span>
+                  </div>
+                  <span class="mockup-ready-tag">Ready</span>
+                </div>
+
+                <!-- Detection Banner -->
+                <div class="mockup-detect-box">
+                  <div class="mockup-detect-left">
+                    <span class="mockup-detect-dot"></span>
+                    <span class="mockup-detect-text">ChatGPT detected</span>
+                  </div>
+                  <span class="mockup-detect-ready">Active</span>
+                </div>
+
+                <!-- Project Selector Preview -->
+                <div class="mockup-project-box">
+                  <span class="mockup-proj-label">Project:</span>
+                  <div class="mockup-proj-name">
+                    <span>Nexora AI Platform</span>
+                    <i class="fa-solid fa-chevron-down mockup-proj-icon"></i>
+                  </div>
+                </div>
+
+                <!-- Save Action Button -->
+                <button type="button" class="mockup-save-btn" aria-label="Visual demonstration button: Save Context">
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span>Save Context</span>
+                </button>
+
+                <!-- Saved State Notice -->
+                <div class="mockup-saved-banner">
+                  <span class="mockup-saved-check">✓</span>
+                  <span class="mockup-saved-text">Context saved</span>
+                </div>
+
+                <!-- Model Continuation Quick-Switch Row -->
+                <div class="mockup-continue-group">
+                  <span class="mockup-continue-label">Continue with:</span>
+                  <div class="mockup-continue-row">
+                    <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" class="mockup-model-btn chatgpt" title="Continue with ChatGPT">
+                      <i class="fa-solid fa-robot"></i>
+                      <span>ChatGPT</span>
+                    </a>
+                    <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" class="mockup-model-btn claude" title="Continue with Claude">
+                      <i class="fa-solid fa-bolt"></i>
+                      <span>Claude</span>
+                    </a>
+                    <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer" class="mockup-model-btn gemini" title="Continue with Gemini">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i>
+                      <span>Gemini</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 6. Completion & Quick Launchers ("Continuo Is Ready") -->
+          <div class="install-ready-card" id="ready-state" data-step-index="5">
             <div class="ready-head">
               <span class="ready-pulse-dot"></span>
-              <h2 class="ready-title">You're ready.</h2>
+              <div>
+                <div class="ready-title-label">CONTINUO IS READY</div>
+                <h2 class="ready-title">You're ready.</h2>
+              </div>
             </div>
             <p class="ready-subtitle">
-              Open your favorite AI platform to start capturing context with one click:
+              Your AI conversations now have a continuity layer. Open your favorite AI platform to begin:
             </p>
             <div class="ready-quick-launch-grid">
-              <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" class="ready-ai-btn chatgpt-btn">
+              <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer" class="ready-ai-btn chatgpt-btn" title="Open ChatGPT in new tab">
                 <i class="fa-solid fa-robot"></i>
                 <span>Open ChatGPT</span>
                 <i class="fa-solid fa-arrow-up-right-from-square launch-icon"></i>
               </a>
-              <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" class="ready-ai-btn claude-btn">
+              <a href="https://claude.ai/new" target="_blank" rel="noopener noreferrer" class="ready-ai-btn claude-btn" title="Open Claude in new tab">
                 <i class="fa-solid fa-bolt"></i>
                 <span>Open Claude</span>
                 <i class="fa-solid fa-arrow-up-right-from-square launch-icon"></i>
               </a>
-              <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer" class="ready-ai-btn gemini-btn">
+              <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer" class="ready-ai-btn gemini-btn" title="Open Google Gemini in new tab">
                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                 <span>Open Gemini</span>
                 <i class="fa-solid fa-arrow-up-right-from-square launch-icon"></i>
               </a>
-              <a href="index.html#workspace" class="ready-ai-btn workspace-btn">
+              <a href="index.html#workspace" class="ready-ai-btn workspace-btn" title="Open Continuo Workspace">
                 <i class="fa-solid fa-layer-group"></i>
                 <span>Open Workspace</span>
                 <i class="fa-solid fa-arrow-right launch-icon"></i>
               </a>
             </div>
           </div>
+
+          <!-- Collapsible Developer Installation Section (strictly in development mode) -->
+          <details class="dev-install-details">
+            <summary class="dev-install-summary">
+              <div class="dev-summary-title">
+                <i class="fa-solid fa-code"></i>
+                <span>Developer installation</span>
+              </div>
+              <span class="dev-toggle-hint">Advanced / Git repository <i class="fa-solid fa-chevron-down"></i></span>
+            </summary>
+            <div class="dev-install-body">
+              <p class="dev-install-lead">
+                For developers working directly from the Continuo repository:
+              </p>
+              <div class="code-copy-row">
+                <code id="clone-cmd">git clone https://github.com/Anxhu03/Continuo.git</code>
+                <button type="button" class="copy-code-btn" id="btn-copy-clone" aria-label="Copy clone command">
+                  <i class="fa-regular fa-copy"></i>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <p class="dev-install-note">
+                After cloning, select the <code>extension/</code> folder directly with <strong>Load unpacked</strong>.
+              </p>
+            </div>
+          </details>
         </div>
 
         <!-- =================================================================
@@ -248,24 +483,35 @@
              ================================================================= -->
         <div id="install-prod-state" class="install-state-view" style="display: none;">
           <!-- Top Header Group -->
-          <div class="install-card-header">
+          <div class="install-hero-section">
             <div class="install-emblem-wrap">
-              <img src="assets/logo.webp" alt="Continuo" class="install-emblem-img" width="48" height="48" />
+              <img src="assets/logo.webp" alt="Continuo Emblem" class="install-emblem-img" width="48" height="48" />
             </div>
             <div class="install-badge-pill prod-badge">
               <span class="install-badge-dot prod-dot"></span>
               <span>OFFICIAL CHROME EXTENSION</span>
             </div>
+            <div class="install-headline-label">CONTINUO</div>
             <h1 class="install-title">Install Continuo for Chrome</h1>
-            <p class="install-tagline">"Bring Continuo into your AI conversations."</p>
+            <p class="install-tagline-quote">"Bring Continuo into your AI conversations."</p>
+            <p class="install-hero-support">
+              Install Continuo directly from the Chrome Web Store with automatic updates and seamless cross-model context handoff.
+            </p>
 
             <!-- Primary Add to Chrome Store Action -->
             <div class="install-hero-download-wrap">
-              <a href="#" target="_blank" rel="noopener noreferrer" class="continuo-btn continuo-btn-primary install-hero-download-btn" id="btn-add-to-chrome-prod">
+              <a
+                href="#"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="install-hero-download-btn"
+                id="btn-add-to-chrome-prod"
+              >
                 <i class="fa-brands fa-chrome"></i>
                 <span>Add to Chrome</span>
                 <span class="download-size-pill">STORE</span>
               </a>
+              <span class="hero-cta-subtext">Official Chrome Web Store release • Verified package</span>
             </div>
           </div>
 
@@ -275,7 +521,7 @@
               <div class="prod-trust-icon"><i class="fa-solid fa-bolt"></i></div>
               <div class="prod-trust-content">
                 <h4>One-Click Installation</h4>
-                <p>Installs directly from the official Google Chrome Web Store with instant automatic updates.</p>
+                <p>Installs directly from the official Google Chrome Web Store with instant automatic background updates.</p>
               </div>
             </div>
             <div class="prod-trust-card">
@@ -298,7 +544,10 @@
           <div class="install-ready-card">
             <div class="ready-head">
               <span class="ready-pulse-dot prod-dot"></span>
-              <h2 class="ready-title">After adding Continuo</h2>
+              <div>
+                <div class="ready-title-label">CONTINUO IS READY</div>
+                <h2 class="ready-title">After adding Continuo</h2>
+              </div>
             </div>
             <p class="ready-subtitle">
               Pin Continuo to your Chrome toolbar and launch any AI model to start preserving context:
@@ -330,37 +579,11 @@
 
         <!-- Action Footer -->
         <div class="install-card-actions">
-          <a href="index.html" class="continuo-btn continuo-btn-secondary install-home-btn">
+          <a href="index.html" class="install-home-btn" title="Back to Continuo Home">
             <i class="fa-solid fa-arrow-left"></i>
             <span>Back to Continuo</span>
           </a>
         </div>
-
-        <!-- Collapsible Developer Installation Section -->
-        <details class="dev-install-details">
-          <summary class="dev-install-summary">
-            <div class="dev-summary-title">
-              <i class="fa-solid fa-code"></i>
-              <span>Developer installation</span>
-            </div>
-            <span class="dev-toggle-hint">Advanced / Git repository <i class="fa-solid fa-chevron-down"></i></span>
-          </summary>
-          <div class="dev-install-body">
-            <p class="dev-install-lead">
-              For developers working directly from the Continuo repository:
-            </p>
-            <div class="code-copy-row">
-              <code id="clone-cmd">git clone https://github.com/Anxhu03/Continuo.git</code>
-              <button type="button" class="copy-code-btn" id="btn-copy-clone" aria-label="Copy clone command">
-                <i class="fa-regular fa-copy"></i>
-                <span>Copy</span>
-              </button>
-            </div>
-            <p class="dev-install-note">
-              After cloning, select the <code>extension/</code> folder directly with <strong>Load unpacked</strong>.
-            </p>
-          </div>
-        </details>
       </div>
     </main>
 
@@ -370,7 +593,10 @@
       <span id="install-toast-text">Copied to clipboard!</span>
     </div>
 
-    <!-- Script for copy interactions & subtle canvas particles -->
+    <!-- Lenis Smooth Scroll Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js"></script>
+
+    <!-- Script for state controller, copy interactions, progress line & Lenis -->
     <script>
       // 0. State Controller (Development vs Production)
       function applyInstallState() {
@@ -401,7 +627,98 @@
       applyInstallState();
       document.addEventListener("DOMContentLoaded", applyInstallState);
 
-      // 1. Clipboard Copy Helpers
+      // 1. Single Authoritative Lenis Smooth Scroll Instance
+      let lenisInstance = null;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (!prefersReducedMotion && typeof Lenis !== "undefined") {
+        lenisInstance = new Lenis({
+          duration: 1.1,
+          easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+          smoothWheel: true,
+          smoothTouch: false
+        });
+
+        function raf(time) {
+          lenisInstance.raf(time);
+          requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+      }
+
+      // Smooth internal anchor navigation
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          const targetId = this.getAttribute("href");
+          if (!targetId || targetId === "#") return;
+          const targetEl = document.querySelector(targetId);
+          if (targetEl) {
+            e.preventDefault();
+            const headerOffset = 90;
+            if (lenisInstance) {
+              lenisInstance.scrollTo(targetEl, { offset: -headerOffset, duration: 1 });
+            } else {
+              const top = targetEl.getBoundingClientRect().top + window.scrollY - headerOffset;
+              window.scrollTo({ top, behavior: prefersReducedMotion ? "auto" : "smooth" });
+            }
+            try {
+              history.replaceState(null, "", targetId);
+            } catch (err) {}
+          }
+        });
+      });
+
+      // 2. Interactive Stepper Progress & Scroll Observer
+      const stepItems = [
+        { id: "step-01", node: "node-step-01", percent: 10 },
+        { id: "step-02", node: "node-step-02", percent: 28 },
+        { id: "step-04", node: "node-step-04", percent: 48 },
+        { id: "step-05", node: "node-step-05", percent: 68 },
+        { id: "step-06", node: "node-step-06", percent: 85 },
+        { id: "ready-state", node: "node-ready-state", percent: 100 }
+      ];
+
+      const progressFill = document.getElementById("stepper-progress-fill");
+
+      function updateStepperProgress() {
+        if (!progressFill) return;
+        const scrollPosition = window.scrollY + window.innerHeight * 0.45;
+        let activeIdx = 0;
+
+        stepItems.forEach((item, idx) => {
+          const el = document.getElementById(item.id);
+          if (el) {
+            const rectTop = el.getBoundingClientRect().top + window.scrollY;
+            if (scrollPosition >= rectTop) {
+              activeIdx = idx;
+            }
+          }
+        });
+
+        const targetPercent = stepItems[activeIdx].percent;
+        progressFill.style.width = `${targetPercent}%`;
+
+        stepItems.forEach((item, idx) => {
+          const nodeEl = document.getElementById(item.node);
+          if (nodeEl) {
+            if (idx < activeIdx) {
+              nodeEl.classList.remove("active");
+              nodeEl.classList.add("complete");
+            } else if (idx === activeIdx) {
+              nodeEl.classList.add("active");
+              nodeEl.classList.remove("complete");
+            } else {
+              nodeEl.classList.remove("active");
+              nodeEl.classList.remove("complete");
+            }
+          }
+        });
+      }
+
+      window.addEventListener("scroll", updateStepperProgress, { passive: true });
+      document.addEventListener("DOMContentLoaded", updateStepperProgress);
+
+      // 3. Clipboard Copy Helpers & User Feedback
       function copyText(text, successMessage) {
         navigator.clipboard.writeText(text).then(() => {
           showToast(successMessage);
@@ -422,7 +739,8 @@
         if (toast && toastText) {
           toastText.textContent = msg;
           toast.classList.add("show");
-          setTimeout(() => toast.classList.remove("show"), 3000);
+          clearTimeout(window.__toastTimer);
+          window.__toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
         }
       }
 
@@ -451,7 +769,7 @@
         }
       });
 
-      // 2. Subtle Background Canvas Node Particles
+      // 4. Subtle Background Canvas Node Particles
       (function initCanvas() {
         const canvas = document.getElementById("install-ambient-canvas");
         if (!canvas) return;
@@ -465,19 +783,20 @@
         });
 
         const particles = [];
-        const count = 30;
+        const count = prefersReducedMotion ? 0 : 32;
         for (let i = 0; i < count; i++) {
           particles.push({
             x: Math.random() * width,
             y: Math.random() * height,
-            vx: (Math.random() - 0.5) * 0.4,
-            vy: (Math.random() - 0.5) * 0.4,
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35,
             radius: Math.random() * 1.5 + 0.5,
-            alpha: Math.random() * 0.4 + 0.1
+            alpha: Math.random() * 0.35 + 0.1
           });
         }
 
         function animate() {
+          if (prefersReducedMotion) return;
           ctx.clearRect(0, 0, width, height);
           particles.forEach((p) => {
             p.x += p.vx;
@@ -494,7 +813,7 @@
           });
           requestAnimationFrame(animate);
         }
-        animate();
+        if (!prefersReducedMotion) animate();
       })();
     </script>
   </body>
