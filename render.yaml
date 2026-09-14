@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: continuo-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 8008
+      - key: HOST
+        value: 0.0.0.0
+      - key: FRONTEND_URL
+        value: https://continuo.run.place
+      - key: CORS_ORIGINS
+        value: https://continuo.run.place,https://api.continuo.run.place
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      - key: CONTINUO_API_URL
+        value: https://api.continuo.run.place/api/v1

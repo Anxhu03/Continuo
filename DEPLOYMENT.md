@@ -1,6 +1,6 @@
 # CONTINUO — Production Deployment & Live Infrastructure Guide
 
-This guide provides complete instructions for transitioning Continuo from local development to a live, secure, high-availability production environment.
+This guide provides complete instructions for transitioning Continuo to the live production domain: **`continuo.run.place`**.
 
 ---
 
@@ -9,36 +9,32 @@ This guide provides complete instructions for transitioning Continuo from local 
 ```
 [ End User Browser / Client ]
              │
-             ├──► https://continuo.ai           (Frontend CDN: Cloudflare Pages / Vercel / S3)
+             ├──► https://continuo.run.place       (Frontend CDN: Vercel / Cloudflare Pages)
              │
-             ├──► https://api.continuo.ai       (FastAPI Gateway: Railway / Render / Fly.io / ECS)
+             ├──► https://api.continuo.run.place   (FastAPI Gateway: Render / Railway / Fly.io)
              │            │
              │            ▼
-             │    [ PostgreSQL DB ]             (Supabase / Neon / AWS RDS)
+             │    [ PostgreSQL DB ]                (Supabase / Neon / AWS RDS)
              │
 [ Chrome Extension MV3 ]
-             └──► https://api.continuo.ai/api/v1
+             └──► https://api.continuo.run.place/api/v1
 ```
 
 - **Frontend**: Static Web Application (HTML5, Vanilla CSS, JS, Lenis, FontAwesome, WebFonts) served over global edge CDN with strict SSL/TLS.
 - **Backend**: FastAPI ASGI Python Application running in a lightweight Docker container with 2+ Uvicorn workers and pooled database connections.
 - **Database**: Managed PostgreSQL 15+ (Supabase / Neon / AWS RDS) with automatic table metadata provisioning and connection pooling.
-- **Companion**: Manifest V3 Chrome Extension connecting strictly over secure HTTPS (`api.continuo.ai`), with zero localhost references in the distribution package.
+- **Companion**: Manifest V3 Chrome Extension connecting strictly over secure HTTPS (`api.continuo.run.place`), with zero localhost references in the distribution package.
 
 ---
 
-## 2. Prerequisites & Domain Requirements
+## 2. DNS Configuration (`continuo.run.place`)
 
-> [!IMPORTANT]
-> **Domain Status**: `DOMAIN REQUIRED`
-> Continuo requires a domain name (e.g. `continuo.ai`) with DNS control to configure HTTPS and subdomains. If deploying to staging first, use platform-provided domains (e.g. `*.railway.app`, `*.pages.dev`).
+Configure the following DNS records in your domain control panel:
 
-### DNS Records Configuration
-| Type | Name | Target / Value | Purpose |
-|------|------|----------------|---------|
-| `A` / `CNAME` | `@` | Frontend CDN Edge IP / URL | Main Landing & Workspace |
-| `CNAME` | `www` | `continuo.ai` | Canonical redirect |
-| `CNAME` | `api` | Backend Server Target (e.g. `app.railway.app`) | FastAPI Production Gateway |
+| Record Type | Host / Name | Target / Destination | Purpose |
+|-------------|-------------|----------------------|---------|
+| `A` / `CNAME` | `@` (or `continuo.run.place`) | Provided by Frontend CDN (e.g., `76.76.21.21` or `cname.vercel-dns.com`) | Main Landing & Workspace |
+| `CNAME` | `api` | Provided by Backend Provider (e.g., `continuo-api-xxxx.onrender.com`) | FastAPI Production Gateway |
 
 ---
 
@@ -57,39 +53,34 @@ This guide provides complete instructions for transitioning Continuo from local 
 
 ---
 
-## 4. Backend Deployment (Docker / FastAPI)
+## 4. Backend Deployment (Render / Railway / Docker)
 
-### Build & Run Locally with Docker
-```bash
-# Build the production container
-docker build -t continuo-backend:latest .
+### Deploy with Render (Recommended)
+1. In [Render Dashboard](https://dashboard.render.com), click **New +** ➔ **Blueprint** (or **Web Service**).
+2. Select repository `Anxhu03/Continuo`.
+3. If using Web Service:
+   - **Runtime**: `Docker`
+   - **Health Check Path**: `/health`
+   - **Port**: `8008`
+4. Configure Environment Variables:
+   ```ini
+   ENVIRONMENT=production
+   HOST=0.0.0.0
+   PORT=8008
+   FRONTEND_URL=https://continuo.run.place
+   CORS_ORIGINS=https://continuo.run.place,https://api.continuo.run.place
+   DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
+   DB_POOL_SIZE=10
+   DB_MAX_OVERFLOW=20
+   SECRET_KEY=[generate-a-secure-64-character-hex-key]
+   ACCESS_TOKEN_EXPIRE_MINUTES=1440
+   ALGORITHM=HS256
+   CONTINUO_API_URL=https://api.continuo.run.place/api/v1
+   ```
+5. In Render **Settings** ➔ **Custom Domains**, add `api.continuo.run.place`.
+6. Copy the provided CNAME target and add it to your DNS registrar for `api`.
 
-# Run container with production environment variables
-docker run -d -p 8008:8008 \
-  --name continuo-api \
-  --env-file .env \
-  continuo-backend:latest
-```
-
-### Production Environment Variables
-Configure the following in your hosting provider's dashboard:
-
-```ini
-ENVIRONMENT=production
-HOST=0.0.0.0
-PORT=8008
-FRONTEND_URL=https://continuo.ai
-CORS_ORIGINS=https://continuo.ai,https://www.continuo.ai,https://app.continuo.ai
-DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres
-DB_POOL_SIZE=10
-DB_MAX_OVERFLOW=20
-SECRET_KEY=generate-a-secure-64-character-hex-key
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-ALGORITHM=HS256
-CONTINUO_API_URL=https://api.continuo.ai/api/v1
-```
-
-### Health Check Endpoint
+### Health Check Endpoints
 - Path: `GET /health` (or `GET /api/v1/health`)
 - Expected HTTP response: `200 OK`
 - JSON Payload:
@@ -105,17 +96,15 @@ CONTINUO_API_URL=https://api.continuo.ai/api/v1
 
 ---
 
-## 5. Frontend Deployment (Cloudflare Pages / Vercel / Static CDN)
+## 5. Frontend Deployment (Vercel / Cloudflare Pages)
 
-Deploy the static web repository files to your CDN:
-- Root directory contains `index.html`, `styles.css`, `main.js`, `config.js`, `install.html`, `install.css`, `robots.txt`, `sitemap.xml`, and the `assets/` directory.
-
-### Production Endpoint Configuration (`config.js`)
-In `config.js`, set `CONTINUO_API_URL` to your production backend URL:
-```javascript
-const CONTINUO_API_URL = "https://api.continuo.ai/api/v1";
-```
-*(When set, all browser sessions communicate with your secure cloud backend).*
+### Deploy with Vercel (Recommended)
+1. In [Vercel Dashboard](https://vercel.com), click **Add New...** ➔ **Project**.
+2. Select repository `Anxhu03/Continuo`.
+3. The included `vercel.json` automatically configures routes, security headers, and asset caching.
+4. Click **Deploy**.
+5. In **Project Settings** ➔ **Domains**, add `continuo.run.place`.
+6. Configure your apex `@` DNS record to point to Vercel (A record `76.76.21.21` or CNAME `cname.vercel-dns.com`).
 
 ---
 
@@ -129,9 +118,9 @@ python scripts/package-extension.py --production
 
 This performs automated security audits and build steps:
 1. Validates Manifest V3 schemas and icons.
-2. Replaces all development ports (`8008`, `8000`) and localhost IP addresses (`127.0.0.1`) with `https://api.continuo.ai` and `https://continuo.ai`.
+2. Replaces development endpoints with `https://api.continuo.run.place/api/v1` and `https://continuo.run.place/`.
 3. Sanitizes host permissions in `manifest.json`.
-4. Executes a strict zero-localhost audit asserting 0 occurrences of local development strings.
+4. Executes a strict zero-localhost and zero-placeholder audit asserting 0 occurrences of local development and old domain strings.
 5. Emits the release archive at:
    ```
    dist/continuo-extension.zip
@@ -145,17 +134,16 @@ This performs automated security audits and build steps:
    ```javascript
    const CHROME_EXTENSION_STORE_URL = "https://chromewebstore.google.com/detail/continuo/[STORE_ID]";
    ```
-   The landing page and installation guide automatically transition to official "Add to Chrome" mode.
 
 ---
 
 ## 7. Post-Deployment Verification Checklist
 
-- [ ] `curl -I https://continuo.ai` returns `200 OK` with valid SSL certificate.
-- [ ] `curl https://api.continuo.ai/health` returns `200 OK` with `"environment": "production"`.
-- [ ] `curl https://continuo.ai/robots.txt` returns public search engine rules.
-- [ ] `curl https://continuo.ai/sitemap.xml` returns valid XML index.
+- [ ] `curl -I https://continuo.run.place` returns `200 OK` with valid SSL certificate.
+- [ ] `curl https://api.continuo.run.place/health` returns `200 OK` with `"environment": "production"`.
+- [ ] `curl https://continuo.run.place/robots.txt` returns public search engine rules.
+- [ ] `curl https://continuo.run.place/sitemap.xml` returns valid XML index.
 - [ ] Account registration (`POST /api/v1/auth/register`) creates a user in PostgreSQL.
 - [ ] Project creation (`POST /api/v1/projects`) persists in database.
 - [ ] Unhandled backend exceptions return sanitized 500 JSON without stack trace leakage.
-- [ ] Chrome Extension connects to `https://api.continuo.ai/api/v1` and displays green "Ready" status.
+- [ ] Chrome Extension connects to `https://api.continuo.run.place/api/v1` and displays green "Ready" status.

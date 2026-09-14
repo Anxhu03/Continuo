@@ -1610,7 +1610,7 @@ function initContinuoWorkspaceApp() {
     : (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
       ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
       : (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file://"))
-        ? (window.location.hostname.endsWith("continuo.ai") ? "https://api.continuo.ai/api/v1" : `${window.location.origin}/api/v1`)
+        ? ((window.location.hostname.endsWith("continuo.run.place") || window.location.hostname.endsWith("continuo.ai")) ? "https://api.continuo.run.place/api/v1" : `${window.location.origin}/api/v1`)
         : "http://127.0.0.1:8008/api/v1";
   const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 

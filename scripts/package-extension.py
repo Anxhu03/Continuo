@@ -158,12 +158,12 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     with open(manifest_path, "r", encoding="utf-8") as f:
         manifest = json.load(f)
 
-    # Clean host_permissions: remove all localhost/127.0.0.1
+    # Clean host_permissions: remove all localhost/127.0.0.1 and old placeholder
     new_host_perms = []
     for perm in manifest.get("host_permissions", []):
-        if not ("127.0.0.1" in perm or "localhost" in perm):
+        if not ("127.0.0.1" in perm or "localhost" in perm or "continuo.ai" in perm):
             new_host_perms.append(perm)
-    for prod_perm in ["https://api.continuo.ai/*", "https://continuo.ai/*", "https://*.continuo.ai/*"]:
+    for prod_perm in ["https://api.continuo.run.place/*", "https://continuo.run.place/*", "https://*.continuo.run.place/*"]:
         if prod_perm not in new_host_perms:
             new_host_perms.append(prod_perm)
     manifest["host_permissions"] = new_host_perms
@@ -172,49 +172,55 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     for cs in manifest.get("content_scripts", []):
         new_matches = []
         for match in cs.get("matches", []):
-            if not ("127.0.0.1" in match or "localhost" in match):
+            if not ("127.0.0.1" in match or "localhost" in match or "continuo.ai" in match):
                 new_matches.append(match)
-        for prod_match in ["https://continuo.ai/*", "https://*.continuo.ai/*"]:
+        for prod_match in ["https://continuo.run.place/*", "https://*.continuo.run.place/*"]:
             if prod_match not in new_matches:
                 new_matches.append(prod_match)
         cs["matches"] = new_matches
 
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
-    pass_step("Staged manifest.json: converted to live production origins")
+    pass_step("Staged manifest.json: converted to live production origins (continuo.run.place)")
 
     # 2. Transform background.js
     bg_path = staging_dir / "background.js"
     bg_code = bg_path.read_text(encoding="utf-8")
-    bg_code = bg_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.ai/api/v1")
-    bg_code = bg_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.ai/api/v1")
+    bg_code = bg_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.run.place/api/v1")
+    bg_code = bg_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.run.place/api/v1")
+    bg_code = bg_code.replace("https://api.continuo.ai/api/v1", "https://api.continuo.run.place/api/v1")
     bg_path.write_text(bg_code, encoding="utf-8")
-    pass_step("Staged background.js: updated API endpoints to https://api.continuo.ai/api/v1")
+    pass_step("Staged background.js: updated API endpoints to https://api.continuo.run.place/api/v1")
 
     # 3. Transform popup.js
     popup_js_path = staging_dir / "popup.js"
     p_code = popup_js_path.read_text(encoding="utf-8")
-    p_code = p_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.ai/api/v1")
-    p_code = p_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.ai/api/v1")
-    p_code = p_code.replace("http://localhost:8000/", "https://continuo.ai/")
-    p_code = p_code.replace("127.0.0.1:8000 (Online)", "api.continuo.ai (Online)")
+    p_code = p_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.run.place/api/v1")
+    p_code = p_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.run.place/api/v1")
+    p_code = p_code.replace("https://api.continuo.ai/api/v1", "https://api.continuo.run.place/api/v1")
+    p_code = p_code.replace("http://localhost:8000/", "https://continuo.run.place/")
+    p_code = p_code.replace("https://continuo.ai/", "https://continuo.run.place/")
+    p_code = p_code.replace("127.0.0.1:8000 (Online)", "api.continuo.run.place (Online)")
+    p_code = p_code.replace("api.continuo.ai (Online)", "api.continuo.run.place (Online)")
+    p_code = p_code.replace("api.continuo.ai", "api.continuo.run.place")
     p_code = p_code.replace(
         'tab.url.includes("localhost") || tab.url.includes("127.0.0.1")',
-        'tab.url.includes("continuo.ai")'
+        'tab.url.includes("continuo.run.place")'
     )
     p_code = p_code.replace(
         'DEFAULT_API_BASE.includes("127.0.0.1") || DEFAULT_API_BASE.includes("localhost")',
         'false'
     )
     popup_js_path.write_text(p_code, encoding="utf-8")
-    pass_step("Staged popup.js: zero localhost references; updated workspace & API URLs")
+    pass_step("Staged popup.js: zero localhost references; updated workspace & API URLs to continuo.run.place")
 
     # 4. Transform popup.html
     popup_html_path = staging_dir / "popup.html"
     p_html = popup_html_path.read_text(encoding="utf-8")
-    p_html = p_html.replace("127.0.0.1:8008", "api.continuo.ai")
+    p_html = p_html.replace("127.0.0.1:8008", "api.continuo.run.place")
+    p_html = p_html.replace("api.continuo.ai", "api.continuo.run.place")
     popup_html_path.write_text(p_html, encoding="utf-8")
-    pass_step("Staged popup.html: gateway display updated to api.continuo.ai")
+    pass_step("Staged popup.html: gateway display updated to api.continuo.run.place")
 
     # 5. Transform content.js
     content_js_path = staging_dir / "content.js"
@@ -309,7 +315,7 @@ def audit_archive(dest_zip: Path, is_production: bool = False):
         # 4. Zero-localhost audit for production release
         if is_production:
             step("Executing strict zero-localhost production audit...")
-            forbidden_dev_terms = ["127.0.0.1", "localhost", ":8008", ":8000"]
+            forbidden_dev_terms = ["127.0.0.1", "localhost", ":8008", ":8000", "continuo.ai"]
             for info in zf.infolist():
                 if info.filename.endswith((".js", ".html", ".css", ".json")):
                     with zf.open(info.filename) as f:

@@ -794,6 +794,19 @@ def test_cors_configuration_production(client):
     assert resp_web.headers.get("access-control-allow-origin") in ["http://localhost:8000", "*"]
 
 
+def test_production_environment_settings():
+    """
+    Phase 10 Production Test:
+    Verifies that production settings resolve to continuo.run.place and strict CORS origins.
+    """
+    from backend.config import Settings
+    prod_settings = Settings(ENVIRONMENT="production")
+    assert prod_settings.FRONTEND_URL == "https://continuo.run.place"
+    assert "https://continuo.run.place" in prod_settings.CORS_ORIGINS
+    assert "https://api.continuo.run.place" in prod_settings.CORS_ORIGINS
+
+
+
 
 
 

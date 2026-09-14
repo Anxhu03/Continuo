@@ -3,4 +3,4 @@ Allow: /
 Allow: /install.html
 Allow: /PRIVACY.md
 
-Sitemap: https://continuo.ai/sitemap.xml
+Sitemap: https://continuo.run.place/sitemap.xml

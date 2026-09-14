@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const defaultHost = (function() {
-      try { return new URL(DEFAULT_API_BASE).host; } catch (e) { return "api.continuo.ai"; }
+      try { return new URL(DEFAULT_API_BASE).host; } catch (e) { return "api.continuo.run.place"; }
     })();
 
     try {
