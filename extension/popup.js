@@ -147,30 +147,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
+    const defaultHost = (function() {
+      try { return new URL(DEFAULT_API_BASE).host; } catch (e) { return "api.continuo.ai"; }
+    })();
+
     try {
-      const res8008 = await fetch(`${DEFAULT_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
-      if (res8008.ok) {
+      const resHealth = await fetch(`${DEFAULT_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
+      if (resHealth.ok) {
         apiBase = DEFAULT_API_BASE;
         statusIndicator.classList.remove("offline");
         statusLabel.textContent = "Ready";
-        advGateway.textContent = "127.0.0.1:8008 (Online)";
+        advGateway.textContent = `${defaultHost} (Online)`;
         return apiBase;
       }
     } catch (e) {
-      // Try fallback port 8000
-      try {
-        const res8000 = await fetch(`${FALLBACK_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
-        if (res8000.ok) {
-          apiBase = FALLBACK_API_BASE;
-          statusIndicator.classList.remove("offline");
-          statusLabel.textContent = "Ready";
-          advGateway.textContent = "127.0.0.1:8000 (Online)";
-          return apiBase;
+      // Try fallback port 8000 only in local development
+      if (DEFAULT_API_BASE.includes("127.0.0.1") || DEFAULT_API_BASE.includes("localhost")) {
+        try {
+          const res8000 = await fetch(`${FALLBACK_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
+          if (res8000.ok) {
+            apiBase = FALLBACK_API_BASE;
+            statusIndicator.classList.remove("offline");
+            statusLabel.textContent = "Ready";
+            advGateway.textContent = "127.0.0.1:8000 (Online)";
+            return apiBase;
+          }
+        } catch (err2) {
+          statusIndicator.classList.add("offline");
+          statusLabel.textContent = "Offline";
+          advGateway.textContent = "Backend Offline";
         }
-      } catch (err2) {
+      } else {
         statusIndicator.classList.add("offline");
         statusLabel.textContent = "Offline";
-        advGateway.textContent = "Backend Offline";
+        advGateway.textContent = `${defaultHost} (Offline)`;
       }
     }
     return apiBase;

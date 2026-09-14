@@ -42,6 +42,26 @@ app.include_router(versions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(handoffs.router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin.router, prefix=settings.API_V1_PREFIX)
 
+import logging
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("continuo.backend")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception processing {request.method} {request.url.path}: {exc}")
+    if settings.ENVIRONMENT == "production":
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "An internal server error occurred. Please try again later."}
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)}
+    )
+
+@app.get("/health", tags=["System"])
 @app.get("/api/v1/health", tags=["System"])
 def health_check():
     """System health check and status."""
@@ -49,6 +69,7 @@ def health_check():
         "status": "operational",
         "platform": "Continuo Context Layer",
         "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
         "engine": "active"
     }
 

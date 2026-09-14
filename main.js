@@ -1605,9 +1605,13 @@ function initMobileMenu() {
    context engine, quality scoring, version diff, and handoffs.
    ========================================================================== */
 function initContinuoWorkspaceApp() {
-  let API_BASE = (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
-    ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
-    : "http://127.0.0.1:8008/api/v1";
+  let API_BASE = (typeof window !== "undefined" && window.CONTINUO_API_URL)
+    ? window.CONTINUO_API_URL
+    : (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
+      ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
+      : (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file://"))
+        ? (window.location.hostname.endsWith("continuo.ai") ? "https://api.continuo.ai/api/v1" : `${window.location.origin}/api/v1`)
+        : "http://127.0.0.1:8008/api/v1";
   const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 
   // App State
@@ -1771,14 +1775,17 @@ function initContinuoWorkspaceApp() {
         method,
         headers,
         body: body ? JSON.stringify(body) : null,
-      }).catch(async () => {
-        // If 8008 network failed, attempt fallback port 8000
-        activeBase = FALLBACK_API_BASE;
-        return await fetch(`${activeBase}${endpoint}`, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : null,
-        });
+      }).catch(async (err) => {
+        // If local dev network failed, attempt fallback port 8000 only in local development
+        if (activeBase.includes("localhost") || activeBase.includes("127.0.0.1")) {
+          activeBase = FALLBACK_API_BASE;
+          return await fetch(`${activeBase}${endpoint}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : null,
+          });
+        }
+        throw err;
       });
 
       if (resp.status === 401) {

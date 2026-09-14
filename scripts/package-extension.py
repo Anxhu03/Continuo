@@ -5,9 +5,14 @@ Reproducible builder for creating clean, production-ready extension distribution
 
 Tasks:
 1. Validates extension/manifest.json (Manifest V3 schema & file existence).
-2. Cleans previous dist/ artifacts.
-3. Bundles strictly required extension files into dist/continuo-extension.zip.
-4. Audits the archive to ensure:
+2. Supports --production mode:
+   - Stages extension assets into a temporary clean directory.
+   - Replaces development localhost/port URLs with production HTTPS endpoints (api.continuo.ai).
+   - Sanitizes manifest host permissions and content script matches to zero localhost.
+   - Audits the final ZIP to enforce ZERO occurrences of localhost, 127.0.0.1, 8008, 8000.
+3. Cleans previous dist/ artifacts.
+4. Bundles strictly required extension files into dist/continuo-extension.zip.
+5. Audits the archive to ensure:
    - manifest.json is present at root.
    - All runtime assets (popup, background, content script) are included.
    - Zero secrets, private keys, or credentials are leaked.
@@ -61,7 +66,7 @@ def fail_step(msg: str):
     print(f"  [FAIL] {msg}")
     sys.exit(1)
 
-def validate_manifest(manifest_path: Path) -> dict:
+def validate_manifest(manifest_path: Path, ext_base_dir: Path) -> dict:
     step("Validating extension/manifest.json...")
     if not manifest_path.exists():
         fail_step(f"manifest.json not found at {manifest_path}")
@@ -82,22 +87,22 @@ def validate_manifest(manifest_path: Path) -> dict:
 
     # File Reference Checks
     popup = manifest.get("action", {}).get("default_popup")
-    if popup and not (EXT_DIR / popup).exists():
+    if popup and not (ext_base_dir / popup).exists():
         fail_step(f"Action default_popup '{popup}' does not exist on disk.")
 
     sw = manifest.get("background", {}).get("service_worker")
-    if sw and not (EXT_DIR / sw).exists():
+    if sw and not (ext_base_dir / sw).exists():
         fail_step(f"Background service_worker '{sw}' does not exist on disk.")
 
     for cs in manifest.get("content_scripts", []):
         for js_file in cs.get("js", []):
-            if not (EXT_DIR / js_file).exists():
+            if not (ext_base_dir / js_file).exists():
                 fail_step(f"Content script '{js_file}' does not exist on disk.")
 
     # Icon Reference Checks
     icons = manifest.get("icons", {})
     for size, icon_path in icons.items():
-        if not (EXT_DIR / icon_path).exists():
+        if not (ext_base_dir / icon_path).exists():
             fail_step(f"Manifest icon '{icon_path}' ({size}x{size}) does not exist on disk.")
 
     pass_step(f"Manifest V3 valid for '{manifest.get('name')}' (v{manifest.get('version')})")
@@ -142,6 +147,87 @@ def validate_state_machine(ext_dir: Path):
 
     pass_step("All required extension state machine handlers and DOM elements verified.")
 
+def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
+    step("Staging production extension assets (zero-localhost transformation)...")
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    shutil.copytree(source_dir, staging_dir)
+
+    # 1. Transform manifest.json
+    manifest_path = staging_dir / "manifest.json"
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    # Clean host_permissions: remove all localhost/127.0.0.1
+    new_host_perms = []
+    for perm in manifest.get("host_permissions", []):
+        if not ("127.0.0.1" in perm or "localhost" in perm):
+            new_host_perms.append(perm)
+    for prod_perm in ["https://api.continuo.ai/*", "https://continuo.ai/*", "https://*.continuo.ai/*"]:
+        if prod_perm not in new_host_perms:
+            new_host_perms.append(prod_perm)
+    manifest["host_permissions"] = new_host_perms
+
+    # Clean content_scripts matches
+    for cs in manifest.get("content_scripts", []):
+        new_matches = []
+        for match in cs.get("matches", []):
+            if not ("127.0.0.1" in match or "localhost" in match):
+                new_matches.append(match)
+        for prod_match in ["https://continuo.ai/*", "https://*.continuo.ai/*"]:
+            if prod_match not in new_matches:
+                new_matches.append(prod_match)
+        cs["matches"] = new_matches
+
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+    pass_step("Staged manifest.json: converted to live production origins")
+
+    # 2. Transform background.js
+    bg_path = staging_dir / "background.js"
+    bg_code = bg_path.read_text(encoding="utf-8")
+    bg_code = bg_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.ai/api/v1")
+    bg_code = bg_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.ai/api/v1")
+    bg_path.write_text(bg_code, encoding="utf-8")
+    pass_step("Staged background.js: updated API endpoints to https://api.continuo.ai/api/v1")
+
+    # 3. Transform popup.js
+    popup_js_path = staging_dir / "popup.js"
+    p_code = popup_js_path.read_text(encoding="utf-8")
+    p_code = p_code.replace("http://127.0.0.1:8008/api/v1", "https://api.continuo.ai/api/v1")
+    p_code = p_code.replace("http://127.0.0.1:8000/api/v1", "https://api.continuo.ai/api/v1")
+    p_code = p_code.replace("http://localhost:8000/", "https://continuo.ai/")
+    p_code = p_code.replace("127.0.0.1:8000 (Online)", "api.continuo.ai (Online)")
+    p_code = p_code.replace(
+        'tab.url.includes("localhost") || tab.url.includes("127.0.0.1")',
+        'tab.url.includes("continuo.ai")'
+    )
+    p_code = p_code.replace(
+        'DEFAULT_API_BASE.includes("127.0.0.1") || DEFAULT_API_BASE.includes("localhost")',
+        'false'
+    )
+    popup_js_path.write_text(p_code, encoding="utf-8")
+    pass_step("Staged popup.js: zero localhost references; updated workspace & API URLs")
+
+    # 4. Transform popup.html
+    popup_html_path = staging_dir / "popup.html"
+    p_html = popup_html_path.read_text(encoding="utf-8")
+    p_html = p_html.replace("127.0.0.1:8008", "api.continuo.ai")
+    popup_html_path.write_text(p_html, encoding="utf-8")
+    pass_step("Staged popup.html: gateway display updated to api.continuo.ai")
+
+    # 5. Transform content.js
+    content_js_path = staging_dir / "content.js"
+    c_code = content_js_path.read_text(encoding="utf-8")
+    c_code = c_code.replace(
+        'host === "localhost" || host === "127.0.0.1" || host.includes("continuo")',
+        'host.includes("continuo")'
+    )
+    content_js_path.write_text(c_code, encoding="utf-8")
+    pass_step("Staged content.js: token auto-sync scoped to production host")
+
+    return staging_dir
+
 def collect_extension_files(ext_dir: Path) -> list[tuple[Path, str]]:
     """
     Collect strictly necessary extension files.
@@ -150,7 +236,6 @@ def collect_extension_files(ext_dir: Path) -> list[tuple[Path, str]]:
     step("Collecting extension assets...")
     collected = []
     
-    # Required core files
     core_files = [
         "manifest.json",
         "popup.html",
@@ -167,7 +252,6 @@ def collect_extension_files(ext_dir: Path) -> list[tuple[Path, str]]:
         else:
             fail_step(f"Required extension file missing: {filename}")
 
-    # Optional extension assets/icons
     assets_dir = ext_dir / "assets"
     if assets_dir.exists() and assets_dir.is_dir():
         for root, _, files in os.walk(assets_dir):
@@ -195,7 +279,7 @@ def package_zip(collected_files: list[tuple[Path, str]], dest_zip: Path):
     size_kb = dest_zip.stat().st_size / 1024
     pass_step(f"Created {dest_zip} ({size_kb:.1f} KB)")
 
-def audit_archive(dest_zip: Path):
+def audit_archive(dest_zip: Path, is_production: bool = False):
     step("Auditing package contents for security & hygiene...")
     with zipfile.ZipFile(dest_zip, "r") as zf:
         namelist = zf.namelist()
@@ -222,21 +306,48 @@ def audit_archive(dest_zip: Path):
                             fail_step(f"Potential secret pattern found in {info.filename} (pattern: {sec_pat})")
         pass_step("Archive scanned: zero secrets or credentials detected")
 
+        # 4. Zero-localhost audit for production release
+        if is_production:
+            step("Executing strict zero-localhost production audit...")
+            forbidden_dev_terms = ["127.0.0.1", "localhost", ":8008", ":8000"]
+            for info in zf.infolist():
+                if info.filename.endswith((".js", ".html", ".css", ".json")):
+                    with zf.open(info.filename) as f:
+                        content = f.read().decode("utf-8", errors="ignore")
+                        for term in forbidden_dev_terms:
+                            if term in content:
+                                fail_step(f"Production audit violation: '{term}' detected in {info.filename}")
+            pass_step("Production audit PASSED: ZERO localhost / 127.0.0.1 / development port references in archive")
+
 def main():
+    is_production = "--production" in sys.argv
+    build_mode = "PRODUCTION RELEASE" if is_production else "DEVELOPMENT BUILD"
+
     print("============================================================")
-    print("CONTINUO CHROME EXTENSION PACKAGER")
+    print(f"CONTINUO CHROME EXTENSION PACKAGER [{build_mode}]")
     print("============================================================\n")
 
-    manifest = validate_manifest(EXT_DIR / "manifest.json")
-    validate_state_machine(EXT_DIR)
-    collected = collect_extension_files(EXT_DIR)
-    package_zip(collected, ZIP_PATH)
-    audit_archive(ZIP_PATH)
+    build_dir = EXT_DIR
+    staging_dir = DIST_DIR / "staging_production"
 
-    print("\n============================================================")
-    print(f"SUCCESS: Package ready at {ZIP_PATH.relative_to(REPO_ROOT)}")
-    print(f"Archive Size: {ZIP_PATH.stat().st_size} bytes")
-    print("============================================================\n")
+    try:
+        if is_production:
+            build_dir = prepare_production_staging(EXT_DIR, staging_dir)
+
+        manifest = validate_manifest(build_dir / "manifest.json", build_dir)
+        validate_state_machine(build_dir)
+        collected = collect_extension_files(build_dir)
+        package_zip(collected, ZIP_PATH)
+        audit_archive(ZIP_PATH, is_production=is_production)
+
+        print("\n============================================================")
+        print(f"SUCCESS: Package ready at {ZIP_PATH.relative_to(REPO_ROOT)}")
+        print(f"Build Mode: {build_mode}")
+        print(f"Archive Size: {ZIP_PATH.stat().st_size} bytes")
+        print("============================================================\n")
+    finally:
+        if staging_dir.exists():
+            shutil.rmtree(staging_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     main()

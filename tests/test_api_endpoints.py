@@ -724,6 +724,77 @@ def test_all_destination_handoff_adapters(client):
         assert data["destination_url"].startswith("http")
 
 
+def test_root_health_and_api_health(client):
+    """
+    Phase 9 Production Test:
+    Verifies that both the root /health endpoint (used by cloud load balancers)
+    and /api/v1/health return 200 OK with required operational fields.
+    """
+    res_root = client.get("/health")
+    assert res_root.status_code == 200
+    data_root = res_root.json()
+    assert data_root["status"] == "operational"
+    assert data_root["platform"] == "Continuo Context Layer"
+    assert data_root["version"] == "1.0.0"
+    assert "environment" in data_root
+
+    res_api = client.get("/api/v1/health")
+    assert res_api.status_code == 200
+    data_api = res_api.json()
+    assert data_api["status"] == "operational"
+    assert data_api["platform"] == "Continuo Context Layer"
+
+
+def test_database_url_normalization():
+    """
+    Phase 9 Production Test:
+    Verifies that postgres:// connection strings from Supabase / Neon / Heroku
+    are normalized to postgresql:// for SQLAlchemy driver compatibility.
+    """
+    from backend.config import Settings
+    
+    # 1. Test postgres:// conversion
+    custom_settings = Settings(DATABASE_URL="postgres://user:pass@aws-0-us-east-1.pooler.supabase.com:5432/postgres")
+    assert custom_settings.get_normalized_database_url().startswith("postgresql://")
+    assert "user:pass@aws-0-us-east-1.pooler.supabase.com:5432/postgres" in custom_settings.get_normalized_database_url()
+
+    # 2. Test postgresql:// preservation
+    pg_settings = Settings(DATABASE_URL="postgresql://user:pass@localhost:5432/continuo")
+    assert pg_settings.get_normalized_database_url() == "postgresql://user:pass@localhost:5432/continuo"
+
+    # 3. Test sqlite preservation
+    sqlite_settings = Settings(DATABASE_URL="sqlite:///./test.db")
+    assert sqlite_settings.get_normalized_database_url() == "sqlite:///./test.db"
+
+
+def test_cors_configuration_production(client):
+    """
+    Phase 9 Production Test:
+    Verifies that CORS preflight and origin headers for production web apps
+    and Chrome extensions are correctly processed.
+    """
+    # 1. Chrome extension origin
+    resp_ext = client.options(
+        "/api/v1/health",
+        headers={
+            "Origin": "chrome-extension://abcdefghijklmnop",
+            "Access-Control-Request-Method": "GET"
+        }
+    )
+    assert resp_ext.headers.get("access-control-allow-origin") == "chrome-extension://abcdefghijklmnop"
+
+    # 2. Production web app origin
+    resp_web = client.options(
+        "/api/v1/health",
+        headers={
+            "Origin": "http://localhost:8000",
+            "Access-Control-Request-Method": "GET"
+        }
+    )
+    assert resp_web.headers.get("access-control-allow-origin") in ["http://localhost:8000", "*"]
+
+
+
 
 
 
