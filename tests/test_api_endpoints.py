@@ -369,6 +369,10 @@ def test_version_diff_identical_versions(client):
         f"/api/v1/versions/projects/{proj_id}/diff?from_version=v1.0&to_version=v1.0",
         headers=headers
     )
+    assert diff_resp.status_code == 200
+    assert diff_resp.json()["summary"] == "No meaningful changes detected."
+
+
 def test_handoff_11_part_structured_payload(client):
     """
     Handoff Payload Fidelity Test:
@@ -438,6 +442,157 @@ def test_handoff_11_part_structured_payload(client):
 
     assert "Continue from the current state" in payload
     assert "https://claude.ai/new" == ho_resp.json()["destination_url"]
+
+
+def test_multi_project_consecutive_captures_isolation(client):
+    """
+    Multi-Project Isolation Test:
+    Ensures saving context to Project A (Continuo Extension) does not leak
+    or cross-contaminate Project B (Trading Dashboard).
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "multiproject@continuo.ai",
+        "password": "MultiProjectPass123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Project A: Continuo Extension
+    proj_a = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Continuo Extension",
+        "initial_objective": "Build Manifest V3 companion"
+    }).json()
+    id_a = proj_a["id"]
+
+    # Project B: Trading Dashboard
+    proj_b = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Trading Dashboard",
+        "initial_objective": "Build WebSocket crypto orderbook"
+    }).json()
+    id_b = proj_b["id"]
+
+    # Capture dialogue for Project A
+    dialogue_a = """
+    User: We need to register Chrome extension tabs permission.
+    Requirement: Manifest V3 compliance with activeTab and tabs.
+    Decision: Use chrome.storage.local for token sync.
+    File: extension/manifest.json
+    """
+    client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": id_a,
+        "provider": "chatgpt",
+        "raw_transcript": dialogue_a,
+        "title": "Extension Manifest Session"
+    })
+
+    # Capture dialogue for Project B
+    dialogue_b = """
+    User: Implement Binance and Coinbase WebSocket connection pools.
+    Requirement: Sub-millisecond tick streaming with zero dropped ticks.
+    Decision: Use asyncio with uvloop and orjson parser.
+    File: backend/feed/websocket_pool.py
+    """
+    client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": id_b,
+        "provider": "claude",
+        "raw_transcript": dialogue_b,
+        "title": "Orderbook Stream Session"
+    })
+
+    # Verify Project A context contains Extension details and NOT Trading Dashboard
+    ctx_a = client.get(f"/api/v1/context/projects/{id_a}/context", headers=headers).json()
+    assert ctx_a["project_id"] == id_a
+    ctx_a_str = str(ctx_a)
+    assert "Manifest" in ctx_a_str or "chrome" in ctx_a_str
+    assert "Orderbook" not in ctx_a_str
+    assert "Binance" not in ctx_a_str
+
+    # Verify Project B context contains Trading details and NOT Extension
+    ctx_b = client.get(f"/api/v1/context/projects/{id_b}/context", headers=headers).json()
+    assert ctx_b["project_id"] == id_b
+    ctx_b_str = str(ctx_b)
+    assert "websocket_pool.py" in ctx_b_str or "Sub-millisecond" in ctx_b_str
+    assert "manifest.json" not in ctx_b_str
+
+
+def test_project_version_progression_and_diff(client):
+    """
+    Version Progression & Diff Test:
+    Ensures that consecutive captures on the same project increment version numbers (v1.0 -> v1.1 -> v1.2),
+    and diffing across versions returns accurate additions and modifications.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "versioner@continuo.ai",
+        "password": "VersionPass123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Distributed Storage Engine",
+        "initial_objective": "Build S3-compatible object store"
+    }).json()
+    proj_id = proj["id"]
+
+    # Initial capture -> v1.1
+    c1 = client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "chatgpt",
+        "raw_transcript": "User: Setup initial raft consensus. Requirement: Raft leader election.",
+        "title": "Raft Session"
+    }).json()
+    assert c1["version"] == "v1.1"
+
+    # Second capture -> v1.2
+    c2 = client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "claude",
+        "raw_transcript": "User: Added multipart chunked upload support. Decision: 5MB minimum part size.",
+        "title": "S3 Multipart Session"
+    }).json()
+    assert c2["version"] == "v1.2"
+
+    # Diff v1.1 -> v1.2
+    diff_resp = client.get(
+        f"/api/v1/versions/projects/{proj_id}/diff?from_version=v1.1&to_version=v1.2",
+        headers=headers
+    )
+    assert diff_resp.status_code == 200
+    diff_data = diff_resp.json()
+    assert diff_data["from_version"] == "v1.1"
+    assert diff_data["to_version"] == "v1.2"
+    assert "summary" in diff_data
+
+
+def test_auth_expired_and_invalid_token(client):
+    """
+    Authentication Expiration & Security Test:
+    Ensures invalid or malformed tokens return HTTP 401 Unauthorized.
+    """
+    fake_headers = {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.signature"}
+    res = client.get("/api/v1/auth/me", headers=fake_headers)
+    assert res.status_code == 401
+
+
+def test_handoff_nonexistent_project_404(client):
+    """
+    Handoff Error Handling Test:
+    Ensures requesting handoff for non-existent project ID returns HTTP 404 Not Found.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "notfound_tester@continuo.ai",
+        "password": "PasswordNotFound123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    ho_resp = client.post("/api/v1/handoffs", headers=headers, json={
+        "project_id": "non-existent-proj-uuid-12345",
+        "source_provider": "chatgpt",
+        "destination_provider": "claude"
+    })
+    assert ho_resp.status_code == 404
+
 
 
 

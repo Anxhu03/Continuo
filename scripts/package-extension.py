@@ -94,6 +94,12 @@ def validate_manifest(manifest_path: Path) -> dict:
             if not (EXT_DIR / js_file).exists():
                 fail_step(f"Content script '{js_file}' does not exist on disk.")
 
+    # Icon Reference Checks
+    icons = manifest.get("icons", {})
+    for size, icon_path in icons.items():
+        if not (EXT_DIR / icon_path).exists():
+            fail_step(f"Manifest icon '{icon_path}' ({size}x{size}) does not exist on disk.")
+
     pass_step(f"Manifest V3 valid for '{manifest.get('name')}' (v{manifest.get('version')})")
     return manifest
 

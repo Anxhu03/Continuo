@@ -36,6 +36,15 @@
 
     <!-- STATE 0: NOT AUTHENTICATED PANEL -->
     <section class="state-panel auth-panel" id="auth-panel" style="display: none;">
+      <!-- Explicit Session Expired Banner -->
+      <div class="session-expired-notice" id="session-expired-notice" style="display: none;">
+        <span class="notice-icon">⚠️</span>
+        <div class="notice-text-group">
+          <strong>Your session has expired.</strong>
+          <span>Please sign in again to continue syncing your projects.</span>
+        </div>
+      </div>
+
       <div class="auth-badge">Sign in to Continuo</div>
       <p class="auth-desc">
         Your projects and saved context are securely synced across all your AI assistants.
@@ -161,6 +170,15 @@
           <span class="ai-name"><span class="ai-bullet dot-gemini"></span> Gemini</span>
           <span class="arrow">→</span>
         </button>
+      </div>
+
+      <!-- Clipboard Failure Recovery Drawer -->
+      <div class="clipboard-fallback-box" id="clipboard-fallback-box" style="display: none;">
+        <div class="fallback-header-row">
+          <span class="fallback-title">Couldn't copy automatically</span>
+          <button type="button" class="fallback-copy-btn" id="btn-fallback-copy">Copy again</button>
+        </div>
+        <textarea id="fallback-context-textarea" class="fallback-textarea" readonly placeholder="Continuation context..."></textarea>
       </div>
 
       <button class="view-memory-btn" id="btn-view-memory" type="button">

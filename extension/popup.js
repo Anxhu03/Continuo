@@ -69,6 +69,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const errorHint = document.getElementById("error-hint");
   const btnRetry = document.getElementById("btn-retry");
 
+  // Recovery & Notice Elements
+  const sessionExpiredNotice = document.getElementById("session-expired-notice");
+  const clipboardFallbackBox = document.getElementById("clipboard-fallback-box");
+  const fallbackContextTextarea = document.getElementById("fallback-context-textarea");
+  const btnFallbackCopy = document.getElementById("btn-fallback-copy");
+
   // Advanced Drawer Elements
   const advFidelity = document.getElementById("adv-fidelity");
   const advVersion = document.getElementById("adv-version");
@@ -86,6 +92,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let conversationDetected = false;
   let detectedTurnCount = 0;
   let capturedPackage = null;
+  let isCapturing = false;
 
   // --- STATE SWITCHER HELPER ---
   function showPanel(target) {
@@ -193,6 +200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       activeToken = null;
       currentUser = null;
       advUser.textContent = "Not signed in";
+      if (sessionExpiredNotice) sessionExpiredNotice.style.display = "none";
       return false;
     }
 
@@ -205,7 +213,19 @@ document.addEventListener("DOMContentLoaded", async () => {
         activeToken = token;
         currentUser = await res.json();
         advUser.textContent = currentUser.email || "Authenticated";
+        if (sessionExpiredNotice) sessionExpiredNotice.style.display = "none";
         return true;
+      }
+      if (res.status === 401) {
+        // Token is expired or revoked
+        if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.remove(["continuo_jwt", "continuo_user"]);
+        }
+        activeToken = null;
+        currentUser = null;
+        advUser.textContent = "Session expired";
+        if (sessionExpiredNotice) sessionExpiredNotice.style.display = "flex";
+        return false;
       }
     } catch (err) {
       console.warn("Auth token validation error:", err);
@@ -214,6 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     activeToken = null;
     currentUser = null;
     advUser.textContent = "Session expired";
+    if (sessionExpiredNotice) sessionExpiredNotice.style.display = "flex";
     return false;
   }
 
@@ -428,6 +449,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- 6. REAL CONTEXT CAPTURE ---
   async function performCapture() {
+    if (isCapturing) return; // Prevent duplicate clicks
     if (!activeToken) {
       showPanel("auth");
       return;
@@ -439,6 +461,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
+    isCapturing = true;
     captureBtn.disabled = true;
     captureBtnSpinner.style.display = "inline-block";
     captureBtnText.textContent = "Capturing conversation...";
@@ -446,40 +469,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     let transcript = "";
     let sessionTitle = "AI Capture Session";
 
-    // 1. Scrape real turns from active tab content script
-    if (typeof chrome !== "undefined" && chrome.tabs && activeTab?.id) {
-      try {
-        const response = await new Promise((resolve) => {
-          chrome.tabs.sendMessage(activeTab.id, { action: "CAPTURE_CONVERSATION" }, (res) => {
-            if (chrome.runtime.lastError) resolve(null);
-            else resolve(res);
-          });
-        });
-
-        if (response && response.success && response.conversationFound && response.rawTranscript) {
-          transcript = response.rawTranscript;
-          sessionTitle = response.title || sessionTitle;
-        }
-      } catch (e) {
-        console.warn("Content script capture failed:", e);
-      }
-    }
-
-    // HONEST BEHAVIOR: If no conversation was detected, do not fabricate fake captures
-    if (!transcript) {
-      captureBtn.disabled = false;
-      captureBtnSpinner.style.display = "none";
-      captureBtnText.textContent = "Save Context";
-      errorMessage.textContent = "No conversation detected.";
-      errorHint.textContent = `Open an active ${detectedProvider ? detectedProvider.toUpperCase() : 'AI'} conversation and try again.`;
-      showPanel("error");
-      return;
-    }
-
-    captureBtnText.textContent = "Building project memory...";
-
-    // 2. Transmit to Context Engine backend
     try {
+      // 1. Scrape real turns from active tab content script
+      if (typeof chrome !== "undefined" && chrome.tabs && activeTab?.id) {
+        try {
+          const response = await new Promise((resolve) => {
+            chrome.tabs.sendMessage(activeTab.id, { action: "CAPTURE_CONVERSATION" }, (res) => {
+              if (chrome.runtime.lastError) resolve(null);
+              else resolve(res);
+            });
+          });
+
+          if (response && response.success && response.conversationFound && response.rawTranscript) {
+            transcript = response.rawTranscript;
+            sessionTitle = response.title || sessionTitle;
+          }
+        } catch (e) {
+          console.warn("Content script capture failed:", e);
+        }
+      }
+
+      // HONEST BEHAVIOR: If no conversation was detected, do not fabricate fake captures
+      if (!transcript) {
+        captureBtn.disabled = false;
+        captureBtnSpinner.style.display = "none";
+        captureBtnText.textContent = "Save Context";
+        errorMessage.textContent = "No conversation detected.";
+        errorHint.textContent = `Open an active ${detectedProvider ? detectedProvider.toUpperCase() : 'AI'} conversation and try again.`;
+        showPanel("error");
+        return;
+      }
+
+      captureBtnText.textContent = "Building project memory...";
+
+      // 2. Transmit to Context Engine backend
       const captureRes = await fetch(`${apiBase}/context/capture`, {
         method: "POST",
         headers: {
@@ -517,9 +540,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       captureBtnSpinner.style.display = "none";
       captureBtnText.textContent = "Save Context";
 
-      errorMessage.textContent = "Unable to save context.";
-      errorHint.textContent = err.message || "Please verify your server connection and try again.";
+      if (err.message && (err.message.includes("fetch") || err.message.includes("NetworkError") || err.message.includes("Failed to fetch"))) {
+        errorMessage.textContent = "Continuo is temporarily unavailable.";
+        errorHint.textContent = "Backend service unreachable. Check your gateway connection and retry.";
+      } else {
+        errorMessage.textContent = "Unable to save context.";
+        errorHint.textContent = err.message || "Please verify your server connection and try again.";
+      }
       showPanel("error");
+    } finally {
+      isCapturing = false;
     }
   }
 
@@ -601,24 +631,42 @@ Continue from this state without asking the user to repeat previously establishe
     }
 
     // 1. Copy to clipboard
+    let copySuccess = false;
     try {
-      await navigator.clipboard.writeText(payloadText);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(payloadText);
+        copySuccess = true;
+      } else {
+        throw new Error("Clipboard API unavailable");
+      }
     } catch (e) {
-      const ta = document.createElement("textarea");
-      ta.value = payloadText;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = payloadText;
+        document.body.appendChild(ta);
+        ta.select();
+        copySuccess = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch (errFallback) {
+        copySuccess = false;
+      }
     }
 
-    // 2. Inform user honestly
-    showToast(`Context copied. Opening ${humanName}...`);
-
-    // 3. Open destination AI
-    setTimeout(() => {
-      openExternal(destinationUrl);
-    }, 650);
+    if (copySuccess) {
+      if (clipboardFallbackBox) clipboardFallbackBox.style.display = "none";
+      showToast(`Context copied ✓ Opening ${humanName}...`);
+      setTimeout(() => {
+        openExternal(destinationUrl);
+      }, 650);
+    } else {
+      // Requirement 14: Show recovery option, never silently fail
+      if (clipboardFallbackBox) clipboardFallbackBox.style.display = "flex";
+      if (fallbackContextTextarea) {
+        fallbackContextTextarea.value = payloadText;
+        fallbackContextTextarea.select();
+      }
+      showToast("Couldn't copy automatically. Please copy below.");
+    }
   }
 
   btnContChatGPT.addEventListener("click", () => triggerContinuation("chatgpt", "https://chatgpt.com/", "ChatGPT"));
@@ -626,6 +674,24 @@ Continue from this state without asking the user to repeat previously establishe
   btnContGemini.addEventListener("click", () => triggerContinuation("gemini", "https://gemini.google.com/app", "Gemini"));
 
   btnViewMemory.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
+
+  if (btnFallbackCopy) {
+    btnFallbackCopy.addEventListener("click", async () => {
+      if (fallbackContextTextarea) {
+        fallbackContextTextarea.select();
+        let ok = false;
+        try {
+          await navigator.clipboard.writeText(fallbackContextTextarea.value);
+          ok = true;
+        } catch (e) {
+          ok = document.execCommand("copy");
+        }
+        if (ok) {
+          showToast("Context copied ✓");
+        }
+      }
+    });
+  }
 
   // Quick launch buttons
   if (launchChatgptBtn) launchChatgptBtn.addEventListener("click", () => openExternal("https://chatgpt.com/"));
