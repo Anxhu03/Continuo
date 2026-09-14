@@ -50,9 +50,9 @@ class DiagnosticsResponse(BaseModel):
 # Project Schemas
 # -----------------------------------------------------------------------------
 class ProjectCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    initial_objective: Optional[str] = None
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    initial_objective: Optional[str] = Field(None, max_length=2000)
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -130,11 +130,11 @@ class ContextPackageResponse(ContextPackageData):
 class ContextCaptureRequest(BaseModel):
     project_id: str
     provider: str = "chatgpt" # chatgpt, claude, gemini, cursor
-    raw_transcript: str = Field(..., min_length=10)
-    title: Optional[str] = None
+    raw_transcript: str = Field(..., min_length=10, max_length=500000)
+    title: Optional[str] = Field(None, max_length=200)
 
 class ContextAnalyzeRequest(BaseModel):
-    raw_transcript: str = Field(..., min_length=10)
+    raw_transcript: str = Field(..., min_length=10, max_length=500000)
     provider: Optional[str] = "chatgpt"
 
 # -----------------------------------------------------------------------------
@@ -183,7 +183,7 @@ class HandoffCreateRequest(BaseModel):
     context_package_id: Optional[str] = None
     source_provider: str = "chatgpt"
     destination_provider: str = "claude" # claude, chatgpt, gemini, cursor
-    custom_instructions: Optional[str] = None
+    custom_instructions: Optional[str] = Field(None, max_length=5000)
 
 class HandoffResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)

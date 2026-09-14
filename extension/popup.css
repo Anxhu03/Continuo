@@ -901,3 +901,61 @@ body {
   resize: none;
 }
 
+/* Project Loading Error State */
+.project-error-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+
+.project-error-text {
+  font-size: 11px;
+  color: #fca5a5;
+}
+
+.project-retry-btn {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fecaca;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.project-retry-btn:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #ffffff;
+}
+
+/* Destination Guidance Hint */
+.destination-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 4px 0;
+}
+
+.destination-hint .hint-icon {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.destination-hint .hint-text {
+  font-size: 11px;
+  line-height: 1.4;
+  color: #bae6fd;
+}
+
+

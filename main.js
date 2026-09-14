@@ -1818,6 +1818,19 @@ function initContinuoWorkspaceApp() {
       if (wsBtnSignout) wsBtnSignout.style.display = "none";
     }
 
+    // Role-based visibility for Dev Diagnostics and Capture Sandbox (Requirement 19)
+    const isAdminOrDev = currentUser?.role === "admin" || currentUser?.role === "developer";
+    const isDiagHash = window.location.hash === "#admin" || window.location.hash === "#diagnostics";
+    const showDevTools = (isAdminOrDev || isDiagHash) && Boolean(authToken);
+
+    const wsTabDiagnostics = document.getElementById("ws-tab-diagnostics");
+    const wsTabCapture = document.getElementById("ws-tab-capture");
+    const wsBtnJumpDiagnostics = document.getElementById("ws-btn-jump-diagnostics");
+
+    if (wsTabDiagnostics) wsTabDiagnostics.style.display = showDevTools ? "inline-flex" : "none";
+    if (wsTabCapture) wsTabCapture.style.display = showDevTools ? "inline-flex" : "none";
+    if (wsBtnJumpDiagnostics) wsBtnJumpDiagnostics.style.display = showDevTools ? "inline-flex" : "none";
+
     // Sync token to extension storage if available
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
       if (authToken && currentUser) {
@@ -2822,17 +2835,22 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     }
   });
 
-  // Handle direct navigation to #workspace from external pages like install.html
-  if (window.location.hash === "#workspace") {
-    setTimeout(() => {
+  // Handle direct navigation to #workspace, #admin, or #diagnostics
+  function handleRouteHash() {
+    const hash = window.location.hash;
+    if (hash === "#workspace" || hash === "#admin" || hash === "#diagnostics") {
       openWorkspace();
-    }, 250);
-  }
-  window.addEventListener("hashchange", () => {
-    if (window.location.hash === "#workspace") {
-      openWorkspace();
+      if (hash === "#admin" || hash === "#diagnostics") {
+        updateUserUI();
+        switchWorkspaceTab("diagnostics");
+      }
     }
-  });
+  }
+
+  if (window.location.hash === "#workspace" || window.location.hash === "#admin" || window.location.hash === "#diagnostics") {
+    setTimeout(handleRouteHash, 250);
+  }
+  window.addEventListener("hashchange", handleRouteHash);
 
   // Startup initialization
   updateUserUI();

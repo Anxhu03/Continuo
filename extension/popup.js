@@ -74,6 +74,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clipboardFallbackBox = document.getElementById("clipboard-fallback-box");
   const fallbackContextTextarea = document.getElementById("fallback-context-textarea");
   const btnFallbackCopy = document.getElementById("btn-fallback-copy");
+  const projectErrorState = document.getElementById("project-error-state");
+  const btnRetryProjects = document.getElementById("btn-retry-projects");
+  const destinationHint = document.getElementById("destination-hint");
+  const destinationHintText = document.getElementById("destination-hint-text");
 
   // Advanced Drawer Elements
   const advFidelity = document.getElementById("adv-fidelity");
@@ -125,6 +129,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- 1. GATEWAY DETECTION & HEALTH CHECK ---
   async function resolveApiBase() {
+    // Check if custom or production api base is configured in extension storage
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      try {
+        const stored = await new Promise(resolve => {
+          chrome.storage.local.get(["continuo_api_base"], resolve);
+        });
+        if (stored && stored.continuo_api_base) {
+          apiBase = stored.continuo_api_base;
+          statusIndicator.classList.remove("offline");
+          statusLabel.textContent = "Ready";
+          advGateway.textContent = apiBase.replace("https://", "").replace("http://", "");
+          return apiBase;
+        }
+      } catch (e) {
+        // Fall back to local probing
+      }
+    }
+
     try {
       const res8008 = await fetch(`${DEFAULT_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
       if (res8008.ok) {
@@ -329,6 +351,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // --- 4. LOAD PROJECTS (USER-SCOPED) ---
   async function loadProjects(selectProjectId = null) {
+    if (projectErrorState) projectErrorState.style.display = "none";
+
     if (!activeToken) {
       projectSelect.innerHTML = `<option value="" disabled selected>Sign in to load projects</option>`;
       return;
@@ -344,7 +368,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (currentProjects.length === 0) {
           projectSelect.innerHTML = `<option value="" disabled selected>No projects yet — create one</option>`;
-          inlineNewProjectRow.style.display = "flex";
+          if (inlineNewProjectRow) inlineNewProjectRow.style.display = "flex";
           return;
         }
 
@@ -366,11 +390,19 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
           });
         }
+        if (projectErrorState) projectErrorState.style.display = "none";
+      } else {
+        throw new Error("Unable to fetch projects");
       }
     } catch (err) {
       console.warn("Could not load user projects:", err);
-      projectSelect.innerHTML = `<option value="" disabled selected>Error loading projects</option>`;
+      projectSelect.innerHTML = `<option value="" disabled selected>Unable to load projects</option>`;
+      if (projectErrorState) projectErrorState.style.display = "flex";
     }
+  }
+
+  if (btnRetryProjects) {
+    btnRetryProjects.addEventListener("click", () => loadProjects());
   }
 
   // --- 5. INLINE QUICK PROJECT CREATION ---
@@ -655,15 +687,21 @@ Continue from this state without asking the user to repeat previously establishe
     if (copySuccess) {
       if (clipboardFallbackBox) clipboardFallbackBox.style.display = "none";
       showToast(`Context copied ✓ Opening ${humanName}...`);
+      if (destinationHintText) {
+        destinationHintText.textContent = `${humanName} opened in a new tab. Paste your context (Ctrl+V / Cmd+V) to continue.`;
+      }
       setTimeout(() => {
         openExternal(destinationUrl);
       }, 650);
     } else {
-      // Requirement 14: Show recovery option, never silently fail
+      // Show recovery option, never silently fail
       if (clipboardFallbackBox) clipboardFallbackBox.style.display = "flex";
       if (fallbackContextTextarea) {
         fallbackContextTextarea.value = payloadText;
         fallbackContextTextarea.select();
+      }
+      if (destinationHintText) {
+        destinationHintText.textContent = `Automatic copy was blocked. Please copy from the box below and open ${humanName}.`;
       }
       showToast("Couldn't copy automatically. Please copy below.");
     }

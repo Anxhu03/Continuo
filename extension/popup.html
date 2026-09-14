@@ -120,6 +120,12 @@
           <option value="" disabled selected>Loading projects...</option>
         </select>
 
+        <!-- Project Loading Error & Retry State -->
+        <div class="project-error-state" id="project-error-state" style="display: none;">
+          <span class="project-error-text" id="project-error-text">Unable to load projects.</span>
+          <button type="button" class="project-retry-btn" id="btn-retry-projects">Retry</button>
+        </div>
+
         <!-- Inline Quick Project Creation Drawer -->
         <div class="inline-new-project-row" id="inline-new-project-row" style="display: none;">
           <input type="text" id="inline-project-name" class="inline-project-input" placeholder="Project name (e.g. AI Portfolio)" maxlength="60" />
@@ -154,6 +160,12 @@
           <span class="success-title">Context saved</span>
           <span class="success-subtitle">Project memory updated.</span>
         </div>
+      </div>
+
+      <!-- Honest Handoff Guidance Hint -->
+      <div class="destination-hint" id="destination-hint">
+        <span class="hint-icon">💡</span>
+        <span class="hint-text" id="destination-hint-text">Your context will be copied to your clipboard. When the destination opens, simply paste to continue.</span>
       </div>
 
       <div class="continue-group-header">Continue with:</div>

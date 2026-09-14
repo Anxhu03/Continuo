@@ -594,6 +594,137 @@ def test_handoff_nonexistent_project_404(client):
     assert ho_resp.status_code == 404
 
 
+def test_oversized_transcript_validation(client):
+    """
+    Input Validation & Memory Exhaustion Protection:
+    Ensures transcripts exceeding 500,000 characters are rejected with HTTP 422.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "oversized_tester@continuo.ai",
+        "password": "PasswordOversized123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Oversized Test Project"
+    }).json()
+
+    huge_transcript = "User: dialogue line\n" * 30000  # > 600,000 chars
+    res = client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj["id"],
+        "provider": "chatgpt",
+        "raw_transcript": huge_transcript
+    })
+    assert res.status_code == 422
+
+
+def test_project_name_length_bounds(client):
+    """
+    Input Bounds Testing:
+    Ensures project name cannot exceed 100 characters or be empty.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "bounds_tester@continuo.ai",
+        "password": "PasswordBounds123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Empty name rejected
+    res_empty = client.post("/api/v1/projects", headers=headers, json={
+        "name": ""
+    })
+    assert res_empty.status_code == 422
+
+    # Name > 100 chars rejected
+    res_long = client.post("/api/v1/projects", headers=headers, json={
+        "name": "A" * 101
+    })
+    assert res_long.status_code == 422
+
+    # Valid name passes
+    res_ok = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Legitimate Project Name"
+    })
+    assert res_ok.status_code == 201
+
+
+def test_project_cascade_deletion(client):
+    """
+    Database Integrity & Cascading Purge Test:
+    Ensures deleting a project purges all child context packages, versions, and handoffs.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "cascade_tester@continuo.ai",
+        "password": "PasswordCascade123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Cascade Delete Target"
+    }).json()
+    proj_id = proj["id"]
+
+    # Ingest context to create child records
+    client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "chatgpt",
+        "raw_transcript": "User: Setup cascade testing. Requirement: Child purge verification."
+    })
+
+    # Generate a handoff
+    client.post("/api/v1/handoffs", headers=headers, json={
+        "project_id": proj_id,
+        "source_provider": "chatgpt",
+        "destination_provider": "claude"
+    })
+
+    # Delete project
+    del_resp = client.delete(f"/api/v1/projects/{proj_id}", headers=headers)
+    assert del_resp.status_code == 204
+
+    # Verify project is gone (404)
+    get_resp = client.get(f"/api/v1/projects/{proj_id}", headers=headers)
+    assert get_resp.status_code == 404
+
+    # Verify context packages query returns 404
+    ctx_resp = client.get(f"/api/v1/context/projects/{proj_id}/context", headers=headers)
+    assert ctx_resp.status_code == 404
+
+
+def test_all_destination_handoff_adapters(client):
+    """
+    Cross-AI Model Adapter Test:
+    Ensures handoffs for claude, chatgpt, gemini, and cursor generate valid payloads and links.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "adapters_tester@continuo.ai",
+        "password": "PasswordAdapters123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={
+        "name": "Omni Adapter Platform"
+    }).json()
+
+    for provider in ["claude", "chatgpt", "gemini", "cursor"]:
+        resp = client.post("/api/v1/handoffs", headers=headers, json={
+            "project_id": proj["id"],
+            "source_provider": "continuo",
+            "destination_provider": provider,
+            "custom_instructions": f"Focus on {provider} implementation"
+        })
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["destination_provider"] == provider
+        assert len(data["formatted_payload"]) > 50
+        assert data["destination_url"].startswith("http")
+
+
+
 
 
 

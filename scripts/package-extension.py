@@ -103,6 +103,45 @@ def validate_manifest(manifest_path: Path) -> dict:
     pass_step(f"Manifest V3 valid for '{manifest.get('name')}' (v{manifest.get('version')})")
     return manifest
 
+def validate_state_machine(ext_dir: Path):
+    step("Validating Extension 14-State Machine integrity...")
+    popup_html = (ext_dir / "popup.html").read_text(encoding="utf-8")
+    popup_js = (ext_dir / "popup.js").read_text(encoding="utf-8")
+
+    required_html_elements = [
+        "auth-panel",
+        "no-ai-panel",
+        "active-ai-panel",
+        "handoff-panel",
+        "error-panel",
+        "session-expired-notice",
+        "clipboard-fallback-box",
+        "project-error-state",
+        "destination-hint",
+        "empty-chat-notice"
+    ]
+
+    for elem_id in required_html_elements:
+        if elem_id not in popup_html:
+            fail_step(f"popup.html missing state element: #{elem_id}")
+        print(f"    [OK] Element #{elem_id} confirmed")
+
+    required_js_states = [
+        "isCapturing",
+        "sessionExpiredNotice",
+        "clipboardFallbackBox",
+        "projectErrorState",
+        "triggerContinuation",
+        "resolveApiBase"
+    ]
+
+    for sym in required_js_states:
+        if sym not in popup_js:
+            fail_step(f"popup.js missing state controller symbol: {sym}")
+        print(f"    [OK] State controller {sym} confirmed")
+
+    pass_step("All required extension state machine handlers and DOM elements verified.")
+
 def collect_extension_files(ext_dir: Path) -> list[tuple[Path, str]]:
     """
     Collect strictly necessary extension files.
@@ -189,6 +228,7 @@ def main():
     print("============================================================\n")
 
     manifest = validate_manifest(EXT_DIR / "manifest.json")
+    validate_state_machine(EXT_DIR)
     collected = collect_extension_files(EXT_DIR)
     package_zip(collected, ZIP_PATH)
     audit_archive(ZIP_PATH)
