@@ -22,10 +22,12 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             detail="An account with this email address already exists."
         )
 
+    role_val = user_in.role if user_in.role in ["user", "developer", "admin", "support"] else "user"
     user = User(
         email=user_in.email.lower(),
         hashed_password=hash_password(user_in.password),
-        full_name=user_in.full_name
+        full_name=user_in.full_name,
+        role=role_val
     )
     db.add(user)
     db.commit()
@@ -36,7 +38,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         access_token=token,
         token_type="bearer",
         user_id=user.id,
-        email=user.email
+        email=user.email,
+        role=user.role
     )
 
 @router.post("/login", response_model=Token)
@@ -55,7 +58,8 @@ def login(login_in: UserLogin, db: Session = Depends(get_db)):
         access_token=token,
         token_type="bearer",
         user_id=user.id,
-        email=user.email
+        email=user.email,
+        role=getattr(user, "role", "user") or "user"
     )
 
 @router.get("/me", response_model=UserResponse)

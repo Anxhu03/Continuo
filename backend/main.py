@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.database import init_db
-from backend.routers import auth, projects, context, versions, handoffs
+from backend.routers import auth, projects, context, versions, handoffs, admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +40,7 @@ app.include_router(projects.router, prefix=settings.API_V1_PREFIX)
 app.include_router(context.router, prefix=settings.API_V1_PREFIX)
 app.include_router(versions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(handoffs.router, prefix=settings.API_V1_PREFIX)
+app.include_router(admin.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/api/v1/health", tags=["System"])
 def health_check():
@@ -53,4 +54,5 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", "8008"))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True)

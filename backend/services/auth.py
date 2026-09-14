@@ -104,3 +104,16 @@ def get_optional_user(
     if not payload or "sub" not in payload:
         return None
     return db.query(User).filter(User.id == payload["sub"]).first()
+
+def require_role(allowed_roles: list[str]):
+    """Enforce server-side role-based authorization for protected endpoints."""
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        user_role = getattr(current_user, "role", "user") or "user"
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Forbidden: Access requires one of {allowed_roles} roles. Your role is '{user_role}'."
+            )
+        return current_user
+    return role_checker
+

@@ -98,15 +98,17 @@ Continuo maintains a strict separation of concerns, ensuring provider neutrality
 
 ## 3. Key Features
 
-- **Extension-First Experience**: 6 deterministic popup states (`NO_AI_DETECTED`, `AI_DETECTED`, `CAPTURING`, `PROCESSING`, `SUCCESS`, `ERROR`).
-- **Live Active Tab Scraping**: Safely extracts message turns directly from the DOM on `chatgpt.com`, `claude.ai`, and `gemini.google.com`.
+- **Extension-First Experience**: 7 deterministic popup states (`UNAUTHENTICATED`, `NO_AI_DETECTED`, `EMPTY_CONVERSATION`, `AI_DETECTED`, `CAPTURING`, `SUCCESS`, `ERROR`).
+- **Live Active Tab Scraping**: Safely extracts authentic message turns directly from the DOM on `chatgpt.com`, `claude.ai`, and `gemini.google.com`. Rejects empty new-chat sessions honestly.
+- **Dynamic Port Resilience & Auto-Sync**: Automatically detects and seamlessly falls back between ports 8008 and 8000; synchronizes authentication tokens between the web application and extension.
 - **Inline Project Creation**: Create and associate new projects directly in the popup with zero context switching.
 - **Universal Markdown Handoffs**: Formats structured continuation packages using an explicit, AI-readable schema without brittle proprietary markup.
-- **Strict User Isolation**: Every endpoint verifies JWT token identity against resource ownership; no user can access another user's projects, memory, versions, or handoffs.
+- **Role-Based Authorization & Strict User Isolation**: Strict user-scoped project isolation. Developer and admin diagnostics protected at `/api/v1/admin/diagnostics` with granular RBAC.
 - **Dynamic Quality Scorer**: Mathematical 0–100% evaluation measuring Completeness, Clarity, Actionability, and Contradiction risk.
 - **Contradiction Guard**: Detects opposing architectural choices and incompatible constraints before they propagate to downstream models.
 - **Granular Version Diffs**: Snapshot project memory versioning (`v1.0`, `v1.1`, `v1.2`) with visual additions, modifications, and removals.
 - **Honest Handoff UX**: Generates verified payload, copies directly to clipboard, and opens the destination AI with immediate visual feedback (`✓ Context copied. Ready to continue in Claude.`).
+- **Developer Sandbox**: Explicit `DEV SANDBOX` badge signaling simulated demo environments without contaminating production data.
 
 ---
 
@@ -115,19 +117,20 @@ Continuo maintains a strict separation of concerns, ensuring provider neutrality
 ```
 Continuo/
 ├── backend/
-│   ├── config.py                 # Pydantic environment configuration & CORS origins
+│   ├── config.py                 # Pydantic environment configuration & CORS origins (ports 8008, 8000, 3000, 5173)
 │   ├── database.py               # SQLAlchemy engine & session factory
-│   ├── main.py                   # FastAPI application gateway & middleware
-│   ├── models/                   # SQLAlchemy DB models (User, Project, ContextPackage, Versions, Handoffs)
+│   ├── main.py                   # FastAPI application gateway & middleware (default port 8008)
+│   ├── models/                   # SQLAlchemy DB models (User with roles, Project, ContextPackage, Versions, Handoffs)
 │   ├── routers/
 │   │   ├── auth.py               # /auth (register, login, logout, me)
+│   │   ├── admin.py              # /admin (protected diagnostics with role-based access control)
 │   │   ├── projects.py           # /projects (CRUD with ownership enforcement)
 │   │   ├── context.py            # /context (capture, analyze, patch)
 │   │   ├── versions.py           # /versions (history & semantic diff)
 │   │   └── handoffs.py           # /handoffs (cross-model continuation generation)
 │   ├── schemas/                  # Pydantic v2 validation models
 │   └── services/
-│       ├── auth.py               # PBKDF2 password hashing & JWT signing
+│       ├── auth.py               # PBKDF2 password hashing, JWT signing & require_role() guard
 │       ├── context_engine.py     # Deterministic heuristic extraction engine
 │       ├── quality_scorer.py     # Weighted 4-factor quality algorithm
 │       ├── contradiction.py      # Architectural decision conflict detector

@@ -5740,6 +5740,13 @@ html.lenis body {
   padding-bottom: 14px;
 }
 
+.ws-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .badge-mini {
   font-size: 9.5px;
   font-weight: 700;
@@ -5751,7 +5758,63 @@ html.lenis body {
   padding: 2px 8px;
   border-radius: 4px;
   display: inline-block;
-  margin-bottom: 6px;
+}
+
+.badge-sandbox, .ws-chip-sandbox {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fbbf24;
+  text-transform: uppercase;
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.ws-role-lock-banner {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.role-lock-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.role-lock-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fca5a5;
+  margin: 0 0 4px 0;
+}
+
+.role-lock-desc {
+  font-size: 12px;
+  color: #d4d4d8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.role-lock-desc code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #38bdf8;
 }
 
 .ws-project-hero-title {

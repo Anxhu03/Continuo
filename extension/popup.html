@@ -31,6 +31,30 @@
       <span class="toast-text" id="toast-text">Context copied. Ready to continue in Claude.</span>
     </div>
 
+    <!-- STATE 0: NOT AUTHENTICATED PANEL -->
+    <section class="state-panel auth-panel" id="auth-panel" style="display: none;">
+      <div class="auth-badge">Authentication Required</div>
+      <p class="auth-desc">
+        Sign in to save project memory and keep your context across models.
+      </p>
+      <button class="save-context-btn" id="btn-open-login" type="button">
+        Open Continuo to Sign In
+      </button>
+
+      <!-- Optional Inline Quick Login Form -->
+      <div class="quick-auth-drawer">
+        <button type="button" class="quick-auth-toggle" id="btn-toggle-quick-auth">Quick popup sign in</button>
+        <div class="quick-auth-box" id="quick-auth-box" style="display: none;">
+          <input type="email" id="quick-email" class="inline-project-input" placeholder="Email" />
+          <input type="password" id="quick-password" class="inline-project-input" placeholder="Password" />
+          <div class="inline-actions">
+            <button type="button" id="btn-submit-quick-login" class="inline-btn-create">Sign In</button>
+            <span class="quick-auth-msg" id="quick-auth-msg"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- STATE 1: NO AI DETECTED PANEL -->
     <section class="state-panel no-ai-panel" id="no-ai-panel" style="display: none;">
       <div class="no-ai-badge">No active AI conversation detected</div>
@@ -60,6 +84,12 @@
         <div class="detection-source" id="detection-source">Active conversation ready</div>
       </div>
 
+      <!-- Honest Empty Chat Warning (Part 3) -->
+      <div class="empty-chat-notice" id="empty-chat-notice" style="display: none;">
+        <span class="notice-icon">ℹ</span>
+        <span id="empty-chat-text">No conversation detected. Open a ChatGPT, Claude, or Gemini conversation to save context.</span>
+      </div>
+
       <!-- Current Project Selector & Inline Creator -->
       <div class="project-box" id="project-box">
         <div class="project-header-row">
@@ -82,7 +112,7 @@
 
       <!-- Context Readiness Status -->
       <div class="context-ready-indicator" id="context-ready-indicator">
-        <span class="ready-badge"><span class="ready-dot"></span> Context ready</span>
+        <span class="ready-badge" id="ready-badge-pill"><span class="ready-dot" id="ready-dot"></span> <span id="ready-text">Context ready</span></span>
       </div>
 
       <!-- Main Action Button -->
@@ -149,6 +179,10 @@
         <div class="adv-row">
           <span>Backend API:</span>
           <strong id="adv-gateway">127.0.0.1:8008</strong>
+        </div>
+        <div class="adv-row">
+          <span>Account:</span>
+          <strong id="adv-user">Not signed in</strong>
         </div>
         <div class="adv-log" id="adv-log">Ready for user-triggered capture.</div>
       </div>

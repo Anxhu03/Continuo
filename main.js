@@ -757,7 +757,8 @@ function updateActiveNavFromScroll() {
   for (const id of PRIMARY_NAV_IDS) {
     const el = document.getElementById(id);
     if (!el) continue;
-    const top = el.offsetTop - headerOffset;
+    const rect = el.getBoundingClientRect();
+    const top = rect.top + scrollY - headerOffset;
     if (scrollY >= top) {
       activeId = id;
     }
@@ -1600,7 +1601,10 @@ function initMobileMenu() {
    context engine, quality scoring, version diff, and handoffs.
    ========================================================================== */
 function initContinuoWorkspaceApp() {
-  const API_BASE = "http://127.0.0.1:8008/api/v1";
+  let API_BASE = (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
+    ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
+    : "http://127.0.0.1:8008/api/v1";
+  const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 
   // App State
   let authToken = localStorage.getItem("continuo_jwt") || null;
@@ -1628,11 +1632,24 @@ function initContinuoWorkspaceApp() {
   const wsReadinessText = document.getElementById("ws-readiness-text");
   const wsOverviewTitle = document.getElementById("ws-overview-title");
   const wsOverviewDesc = document.getElementById("ws-overview-desc");
+  const wsSandboxBadge = document.getElementById("ws-sandbox-badge");
+  const wsOverviewSandboxTag = document.getElementById("ws-overview-sandbox-tag");
   const wsHumanObjective = document.getElementById("ws-human-objective");
   const wsHumanState = document.getElementById("ws-human-state");
   const wsHumanCompleted = document.getElementById("ws-human-completed");
   const wsHumanPending = document.getElementById("ws-human-pending");
+  const wsHumanProblems = document.getElementById("ws-human-problems");
+  const wsHumanDecisions = document.getElementById("ws-human-decisions");
+  const wsHumanConstraints = document.getElementById("ws-human-constraints");
+  const wsHumanFiles = document.getElementById("ws-human-files");
   const wsHumanNext = document.getElementById("ws-human-next");
+  const wsCaptureHumanObjective = document.getElementById("ws-capture-human-objective");
+  const wsCaptureHumanState = document.getElementById("ws-capture-human-state");
+  const wsCaptureHumanCompleted = document.getElementById("ws-capture-human-completed");
+  const wsCaptureHumanNext = document.getElementById("ws-capture-human-next");
+  const wsDiagLockBanner = document.getElementById("ws-diag-lock-banner");
+  const diagUserRoleLabel = document.getElementById("diag-user-role-label");
+  const wsDiagGrid = document.getElementById("ws-diag-grid");
   const wsOverviewContChatgpt = document.getElementById("ws-overview-cont-chatgpt");
   const wsOverviewContClaude = document.getElementById("ws-overview-cont-claude");
   const wsOverviewContGemini = document.getElementById("ws-overview-cont-gemini");
@@ -1737,24 +1754,34 @@ function initContinuoWorkspaceApp() {
     }, 3500);
   }
 
-  // HTTP Helper with Bearer Token
+  // HTTP Helper with Bearer Token and Automatic Dual-Port Fallback (8008 -> 8000)
   async function apiRequest(endpoint, method = "GET", body = null) {
     const headers = { "Content-Type": "application/json" };
     if (authToken) {
       headers["Authorization"] = `Bearer ${authToken}`;
     }
 
+    let activeBase = API_BASE;
     try {
-      const resp = await fetch(`${API_BASE}${endpoint}`, {
+      let resp = await fetch(`${activeBase}${endpoint}`, {
         method,
         headers,
         body: body ? JSON.stringify(body) : null,
+      }).catch(async () => {
+        // If 8008 network failed, attempt fallback port 8000
+        activeBase = FALLBACK_API_BASE;
+        return await fetch(`${activeBase}${endpoint}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : null,
+        });
       });
 
       if (resp.status === 401) {
-        // Token expired or invalid
         authToken = null;
+        currentUser = null;
         localStorage.removeItem("continuo_jwt");
+        localStorage.removeItem("continuo_user");
         updateUserUI();
       }
 
@@ -1773,6 +1800,10 @@ function initContinuoWorkspaceApp() {
   // Auth Operations
   // =========================================================================
   function updateUserUI() {
+    const isDemo = currentUser?.email === "demo@continuo.ai" || currentUser?.isDemo;
+    if (wsSandboxBadge) wsSandboxBadge.style.display = isDemo ? "inline-block" : "none";
+    if (wsOverviewSandboxTag) wsOverviewSandboxTag.style.display = isDemo ? "inline-block" : "none";
+
     if (currentUser && authToken) {
       if (wsUserEmail) wsUserEmail.textContent = currentUser.email.split("@")[0];
       if (navAuthLabel) navAuthLabel.textContent = "Workspace";
@@ -1781,6 +1812,15 @@ function initContinuoWorkspaceApp() {
       if (wsUserEmail) wsUserEmail.textContent = "Sign In";
       if (navAuthLabel) navAuthLabel.textContent = "Sign In";
       if (wsBtnSignout) wsBtnSignout.style.display = "none";
+    }
+
+    // Sync token to extension storage if available
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      if (authToken && currentUser) {
+        chrome.storage.local.set({ continuo_jwt: authToken, continuo_user: currentUser });
+      } else {
+        chrome.storage.local.remove(["continuo_jwt", "continuo_user"]);
+      }
     }
   }
 
@@ -1799,47 +1839,33 @@ function initContinuoWorkspaceApp() {
 
   if (wsBtnSignout) wsBtnSignout.addEventListener("click", signOutUser);
 
-  async function ensureAuthenticated() {
-    if (authToken && currentUser) return true;
-
-    // Automatic Demo Authentication for frictionless testing
-    try {
-      const demoRes = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "demo@continuo.ai",
-          password: "DemoContinuo2026!",
-        }),
-      });
-
-      let tokenData;
-      if (demoRes.ok) {
-        tokenData = await demoRes.json();
-      } else {
-        // Register demo user
-        const regRes = await fetch(`${API_BASE}/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: "demo@continuo.ai",
-            password: "DemoContinuo2026!",
-            full_name: "Elena Rostova (Demo Engineer)",
-          }),
-        });
-        tokenData = await regRes.json();
+  async function ensureAuthenticated(allowPrompt = false) {
+    if (authToken && currentUser) {
+      try {
+        const me = await apiRequest("/auth/me");
+        if (me && me.id) {
+          currentUser = me;
+          localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+          updateUserUI();
+          return true;
+        }
+      } catch (e) {
+        return true;
       }
+    }
 
-      authToken = tokenData.access_token;
-      currentUser = { email: tokenData.email, id: tokenData.user_id };
-      localStorage.setItem("continuo_jwt", authToken);
-      localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+    const savedToken = localStorage.getItem("continuo_jwt");
+    if (savedToken) {
+      authToken = savedToken;
+      currentUser = JSON.parse(localStorage.getItem("continuo_user") || "null");
       updateUserUI();
       return true;
-    } catch (err) {
-      console.warn("Backend not available yet, using local guest state.");
-      return false;
     }
+
+    if (allowPrompt) {
+      openAuthModal("login");
+    }
+    return false;
   }
 
   // =========================================================================
@@ -2003,9 +2029,62 @@ function initContinuoWorkspaceApp() {
         wsHumanPending.appendChild(li);
       });
     }
+    if (wsHumanProblems) {
+      wsHumanProblems.innerHTML = "";
+      const probList = (pkg.open_problems && pkg.open_problems.length) ? pkg.open_problems : ["No critical blockers identified."];
+      probList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanProblems.appendChild(li);
+      });
+    }
+    if (wsHumanDecisions) {
+      wsHumanDecisions.innerHTML = "";
+      const decList = (pkg.decisions && pkg.decisions.length) ? pkg.decisions : ["No architectural decisions logged yet."];
+      decList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanDecisions.appendChild(li);
+      });
+    }
+    if (wsHumanConstraints) {
+      wsHumanConstraints.innerHTML = "";
+      const constList = (pkg.constraints && pkg.constraints.length) ? pkg.constraints : ["No active constraints specified."];
+      constList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanConstraints.appendChild(li);
+      });
+    }
+    if (wsHumanFiles) {
+      wsHumanFiles.innerHTML = "";
+      const fileList = (pkg.files_context && pkg.files_context.length) ? pkg.files_context : ["None tagged"];
+      fileList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsHumanFiles.appendChild(li);
+      });
+    }
     if (wsHumanNext) {
       const nextList = pkg.next_steps || [];
       wsHumanNext.textContent = nextList.length ? nextList[0] : "Capture or edit context to advance.";
+    }
+
+    // Mirror to Capture Sandbox Card
+    if (wsCaptureHumanObjective) wsCaptureHumanObjective.textContent = pkg.objective || "No objective defined yet.";
+    if (wsCaptureHumanState) wsCaptureHumanState.textContent = pkg.current_state || "Active development.";
+    if (wsCaptureHumanCompleted) {
+      wsCaptureHumanCompleted.innerHTML = "";
+      const doneList = pkg.completed_work && pkg.completed_work.length ? pkg.completed_work : ["Initial foundation setup."];
+      doneList.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        wsCaptureHumanCompleted.appendChild(li);
+      });
+    }
+    if (wsCaptureHumanNext) {
+      const nextList = pkg.next_steps || [];
+      wsCaptureHumanNext.textContent = nextList.length ? nextList[0] : "Capture or edit context to advance.";
     }
 
     // 3. Breakdown
@@ -2501,7 +2580,7 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
         }
 
         authToken = tokenData.access_token;
-        currentUser = { email: tokenData.email, id: tokenData.user_id };
+        currentUser = { email: tokenData.email, id: tokenData.user_id, role: tokenData.role || "user" };
         localStorage.setItem("continuo_jwt", authToken);
         localStorage.setItem("continuo_user", JSON.stringify(currentUser));
 
@@ -2525,16 +2604,61 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
     btnDemoEngineer.addEventListener("click", async () => {
       btnDemoEngineer.disabled = true;
       try {
-        await ensureAuthenticated();
+        let tokenData;
+        try {
+          tokenData = await apiRequest("/auth/login", "POST", {
+            email: "demo@continuo.ai",
+            password: "demopassword123"
+          });
+        } catch (e) {
+          tokenData = await apiRequest("/auth/register", "POST", {
+            email: "demo@continuo.ai",
+            password: "demopassword123",
+            full_name: "Demo Engineer",
+            role: "developer"
+          });
+        }
+
+        authToken = tokenData.access_token;
+        currentUser = {
+          email: tokenData.email,
+          id: tokenData.user_id,
+          role: tokenData.role || "developer",
+          isDemo: true
+        };
+        localStorage.setItem("continuo_jwt", authToken);
+        localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+
         closeAuthModal();
+        updateUserUI();
         await loadProjects();
-        showToast("Signed in as Demo Engineer!");
+        showToast("Signed in as Demo Engineer (Dev Sandbox)!");
       } catch (err) {
         showToast(err.message || "Demo login failed");
       } finally {
         btnDemoEngineer.disabled = false;
       }
     });
+  }
+
+  // =========================================================================
+  // Developer & Admin Diagnostics Loader
+  // =========================================================================
+  async function loadDiagnostics() {
+    try {
+      const diagData = await apiRequest("/admin/diagnostics");
+      if (wsDiagLockBanner) wsDiagLockBanner.style.display = "none";
+      if (wsDiagGrid) wsDiagGrid.style.display = "grid";
+
+      const diagBackendStatus = document.getElementById("diag-backend-status");
+      if (diagBackendStatus) {
+        diagBackendStatus.textContent = `Operational (Port ${diagData.gateway_port || 8008})`;
+      }
+    } catch (err) {
+      if (wsDiagLockBanner) wsDiagLockBanner.style.display = "flex";
+      if (wsDiagGrid) wsDiagGrid.style.display = "none";
+      if (diagUserRoleLabel) diagUserRoleLabel.textContent = currentUser?.role || "user";
+    }
   }
 
   // =========================================================================
@@ -2555,6 +2679,10 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
         p.classList.remove("active");
       }
     });
+
+    if (tabId === "diagnostics") {
+      loadDiagnostics();
+    }
   }
 
   wsTabs.forEach((tab) => {
@@ -2623,8 +2751,13 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
       history.replaceState(null, document.title, window.location.pathname + window.location.search + "#workspace");
     }
 
+    const isAuthed = await ensureAuthenticated(false);
+    if (!isAuthed) {
+      openAuthModal();
+      return;
+    }
+
     try {
-      await ensureAuthenticated();
       await loadProjects();
     } catch (err) {
       console.warn("Continuo: Background sync failed:", err);
@@ -2687,8 +2820,10 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
 
   // Startup initialization
   updateUserUI();
-  ensureAuthenticated().then(() => {
-    loadProjects();
+  ensureAuthenticated(false).then((authed) => {
+    if (authed) {
+      loadProjects();
+    }
   });
 }
 

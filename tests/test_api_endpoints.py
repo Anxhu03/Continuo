@@ -266,4 +266,113 @@ def test_comprehensive_cross_user_data_isolation(client):
     assert resp.status_code == 401
 
 
+def test_user_roles_and_admin_diagnostics(client):
+    """
+    Role Authorization & Diagnostics Tests:
+    - Standard users default to 'user' role and are denied access to /api/v1/admin/diagnostics (403).
+    - Users with 'developer' or 'admin' role can access /api/v1/admin/diagnostics (200).
+    """
+    # 1. Register standard user
+    user_reg = client.post("/api/v1/auth/register", json={
+        "email": "standard_dev@continuo.ai",
+        "password": "UserPass123!",
+        "full_name": "Standard Dev"
+    })
+    assert user_reg.status_code == 201
+    user_data = user_reg.json()
+    assert user_data.get("role") == "user"
+    user_token = user_data["access_token"]
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+
+    # Verify /auth/me returns role="user"
+    me_resp = client.get("/api/v1/auth/me", headers=user_headers)
+    assert me_resp.status_code == 200
+    assert me_resp.json()["role"] == "user"
+
+    # Standard user attempting to access /admin/diagnostics gets 403 Forbidden
+    diag_denied = client.get("/api/v1/admin/diagnostics", headers=user_headers)
+    assert diag_denied.status_code == 403
+
+    # 2. Register developer user
+    dev_reg = client.post("/api/v1/auth/register", json={
+        "email": "lead_architect@continuo.ai",
+        "password": "ArchitectPass123!",
+        "full_name": "Lead Architect",
+        "role": "developer"
+    })
+    assert dev_reg.status_code == 201
+    dev_data = dev_reg.json()
+    assert dev_data.get("role") == "developer"
+    dev_token = dev_data["access_token"]
+    dev_headers = {"Authorization": f"Bearer {dev_token}"}
+
+    # Developer user accessing /admin/diagnostics gets 200 OK
+    diag_ok = client.get("/api/v1/admin/diagnostics", headers=dev_headers)
+    assert diag_ok.status_code == 200
+    diag_body = diag_ok.json()
+    assert diag_body["status"] == "operational"
+    assert diag_body["gateway_port"] in (8008, 8000)
+    assert "active_users" in diag_body
+    assert "active_projects" in diag_body
+    assert "total_context_packages" in diag_body
+    assert diag_body["features"]["role_based_access"] is True
+
+
+def test_empty_and_invalid_transcript_validation(client):
+    """
+    Validation Test:
+    Ensures empty or sub-10 character transcripts are rejected with 422 Unprocessable Entity.
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "validator@continuo.ai",
+        "password": "ValidatorPass123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={"name": "Val Project"}).json()
+    proj_id = proj["id"]
+
+    # Short transcript under 10 chars
+    short_resp = client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "chatgpt",
+        "raw_transcript": "Hi"
+    })
+    assert short_resp.status_code == 422
+
+    # Empty string transcript
+    empty_resp = client.post("/api/v1/context/capture", headers=headers, json={
+        "project_id": proj_id,
+        "provider": "chatgpt",
+        "raw_transcript": ""
+    })
+    assert empty_resp.status_code == 422
+
+
+def test_version_diff_identical_versions(client):
+    """
+    Version Diff Test:
+    Ensures comparing identical versions returns 'No meaningful changes detected.'
+    """
+    reg = client.post("/api/v1/auth/register", json={
+        "email": "diff_tester@continuo.ai",
+        "password": "DiffPassword123!"
+    })
+    token = reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    proj = client.post("/api/v1/projects", headers=headers, json={"name": "Diff Project"}).json()
+    proj_id = proj["id"]
+
+    diff_resp = client.get(
+        f"/api/v1/versions/projects/{proj_id}/diff?from_version=v1.0&to_version=v1.0",
+        headers=headers
+    )
+    assert diff_resp.status_code == 200
+    diff_data = diff_resp.json()
+    assert diff_data["summary"] == "No meaningful changes detected."
+
+
+
 

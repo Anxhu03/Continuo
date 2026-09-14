@@ -66,7 +66,7 @@ class VersionDiffEngine:
         if total_rems:
             summary_parts.append(f"{total_rems} items retired")
 
-        summary = ", ".join(summary_parts) if summary_parts else "No functional changes detected between versions."
+        summary = ", ".join(summary_parts) if summary_parts else "No meaningful changes detected."
 
         return {
             "project_id": project_id,

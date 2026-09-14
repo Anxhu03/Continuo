@@ -1205,6 +1205,7 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
 
           <!-- Status & User Profile Pill -->
           <div class="ws-header-meta">
+            <span class="ws-chip ws-chip-sandbox" id="ws-sandbox-badge" style="display: none;">DEV SANDBOX</span>
             <span class="ws-chip ws-chip-ver" id="ws-ver-chip">v1.0</span>
             <span class="ws-chip ws-chip-health" id="ws-health-chip">--% Health</span>
             <button class="ws-user-pill" id="ws-user-pill" type="button" title="Account settings">
@@ -1255,7 +1256,10 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
           <div class="ws-panel active" id="ws-panel-overview">
             <div class="ws-project-card-layout">
               <div class="ws-project-badge-header">
-                <span class="badge-mini">CONTINUO PROJECT</span>
+                <div class="ws-badge-row">
+                  <span class="badge-mini">CONTINUO PROJECT</span>
+                  <span class="badge-sandbox" id="ws-overview-sandbox-tag" style="display: none;">DEV SANDBOX</span>
+                </div>
                 <h3 class="ws-project-hero-title" id="ws-overview-title">Continuo Chrome Extension</h3>
                 <p class="ws-project-hero-desc" id="ws-overview-desc">Universal AI context persistence and cross-model continuity</p>
               </div>
@@ -1284,6 +1288,37 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
                   <ul class="ws-checklist ws-pending-list" id="ws-human-pending">
                     <li>Cross-model prompt continuity</li>
                     <li>Version diff tracking</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-triangle-exclamation"></i> Open problems</h4>
+                  <ul class="ws-checklist ws-problem-list" id="ws-human-problems">
+                    <li>No blockers detected</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-gavel"></i> Important decisions</h4>
+                  <ul class="ws-checklist" id="ws-human-decisions">
+                    <li>Stateless JWT authentication</li>
+                    <li>Structured project memory model</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-solid fa-shield-halved"></i> Constraints</h4>
+                  <ul class="ws-checklist" id="ws-human-constraints">
+                    <li>Zero training data retention</li>
+                    <li>Manifest V3 security compliance</li>
+                  </ul>
+                </div>
+
+                <div class="ws-section-block">
+                  <h4 class="ws-block-title"><i class="fa-regular fa-file-code"></i> Files & code context</h4>
+                  <ul class="ws-checklist" id="ws-human-files">
+                    <li>extension/popup.js</li>
+                    <li>backend/services/context_engine.py</li>
                   </ul>
                 </div>
 
@@ -1444,24 +1479,24 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
                   <div class="human-memory-container" id="ws-human-summary">
                     <div class="human-memory-card">
                       <div class="human-memory-card-title"><i class="fa-solid fa-bullseye"></i> What We're Building</div>
-                      <div class="human-memory-card-body" id="ws-human-objective">Select or create a project to inspect its active context.</div>
+                      <div class="human-memory-card-body" id="ws-capture-human-objective">Select or create a project to inspect its active context.</div>
                     </div>
 
                     <div class="human-memory-card">
                       <div class="human-memory-card-title"><i class="fa-solid fa-play"></i> Current State</div>
-                      <div class="human-memory-card-body" id="ws-human-state">Initial setup and configuration.</div>
+                      <div class="human-memory-card-body" id="ws-capture-human-state">Initial setup and configuration.</div>
                     </div>
 
                     <div class="human-memory-card">
                       <div class="human-memory-card-title"><i class="fa-solid fa-circle-check"></i> Completed Work</div>
-                      <ul class="human-memory-list" id="ws-human-completed">
+                      <ul class="human-memory-list" id="ws-capture-human-completed">
                         <li>Project initialized</li>
                       </ul>
                     </div>
 
                     <div class="human-memory-card">
                       <div class="human-memory-card-title"><i class="fa-solid fa-arrow-right"></i> Next Step</div>
-                      <div class="human-memory-card-body" id="ws-human-next">Capture dialogue to advance project memory.</div>
+                      <div class="human-memory-card-body" id="ws-capture-human-next">Capture dialogue to advance project memory.</div>
                     </div>
                   </div>
 
@@ -1667,7 +1702,16 @@ Continue directly from the CURRENT WORKING STATE. Do NOT start over or re-sugges
           <!-- PANEL 5: DEVELOPER & ADMIN DIAGNOSTICS -->
           <div class="ws-panel" id="ws-panel-diagnostics">
             <div class="ws-diag-container">
-              <div class="ws-diag-grid">
+              <!-- Role-based Access Gate Banner (Part 21) -->
+              <div class="ws-role-lock-banner" id="ws-diag-lock-banner" style="display: none;">
+                <div class="role-lock-icon"><i class="fa-solid fa-lock"></i></div>
+                <div class="role-lock-content">
+                  <h4 class="role-lock-title">Developer & Admin Access Only</h4>
+                  <p class="role-lock-desc">Dev Diagnostics are restricted to engineering roles. Your account has standard <code id="diag-user-role-label">user</code> privileges. Contact your workspace administrator for engineering access.</p>
+                </div>
+              </div>
+
+              <div class="ws-diag-grid" id="ws-diag-grid">
                 <div class="ws-diag-card">
                   <div class="ws-diag-card-head"><i class="fa-solid fa-server"></i> Engine & Gateway Health</div>
                   <div class="ws-diag-list">

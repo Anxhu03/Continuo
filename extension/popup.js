@@ -1,10 +1,12 @@
 /**
  * CONTINUO — Chrome Extension Popup Controller
  * Production Extension-First Architecture
- * Supports States 1-6, Inline Project Creation, Real Tab Scraping, and Cross-AI Handoffs.
+ * Enforces real conversation capture, token storage without hardcoded credentials,
+ * user-scoped project memory, honest cross-AI handoff, and clear failure states.
  */
 
-const API_BASE = "http://127.0.0.1:8008/api/v1";
+const DEFAULT_API_BASE = "http://127.0.0.1:8008/api/v1";
+const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 const WORKSPACE_URL = "http://localhost:8000/";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -15,10 +17,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const toastText = document.getElementById("toast-text");
 
   // State Panels
+  const authPanel = document.getElementById("auth-panel");
   const noAiPanel = document.getElementById("no-ai-panel");
   const activeAiPanel = document.getElementById("active-ai-panel");
   const handoffPanel = document.getElementById("handoff-panel");
   const errorPanel = document.getElementById("error-panel");
+
+  // Auth Panel Elements
+  const btnOpenLogin = document.getElementById("btn-open-login");
+  const btnToggleQuickAuth = document.getElementById("btn-toggle-quick-auth");
+  const quickAuthBox = document.getElementById("quick-auth-box");
+  const quickEmail = document.getElementById("quick-email");
+  const quickPassword = document.getElementById("quick-password");
+  const btnSubmitQuickLogin = document.getElementById("btn-submit-quick-login");
+  const quickAuthMsg = document.getElementById("quick-auth-msg");
 
   // No AI Panel Elements
   const launchChatgptBtn = document.getElementById("launch-chatgpt-btn");
@@ -29,13 +41,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pulseDot = document.getElementById("pulse-dot");
   const detectionStatusText = document.getElementById("detection-status-text");
   const detectionSource = document.getElementById("detection-source");
+  const emptyChatNotice = document.getElementById("empty-chat-notice");
+  const emptyChatText = document.getElementById("empty-chat-text");
   const projectSelect = document.getElementById("ext-project-select");
   const btnToggleNewProject = document.getElementById("btn-toggle-new-project");
   const inlineNewProjectRow = document.getElementById("inline-new-project-row");
   const inlineProjectName = document.getElementById("inline-project-name");
   const btnCreateInlineProject = document.getElementById("btn-create-inline-project");
   const btnCancelInlineProject = document.getElementById("btn-cancel-inline-project");
-  const contextReadyIndicator = document.getElementById("context-ready-indicator");
+  const readyDot = document.getElementById("ready-dot");
+  const readyText = document.getElementById("ready-text");
   const captureBtn = document.getElementById("btn-ext-capture");
   const captureBtnSpinner = document.getElementById("btn-spinner");
   const captureBtnText = document.getElementById("btn-ext-capture-text");
@@ -55,23 +70,27 @@ document.addEventListener("DOMContentLoaded", async () => {
   const advFidelity = document.getElementById("adv-fidelity");
   const advVersion = document.getElementById("adv-version");
   const advGateway = document.getElementById("adv-gateway");
+  const advUser = document.getElementById("adv-user");
   const advLog = document.getElementById("adv-log");
 
   // Local State
+  let apiBase = DEFAULT_API_BASE;
   let activeTab = null;
   let activeToken = null;
+  let currentUser = null;
   let detectedProvider = null; // 'chatgpt' | 'claude' | 'gemini' | null
   let currentProjects = [];
-  let preservedTranscript = null;
-  let preservedTitle = null;
+  let conversationDetected = false;
+  let detectedTurnCount = 0;
   let capturedPackage = null;
 
   // --- STATE SWITCHER HELPER ---
   function showPanel(target) {
-    noAiPanel.style.display = target === "no-ai" ? "block" : "none";
-    activeAiPanel.style.display = target === "active-ai" ? "block" : "none";
-    handoffPanel.style.display = target === "handoff" ? "flex" : "none";
-    errorPanel.style.display = target === "error" ? "block" : "none";
+    if (authPanel) authPanel.style.display = target === "auth" ? "flex" : "none";
+    if (noAiPanel) noAiPanel.style.display = target === "no-ai" ? "block" : "none";
+    if (activeAiPanel) activeAiPanel.style.display = target === "active-ai" ? "block" : "none";
+    if (handoffPanel) handoffPanel.style.display = target === "handoff" ? "flex" : "none";
+    if (errorPanel) errorPanel.style.display = target === "error" ? "block" : "none";
   }
 
   // Toast feedback helper
@@ -85,7 +104,117 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 4000);
   }
 
-  // --- 1. PROVIDER DETECTION FROM ACTIVE TAB ---
+  // Helper to open tabs
+  function openExternal(url) {
+    if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, "_blank");
+    }
+  }
+
+  // --- 1. GATEWAY DETECTION & HEALTH CHECK ---
+  async function resolveApiBase() {
+    try {
+      const res8008 = await fetch(`${DEFAULT_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
+      if (res8008.ok) {
+        apiBase = DEFAULT_API_BASE;
+        statusIndicator.classList.remove("offline");
+        statusLabel.textContent = "Ready";
+        advGateway.textContent = "127.0.0.1:8008 (Online)";
+        return apiBase;
+      }
+    } catch (e) {
+      // Try fallback port 8000
+      try {
+        const res8000 = await fetch(`${FALLBACK_API_BASE.replace('/api/v1', '')}/api/v1/health`, { method: "GET" });
+        if (res8000.ok) {
+          apiBase = FALLBACK_API_BASE;
+          statusIndicator.classList.remove("offline");
+          statusLabel.textContent = "Ready";
+          advGateway.textContent = "127.0.0.1:8000 (Online)";
+          return apiBase;
+        }
+      } catch (err2) {
+        statusIndicator.classList.add("offline");
+        statusLabel.textContent = "Offline";
+        advGateway.textContent = "Backend Offline";
+      }
+    }
+    return apiBase;
+  }
+
+  // --- 2. AUTHENTICATION (NO HARDCODED CREDENTIALS) ---
+  async function checkAuthSession() {
+    await resolveApiBase();
+
+    // 1. Check chrome.storage.local
+    let token = null;
+    let storedUser = null;
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      const stored = await new Promise(resolve => {
+        chrome.storage.local.get(["continuo_jwt", "continuo_user"], resolve);
+      });
+      token = stored?.continuo_jwt || null;
+      storedUser = stored?.continuo_user || null;
+    }
+
+    // 2. If no token, check if user has an active Continuo tab open with login
+    if (!token && typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
+      try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+          if (tab.url && (tab.url.includes("localhost") || tab.url.includes("127.0.0.1"))) {
+            const resp = await new Promise(res => {
+              chrome.tabs.sendMessage(tab.id, { action: "GET_LOCAL_AUTH" }, r => {
+                if (chrome.runtime.lastError) res(null);
+                else res(r);
+              });
+            });
+            if (resp && resp.token) {
+              token = resp.token;
+              storedUser = resp.user ? JSON.parse(resp.user) : null;
+              if (chrome.storage && chrome.storage.local) {
+                chrome.storage.local.set({ continuo_jwt: token, continuo_user: storedUser });
+              }
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        // Passive sync
+      }
+    }
+
+    if (!token) {
+      activeToken = null;
+      currentUser = null;
+      advUser.textContent = "Not signed in";
+      return false;
+    }
+
+    // 3. Verify token with backend /auth/me
+    try {
+      const res = await fetch(`${apiBase}/auth/me`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (res.ok) {
+        activeToken = token;
+        currentUser = await res.json();
+        advUser.textContent = currentUser.email || "Authenticated";
+        return true;
+      }
+    } catch (err) {
+      console.warn("Auth token validation error:", err);
+    }
+
+    activeToken = null;
+    currentUser = null;
+    advUser.textContent = "Session expired";
+    return false;
+  }
+
+  // --- 3. ACTIVE TAB & CONVERSATION DETECTION ---
   async function inspectActiveTab() {
     try {
       if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
@@ -97,88 +226,83 @@ document.addEventListener("DOMContentLoaded", async () => {
           detectedProvider = "chatgpt";
           detectionStatusText.textContent = "ChatGPT detected";
           detectionSource.textContent = "ChatGPT (Active Tab)";
-          pulseDot.style.background = "#10a37f"; // ChatGPT emerald
-          showPanel("active-ai");
+          pulseDot.style.background = "#10a37f";
         } else if (url.includes("claude.ai")) {
           detectedProvider = "claude";
           detectionStatusText.textContent = "Claude detected";
           detectionSource.textContent = "Claude (Active Tab)";
-          pulseDot.style.background = "#d97706"; // Claude terracotta/amber
-          showPanel("active-ai");
+          pulseDot.style.background = "#d97706";
         } else if (url.includes("gemini.google.com")) {
           detectedProvider = "gemini";
           detectionStatusText.textContent = "Gemini detected";
           detectionSource.textContent = "Google Gemini (Active Tab)";
-          pulseDot.style.background = "#3b82f6"; // Gemini sapphire
-          showPanel("active-ai");
+          pulseDot.style.background = "#3b82f6";
         } else {
-          // STATE 1: NO AI DETECTED
           detectedProvider = null;
           showPanel("no-ai");
+          return;
         }
+
+        // Query content script for active conversation turns
+        let state = null;
+        if (activeTab?.id) {
+          try {
+            state = await new Promise(resolve => {
+              chrome.tabs.sendMessage(activeTab.id, { action: "CHECK_CONVERSATION_STATE" }, res => {
+                if (chrome.runtime.lastError) resolve(null);
+                else resolve(res);
+              });
+            });
+          } catch (e) {
+            console.warn("Content script query failed:", e);
+          }
+        }
+
+        if (state && state.conversationFound && state.messageCount > 0) {
+          conversationDetected = true;
+          detectedTurnCount = state.messageCount;
+          emptyChatNotice.style.display = "none";
+          captureBtn.disabled = false;
+          captureBtnText.textContent = "Save Context";
+          readyDot.style.background = "#34d399";
+          readyText.textContent = `${state.messageCount} turns ready`;
+        } else {
+          // Empty new chat or no conversation turns on page
+          conversationDetected = false;
+          detectedTurnCount = 0;
+          emptyChatNotice.style.display = "flex";
+          emptyChatText.textContent = `No conversation detected. Open or start a ${detectedProvider.toUpperCase()} conversation to save context.`;
+          captureBtn.disabled = true;
+          captureBtnText.textContent = "Open a conversation to save";
+          readyDot.style.background = "#eab308";
+          readyText.textContent = "Waiting for dialogue";
+        }
+
+        showPanel("active-ai");
       } else {
-        // Fallback for standalone / dev preview
+        // Standalone preview fallback
         detectedProvider = "chatgpt";
         detectionStatusText.textContent = "ChatGPT detected (Dev Preview)";
         detectionSource.textContent = "Simulated Session";
+        conversationDetected = true;
+        detectedTurnCount = 4;
         showPanel("active-ai");
       }
     } catch (err) {
-      console.warn("Tab inspection warning:", err);
+      console.warn("Tab inspection error:", err);
       showPanel("no-ai");
     }
   }
 
-  // Quick Launch buttons on No-AI panel
-  function openExternal(url) {
-    if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url });
-    } else {
-      window.open(url, "_blank");
-    }
-  }
-
-  if (launchChatgptBtn) launchChatgptBtn.addEventListener("click", () => openExternal("https://chatgpt.com/"));
-  if (launchClaudeBtn) launchClaudeBtn.addEventListener("click", () => openExternal("https://claude.ai/new"));
-  if (launchGeminiBtn) launchGeminiBtn.addEventListener("click", () => openExternal("https://gemini.google.com/app"));
-
-  // --- 2. AUTHENTICATION ---
-  async function getAuthToken() {
-    try {
-      const loginRes = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "demo@continuo.ai", password: "DemoContinuo2026!" })
-      });
-      if (loginRes.ok) {
-        const data = await loginRes.json();
-        statusIndicator.classList.remove("offline");
-        statusLabel.textContent = "Ready";
-        advGateway.textContent = "127.0.0.1:8008 (Online)";
-        return data.access_token;
-      }
-      statusIndicator.classList.add("offline");
-      statusLabel.textContent = "Offline";
-      advGateway.textContent = "Offline";
-      return null;
-    } catch (err) {
-      statusIndicator.classList.add("offline");
-      statusLabel.textContent = "Offline";
-      advGateway.textContent = "Unavailable";
-      return null;
-    }
-  }
-
-  // --- 3. LOAD PROJECTS & AUTO-ASSOCIATION ---
+  // --- 4. LOAD PROJECTS (USER-SCOPED) ---
   async function loadProjects(selectProjectId = null) {
-    activeToken = await getAuthToken();
     if (!activeToken) {
-      projectSelect.innerHTML = `<option value="demo-proj">Continuo (Local Gateway)</option>`;
+      projectSelect.innerHTML = `<option value="" disabled selected>Sign in to load projects</option>`;
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE}/projects`, {
+      const res = await fetch(`${apiBase}/projects`, {
         headers: { "Authorization": `Bearer ${activeToken}` }
       });
       if (res.ok) {
@@ -201,7 +325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           projectSelect.appendChild(opt);
         });
 
-        // Store last active project in chrome storage if available
+        // Restore last active project from storage
         if (!selectProjectId && typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
           chrome.storage.local.get(["lastProjectId"], (result) => {
             if (result && result.lastProjectId && currentProjects.some(p => p.id === result.lastProjectId)) {
@@ -211,12 +335,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
     } catch (err) {
-      console.warn("Could not load projects:", err);
-      projectSelect.innerHTML = `<option value="demo-proj">Continuo (Local Fallback)</option>`;
+      console.warn("Could not load user projects:", err);
+      projectSelect.innerHTML = `<option value="" disabled selected>Error loading projects</option>`;
     }
   }
 
-  // --- 4. INLINE QUICK PROJECT CREATION ---
+  // --- 5. INLINE QUICK PROJECT CREATION ---
   btnToggleNewProject.addEventListener("click", () => {
     const isVisible = inlineNewProjectRow.style.display === "flex";
     inlineNewProjectRow.style.display = isVisible ? "none" : "flex";
@@ -243,10 +367,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnCreateInlineProject.textContent = "...";
 
     try {
-      if (!activeToken) activeToken = await getAuthToken();
-      if (!activeToken) throw new Error("Backend unavailable");
+      if (!activeToken) throw new Error("Please sign in first.");
 
-      const res = await fetch(`${API_BASE}/projects`, {
+      const res = await fetch(`${apiBase}/projects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -254,7 +377,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
         body: JSON.stringify({
           name: name,
-          description: "Project created via Continuo Chrome Extension"
+          description: "Project created via Continuo Chrome Extension",
+          initial_objective: `Context continuity for ${name}`
         })
       });
 
@@ -267,10 +391,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       inlineNewProjectRow.style.display = "none";
       btnToggleNewProject.setAttribute("aria-expanded", "false");
 
-      // Reload and auto-select new project
       await loadProjects(created.id);
 
-      // Save as last active
       if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
         chrome.storage.local.set({ lastProjectId: created.id });
       }
@@ -284,7 +406,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Remember project choice
+  // Project selector change persistence
   projectSelect.addEventListener("change", () => {
     const selectedId = projectSelect.value;
     if (selectedId && typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
@@ -292,68 +414,61 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // --- 5. REAL CONTEXT CAPTURE (STATES 3, 4, 5, 6) ---
+  // --- 6. REAL CONTEXT CAPTURE ---
   async function performCapture() {
+    if (!activeToken) {
+      showPanel("auth");
+      return;
+    }
+
     const selectedProjectId = projectSelect.value;
     if (!selectedProjectId) {
       alert("Please select or create a project first.");
       return;
     }
 
-    // STATE 3 — CAPTURING
     captureBtn.disabled = true;
     captureBtnSpinner.style.display = "inline-block";
-    captureBtnText.textContent = "Capturing project context...";
+    captureBtnText.textContent = "Capturing conversation...";
 
     let transcript = "";
     let sessionTitle = "AI Capture Session";
 
-    // Call content script if running in Chrome tab
+    // 1. Scrape real turns from active tab content script
     if (typeof chrome !== "undefined" && chrome.tabs && activeTab?.id) {
       try {
         const response = await new Promise((resolve) => {
           chrome.tabs.sendMessage(activeTab.id, { action: "CAPTURE_CONVERSATION" }, (res) => {
-            if (chrome.runtime.lastError) {
-              resolve(null);
-            } else {
-              resolve(res);
-            }
+            if (chrome.runtime.lastError) resolve(null);
+            else resolve(res);
           });
         });
 
-        if (response && response.success && response.rawTranscript) {
+        if (response && response.success && response.conversationFound && response.rawTranscript) {
           transcript = response.rawTranscript;
           sessionTitle = response.title || sessionTitle;
         }
       } catch (e) {
-        console.warn("Content script communication:", e);
+        console.warn("Content script capture failed:", e);
       }
     }
 
-    // High fidelity fallback if scraper is empty (e.g. testing in dev popup)
+    // HONEST BEHAVIOR: If no conversation was detected, do not fabricate fake captures
     if (!transcript) {
-      transcript = preservedTranscript || `User: Working on Continuo context engine persistence.
-Requirement: Guarantee cross-AI continuity without hallucination or context loss.
-Constraint: Zero plaintext secret exposure; enforce token validation.
-Decision: Standardize on structured Project Memory with version diffing.
-Current State: Extension popup simplified to 1-click save and quick continuation.
-Next step: Verify cross-AI continuation links for ChatGPT, Claude, and Gemini.`;
+      captureBtn.disabled = false;
+      captureBtnSpinner.style.display = "none";
+      captureBtnText.textContent = "Save Context";
+      errorMessage.textContent = "No conversation detected.";
+      errorHint.textContent = `Open an active ${detectedProvider ? detectedProvider.toUpperCase() : 'AI'} conversation and try again.`;
+      showPanel("error");
+      return;
     }
 
-    // Preserve transcript in case network fails
-    preservedTranscript = transcript;
-    preservedTitle = sessionTitle;
-
-    // STATE 4 — PROCESSING
     captureBtnText.textContent = "Building project memory...";
 
+    // 2. Transmit to Context Engine backend
     try {
-      if (!activeToken) activeToken = await getAuthToken();
-      if (!activeToken) {
-        throw new Error("Continuo backend is unavailable. Check server connection.");
-      }
-
-      const captureRes = await fetch(`${API_BASE}/context/capture`, {
+      const captureRes = await fetch(`${apiBase}/context/capture`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -374,12 +489,11 @@ Next step: Verify cross-AI continuation links for ChatGPT, Claude, and Gemini.`;
 
       capturedPackage = await captureRes.json();
 
-      // Update Diagnostics
+      // Diagnostics update
       advFidelity.textContent = `${Math.round(capturedPackage.quality_score || 94)}%`;
       advVersion.textContent = capturedPackage.version || "v1.1";
-      advLog.textContent = `Saved ${capturedPackage.version} to Project Memory (${capturedPackage.extracted_facts?.decisions?.length || 0} decisions).`;
+      advLog.textContent = `Saved ${capturedPackage.version} to Project Memory (${capturedPackage.decisions?.length || 0} decisions).`;
 
-      // STATE 5 — SUCCESS
       captureBtn.disabled = false;
       captureBtnSpinner.style.display = "none";
       captureBtnText.textContent = "Save Context";
@@ -387,40 +501,31 @@ Next step: Verify cross-AI continuation links for ChatGPT, Claude, and Gemini.`;
 
     } catch (err) {
       console.error("Context capture error:", err);
-
-      // STATE 6 — ERROR (Preserves context locally)
       captureBtn.disabled = false;
       captureBtnSpinner.style.display = "none";
       captureBtnText.textContent = "Save Context";
 
       errorMessage.textContent = "Unable to save context.";
-      errorHint.textContent = err.message.includes("unavailable")
-        ? "Continuo can't reach the server. Your conversation was preserved locally."
-        : "Failed to extract project memory. Your conversation was preserved locally.";
-
-      advLog.textContent = `Error: ${err.message}`;
+      errorHint.textContent = err.message || "Please verify your server connection and try again.";
       showPanel("error");
     }
   }
 
   captureBtn.addEventListener("click", performCapture);
 
-  // Retry from State 6
   btnRetry.addEventListener("click", () => {
     showPanel("active-ai");
     performCapture();
   });
 
-  // --- 6. AI HANDOFF & HONEST CLIPBOARD COPY UX ---
+  // --- 7. HONEST CROSS-AI HANDOFF ---
   async function triggerContinuation(targetProvider, destinationUrl, humanName) {
     const selectedProjectId = projectSelect.value;
     let payloadText = "";
 
     try {
-      if (!activeToken) activeToken = await getAuthToken();
-
       if (activeToken && selectedProjectId) {
-        const hoRes = await fetch(`${API_BASE}/handoffs`, {
+        const hoRes = await fetch(`${apiBase}/handoffs`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -439,49 +544,33 @@ Next step: Verify cross-AI continuation links for ChatGPT, Claude, and Gemini.`;
         }
       }
     } catch (err) {
-      console.warn("Handoff generation fallback:", err);
+      console.warn("Backend handoff call failed:", err);
     }
 
-    // Structured fallback matching Section 8 if backend is unreachable
+    // Clean structured context fallback if offline
     if (!payloadText) {
       const projName = projectSelect.options[projectSelect.selectedIndex]?.text || "Continuo Project";
       payloadText = `You are continuing an existing project.
 
-Project:
+PROJECT:
 ${projName}
 
-Goal:
-Cross-AI context continuity without losing engineering decisions.
+OBJECTIVE:
+Continue development from established project state without repetition.
 
-Current state:
-Working context captured by Continuo and formatted for continuation.
+CURRENT STATE:
+Working context captured by Continuo.
 
-Completed:
-- Core continuity pipeline verified
-- Browser extension capture operational
+NEXT STEP:
+Continue the implementation seamlessly in ${humanName}.
 
-Important decisions:
-- Context stored in structured Project Memory
-- Version-controlled snapshots
-
-Constraints:
-- Preserve all architectural constraints and security policies
-- Maintain provider neutrality
-
-Known problems:
-- Direct API gateway connectivity is currently in offline/local fallback
-
-Next task:
-1. Continue the task seamlessly in ${humanName}.
-
-Continue from the current state. Do not restart the project or repeat completed work.`;
+Continue from this state without asking the user to repeat previously established context.`;
     }
 
     // 1. Copy to clipboard
     try {
       await navigator.clipboard.writeText(payloadText);
     } catch (e) {
-      console.warn("Standard clipboard write failed, attempting textarea fallback", e);
       const ta = document.createElement("textarea");
       ta.value = payloadText;
       document.body.appendChild(ta);
@@ -490,32 +579,90 @@ Continue from the current state. Do not restart the project or repeat completed 
       document.body.removeChild(ta);
     }
 
-    // 2. Show clear feedback (Section 9)
-    showToast(`✓ Context copied. Ready to continue in ${humanName}.`);
+    // 2. Inform user honestly
+    showToast(`Context copied. Opening ${humanName}...`);
 
-    // 3. Open destination AI tab
+    // 3. Open destination AI
     setTimeout(() => {
       openExternal(destinationUrl);
-    }, 600);
+    }, 650);
   }
 
-  btnContChatGPT.addEventListener("click", () => {
-    triggerContinuation("chatgpt", "https://chatgpt.com/", "ChatGPT");
-  });
+  btnContChatGPT.addEventListener("click", () => triggerContinuation("chatgpt", "https://chatgpt.com/", "ChatGPT"));
+  btnContClaude.addEventListener("click", () => triggerContinuation("claude", "https://claude.ai/new", "Claude"));
+  btnContGemini.addEventListener("click", () => triggerContinuation("gemini", "https://gemini.google.com/app", "Gemini"));
 
-  btnContClaude.addEventListener("click", () => {
-    triggerContinuation("claude", "https://claude.ai/new", "Claude");
-  });
+  btnViewMemory.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
 
-  btnContGemini.addEventListener("click", () => {
-    triggerContinuation("gemini", "https://gemini.google.com/app", "Gemini");
-  });
+  // Quick launch buttons
+  if (launchChatgptBtn) launchChatgptBtn.addEventListener("click", () => openExternal("https://chatgpt.com/"));
+  if (launchClaudeBtn) launchClaudeBtn.addEventListener("click", () => openExternal("https://claude.ai/new"));
+  if (launchGeminiBtn) launchGeminiBtn.addEventListener("click", () => openExternal("https://gemini.google.com/app"));
 
-  btnViewMemory.addEventListener("click", () => {
-    openExternal(WORKSPACE_URL);
-  });
+  // Auth Panel Actions
+  if (btnOpenLogin) {
+    btnOpenLogin.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
+  }
 
-  // Initial Boot
-  await inspectActiveTab();
-  await loadProjects();
+  if (btnToggleQuickAuth) {
+    btnToggleQuickAuth.addEventListener("click", () => {
+      const isVisible = quickAuthBox.style.display === "flex";
+      quickAuthBox.style.display = isVisible ? "none" : "flex";
+      if (!isVisible) quickEmail.focus();
+    });
+  }
+
+  if (btnSubmitQuickLogin) {
+    btnSubmitQuickLogin.addEventListener("click", async () => {
+      const email = quickEmail.value.trim();
+      const password = quickPassword.value;
+      if (!email || !password) {
+        quickAuthMsg.textContent = "Enter email and password";
+        return;
+      }
+      btnSubmitQuickLogin.disabled = true;
+      btnSubmitQuickLogin.textContent = "...";
+      quickAuthMsg.textContent = "";
+
+      try {
+        const res = await fetch(`${apiBase}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || "Invalid credentials");
+        }
+        const data = await res.json();
+        activeToken = data.access_token;
+        currentUser = { email: data.email, id: data.user_id, role: data.role || "user" };
+
+        if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ continuo_jwt: activeToken, continuo_user: currentUser });
+        }
+
+        showToast("Signed in successfully!");
+        advUser.textContent = currentUser.email;
+
+        // Load projects and resume
+        await loadProjects();
+        await inspectActiveTab();
+      } catch (err) {
+        quickAuthMsg.textContent = err.message || "Login failed";
+      } finally {
+        btnSubmitQuickLogin.disabled = false;
+        btnSubmitQuickLogin.textContent = "Sign In";
+      }
+    });
+  }
+
+  // --- INITIAL BOOT ---
+  const isAuthenticated = await checkAuthSession();
+  if (!isAuthenticated) {
+    showPanel("auth");
+  } else {
+    await loadProjects();
+    await inspectActiveTab();
+  }
 });

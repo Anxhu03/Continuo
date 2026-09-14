@@ -657,3 +657,96 @@ body {
   padding: 4px 6px;
   border-radius: 4px;
 }
+
+/* Auth Panel Styles */
+.auth-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+  padding: 12px 6px;
+}
+
+.auth-badge {
+  display: inline-block;
+  margin: 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.auth-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.45;
+}
+
+.quick-auth-drawer {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-auth-toggle {
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.quick-auth-toggle:hover {
+  color: #e4e4e7;
+}
+
+.quick-auth-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quick-auth-msg {
+  font-size: 10px;
+  color: #f87171;
+  align-self: center;
+}
+
+/* Empty Chat Notice */
+.empty-chat-notice {
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #fef08a;
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.empty-chat-notice .notice-icon {
+  font-weight: 700;
+  color: #facc15;
+}
+
+/* Disabled button state */
+.save-context-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+

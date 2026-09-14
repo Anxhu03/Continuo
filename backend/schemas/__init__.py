@@ -13,6 +13,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
     full_name: Optional[str] = None
+    role: Optional[str] = "user"
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -23,6 +24,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user_id: str
     email: str
+    role: str = "user"
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -30,7 +32,19 @@ class UserResponse(BaseModel):
     id: str
     email: str
     full_name: Optional[str] = None
+    role: str = "user"
     created_at: datetime
+
+class DiagnosticsResponse(BaseModel):
+    status: str
+    role: str
+    gateway_port: int
+    database: str
+    active_users: int
+    active_projects: int
+    total_context_packages: int
+    version: str
+    features: Dict[str, Any]
 
 # -----------------------------------------------------------------------------
 # Project Schemas
