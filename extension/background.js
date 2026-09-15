@@ -3,7 +3,7 @@
  * Manages token persistence, API proxying, and cross-tab handoff messaging.
  */
 
-const DEFAULT_API_BASE = "http://127.0.0.1:8008/api/v1";
+const DEFAULT_API_BASE = "https://continuo-api.onrender.com/api/v1";
 const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 
 chrome.runtime.onInstalled.addListener(() => {

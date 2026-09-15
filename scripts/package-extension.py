@@ -161,14 +161,11 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     # Clean host_permissions: remove all localhost/127.0.0.1 and old placeholder
     new_host_perms = []
     for perm in manifest.get("host_permissions", []):
-        if not ("127.0.0.1" in perm or "localhost" in perm or "continuo.ai" in perm):
+        if not ("127.0.0.1" in perm or "localhost" in perm or "continuo.ai" in perm or "run.place" in perm):
             new_host_perms.append(perm)
     for prod_perm in [
         "https://continuo-api.onrender.com/*",
-        "https://continuo-one.vercel.app/*",
-        "https://api.continuo.run.place/*",
-        "https://continuo.run.place/*",
-        "https://*.continuo.run.place/*"
+        "https://continuo-one.vercel.app/*"
     ]:
         if prod_perm not in new_host_perms:
             new_host_perms.append(prod_perm)
@@ -178,9 +175,9 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     for cs in manifest.get("content_scripts", []):
         new_matches = []
         for match in cs.get("matches", []):
-            if not ("127.0.0.1" in match or "localhost" in match or "continuo.ai" in match):
+            if not ("127.0.0.1" in match or "localhost" in match or "continuo.ai" in match or "run.place" in match):
                 new_matches.append(match)
-        for prod_match in ["https://continuo-one.vercel.app/*", "https://continuo.run.place/*", "https://*.continuo.run.place/*"]:
+        for prod_match in ["https://continuo-one.vercel.app/*"]:
             if prod_match not in new_matches:
                 new_matches.append(prod_match)
         cs["matches"] = new_matches
@@ -214,9 +211,14 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     p_code = p_code.replace("api.continuo.ai (Online)", "continuo-api.onrender.com (Online)")
     p_code = p_code.replace("api.continuo.run.place", "continuo-api.onrender.com")
     p_code = p_code.replace("api.continuo.ai", "continuo-api.onrender.com")
+    p_code = p_code.replace("continuo.run.place", "continuo-one.vercel.app")
+    p_code = p_code.replace(
+        'tab.url.includes("continuo-one.vercel.app") || tab.url.includes("localhost") || tab.url.includes("127.0.0.1")',
+        'tab.url.includes("continuo-one.vercel.app")'
+    )
     p_code = p_code.replace(
         'tab.url.includes("localhost") || tab.url.includes("127.0.0.1")',
-        'tab.url.includes("continuo-one.vercel.app") || tab.url.includes("continuo.run.place")'
+        'tab.url.includes("continuo-one.vercel.app")'
     )
     p_code = p_code.replace(
         'DEFAULT_API_BASE.includes("127.0.0.1") || DEFAULT_API_BASE.includes("localhost")',
@@ -231,6 +233,7 @@ def prepare_production_staging(source_dir: Path, staging_dir: Path) -> Path:
     p_html = p_html.replace("127.0.0.1:8008", "continuo-api.onrender.com")
     p_html = p_html.replace("api.continuo.ai", "continuo-api.onrender.com")
     p_html = p_html.replace("api.continuo.run.place", "continuo-api.onrender.com")
+    p_html = p_html.replace("continuo.run.place", "continuo-one.vercel.app")
     popup_html_path.write_text(p_html, encoding="utf-8")
     pass_step("Staged popup.html: gateway display updated to continuo-api.onrender.com")
 
@@ -324,10 +327,38 @@ def audit_archive(dest_zip: Path, is_production: bool = False):
                             fail_step(f"Potential secret pattern found in {info.filename} (pattern: {sec_pat})")
         pass_step("Archive scanned: zero secrets or credentials detected")
 
-        # 4. Zero-localhost audit for production release
+        # 4. Mandatory Zero-Stale-Domains audit across all builds
+        for info in zf.infolist():
+            if info.filename.endswith((".js", ".html", ".css", ".json")):
+                with zf.open(info.filename) as f:
+                    content = f.read().decode("utf-8", errors="ignore")
+                    if "continuo.run.place" in content:
+                        fail_step(f"Stale custom domain violation: 'continuo.run.place' detected in {info.filename}")
+                    if "api.continuo.run.place" in content:
+                        fail_step(f"Stale custom domain violation: 'api.continuo.run.place' detected in {info.filename}")
+        pass_step("Archive scanned: ZERO references to continuo.run.place or api.continuo.run.place")
+
+        # 5. Verify production workspace and API URLs in popup.js
+        with zf.open("popup.js") as f:
+            popup_content = f.read().decode("utf-8", errors="ignore")
+            if 'https://continuo-one.vercel.app/' not in popup_content:
+                fail_step("popup.js does not contain WORKSPACE_URL 'https://continuo-one.vercel.app/'")
+            if 'https://continuo-api.onrender.com/api/v1' not in popup_content:
+                fail_step("popup.js does not contain API base 'https://continuo-api.onrender.com/api/v1'")
+        pass_step("Archive verified: popup.js points to https://continuo-one.vercel.app/#workspace and https://continuo-api.onrender.com/api/v1")
+
+        # 6. Zero-localhost audit for production release
         if is_production:
             step("Executing strict zero-localhost production audit...")
-            forbidden_dev_terms = ["127.0.0.1", "localhost", ":8008", ":8000", "continuo.ai"]
+            forbidden_dev_terms = [
+                "127.0.0.1",
+                "localhost",
+                ":8008",
+                ":8000",
+                "continuo.ai",
+                "continuo.run.place",
+                "api.continuo.run.place"
+            ]
             for info in zf.infolist():
                 if info.filename.endswith((".js", ".html", ".css", ".json")):
                     with zf.open(info.filename) as f:
@@ -338,7 +369,7 @@ def audit_archive(dest_zip: Path, is_production: bool = False):
             pass_step("Production audit PASSED: ZERO localhost / 127.0.0.1 / development port references in archive")
 
 def main():
-    is_production = "--production" in sys.argv
+    is_production = "--dev" not in sys.argv
     build_mode = "PRODUCTION RELEASE" if is_production else "DEVELOPMENT BUILD"
 
     print("============================================================")

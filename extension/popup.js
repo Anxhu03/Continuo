@@ -5,9 +5,9 @@
  * user-scoped project memory, honest cross-AI handoff, and clear failure states.
  */
 
-const DEFAULT_API_BASE = "http://127.0.0.1:8008/api/v1";
+const DEFAULT_API_BASE = "https://continuo-api.onrender.com/api/v1";
 const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
-const WORKSPACE_URL = "http://localhost:8000/";
+const WORKSPACE_URL = "https://continuo-one.vercel.app/";
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Global / Header Elements
@@ -206,7 +206,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const tabs = await chrome.tabs.query({});
         for (const tab of tabs) {
-          if (tab.url && (tab.url.includes("localhost") || tab.url.includes("127.0.0.1"))) {
+          if (tab.url && (tab.url.includes("continuo-one.vercel.app") || tab.url.includes("localhost") || tab.url.includes("127.0.0.1"))) {
             const resp = await new Promise(res => {
               chrome.tabs.sendMessage(tab.id, { action: "GET_LOCAL_AUTH" }, r => {
                 if (chrome.runtime.lastError) res(null);
