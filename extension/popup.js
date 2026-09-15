@@ -297,6 +297,56 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // --- 3. ACTIVE TAB & CONVERSATION DETECTION ---
+  // Cached conversation from content script
+  let currentConversation = null;
+
+  // --- QUERY CONTENT SCRIPT WITH RUNTIME INJECTION FALLBACK ---
+  async function queryContentScriptWithFallback(tab) {
+    if (!tab?.id) {
+      return { success: false, error: "NO_ACTIVE_TAB" };
+    }
+
+    const sendExtractMessage = () => new Promise(resolve => {
+      chrome.tabs.sendMessage(tab.id, { type: "CONTINUO_EXTRACT_CONVERSATION" }, res => {
+        if (chrome.runtime.lastError) {
+          resolve({ success: false, error: "CONTENT_SCRIPT_NOT_CONNECTED", details: chrome.runtime.lastError.message });
+        } else {
+          resolve(res || { success: false, error: "NO_RESPONSE" });
+        }
+      });
+    });
+
+    let res = await sendExtractMessage();
+
+    // Fallback: If content script is not connected, attempt runtime injection for allowed AI domains
+    if (!res.success && res.error === "CONTENT_SCRIPT_NOT_CONNECTED") {
+      const url = tab.url || "";
+      const isAllowedAiTab = (
+        url.startsWith("https://chatgpt.com/") ||
+        url.startsWith("https://chat.openai.com/") ||
+        url.startsWith("https://claude.ai/") ||
+        url.startsWith("https://gemini.google.com/")
+      );
+
+      if (isAllowedAiTab && typeof chrome !== "undefined" && chrome.scripting && chrome.scripting.executeScript) {
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["content.js"]
+          });
+          // Wait briefly for content script to mount message listeners
+          await new Promise(r => setTimeout(r, 200));
+          res = await sendExtractMessage();
+        } catch (injectErr) {
+          console.warn("[Continuo] Runtime injection fallback failed:", injectErr);
+        }
+      }
+    }
+
+    return res;
+  }
+
+  // --- 3. ACTIVE TAB & CONVERSATION DETECTION ---
   async function inspectActiveTab() {
     try {
       if (typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query) {
@@ -304,6 +354,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         activeTab = tabs[0];
         const url = activeTab?.url || "";
 
+        // STATE: PROVIDER_DETECTED
         if (url.includes("chatgpt.com") || url.includes("chat.openai.com")) {
           detectedProvider = "chatgpt";
           detectionStatusText.textContent = "ChatGPT detected";
@@ -325,44 +376,79 @@ document.addEventListener("DOMContentLoaded", async () => {
           return;
         }
 
-        // Query content script for active conversation turns
-        let state = null;
-        if (activeTab?.id) {
-          try {
-            state = await new Promise(resolve => {
-              chrome.tabs.sendMessage(activeTab.id, { action: "CHECK_CONVERSATION_STATE" }, res => {
-                if (chrome.runtime.lastError) resolve(null);
-                else resolve(res);
-              });
-            });
-          } catch (e) {
-            console.warn("Content script query failed:", e);
-          }
-        }
+        // STATE: CHECKING_CONVERSATION
+        readyDot.style.background = "#eab308";
+        readyText.textContent = "Checking conversation...";
+        captureBtn.disabled = true;
+        captureBtnText.textContent = "Checking dialogue...";
 
-        if (state && state.conversationFound && state.messageCount > 0) {
+        // Query content script for normalized conversation
+        const res = await queryContentScriptWithFallback(activeTab);
+
+        const headingEl = document.getElementById("empty-chat-heading");
+
+        if (res.success && res.conversation && res.conversation.messages && res.conversation.messages.length > 0) {
+          // STATE: CONVERSATION_DETECTED -> READY_TO_SAVE
           conversationDetected = true;
-          detectedTurnCount = state.messageCount;
+          detectedTurnCount = res.conversation.messages.length;
+          currentConversation = res.conversation;
+
           emptyChatNotice.style.display = "none";
           if (conversationPreviewBox) conversationPreviewBox.style.display = "block";
           if (conversationPreviewText) {
-            conversationPreviewText.textContent = state.snippet ? `"${state.snippet}"` : `${state.messageCount} conversation turns detected and ready to capture into project memory.`;
+            const latest = res.conversation.messages[res.conversation.messages.length - 1];
+            const prefix = latest.role === "user" ? "User: " : "Assistant: ";
+            const fullText = prefix + latest.content;
+            const snippet = fullText.length > 130 ? fullText.substring(0, 127) + "..." : fullText;
+            conversationPreviewText.textContent = `"${snippet}"`;
           }
           captureBtn.disabled = false;
           captureBtnText.textContent = "Save Context";
           readyDot.style.background = "#34d399";
-          readyText.textContent = `${state.messageCount} turns ready`;
+          readyText.textContent = `${detectedTurnCount} turns ready`;
         } else {
-          // Empty new chat or no conversation turns on page
+          // FAILURE & HONEST DIAGNOSTIC STATES
           conversationDetected = false;
           detectedTurnCount = 0;
+          currentConversation = null;
           if (conversationPreviewBox) conversationPreviewBox.style.display = "none";
           emptyChatNotice.style.display = "flex";
-          emptyChatText.textContent = `No conversation detected. Open or start a ${detectedProvider ? detectedProvider.toUpperCase() : 'AI'} conversation to save context.`;
           captureBtn.disabled = true;
-          captureBtnText.textContent = "Open a conversation to save";
-          readyDot.style.background = "#eab308";
-          readyText.textContent = "Waiting for dialogue";
+
+          const provUpper = detectedProvider ? detectedProvider.toUpperCase() : "AI";
+
+          if (res.error === "CONTENT_SCRIPT_NOT_CONNECTED") {
+            if (headingEl) headingEl.textContent = "Content Script Not Connected";
+            emptyChatText.textContent = `Could not connect to this ${provUpper} tab. Please refresh the page (F5) and open Continuo again.`;
+            readyDot.style.background = "#ef4444";
+            readyText.textContent = "Script not connected";
+            captureBtnText.textContent = "Reload tab to connect";
+          } else if (res.error === "ADAPTER_NOT_FOUND") {
+            if (headingEl) headingEl.textContent = "Adapter Not Found";
+            emptyChatText.textContent = `No extraction adapter available for ${provUpper}.`;
+            readyDot.style.background = "#ef4444";
+            readyText.textContent = "Adapter missing";
+            captureBtnText.textContent = "Unsupported provider";
+          } else if (res.error === "NO_MESSAGES") {
+            if (headingEl) headingEl.textContent = "No conversation turns found.";
+            emptyChatText.textContent = `Start chatting with ${provUpper} first, then save your context.`;
+            readyDot.style.background = "#eab308";
+            readyText.textContent = "Waiting for dialogue";
+            captureBtnText.textContent = "Send a message first";
+          } else if (res.error === "EXTRACTION_FAILED") {
+            if (headingEl) headingEl.textContent = "Extraction Failed";
+            emptyChatText.textContent = res.details || "Unable to extract messages from this conversation.";
+            readyDot.style.background = "#ef4444";
+            readyText.textContent = "Extraction error";
+            captureBtnText.textContent = "Extraction failed";
+          } else {
+            // CONVERSATION_NOT_FOUND or default
+            if (headingEl) headingEl.textContent = "No conversation detected.";
+            emptyChatText.textContent = `Open or start a ${provUpper} conversation to save context.`;
+            readyDot.style.background = "#eab308";
+            readyText.textContent = "Waiting for dialogue";
+            captureBtnText.textContent = "Open a conversation to save";
+          }
         }
 
         showPanel("active-ai");
@@ -539,22 +625,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     try {
       // 1. Scrape real turns from active tab content script
+      let convData = currentConversation;
       if (typeof chrome !== "undefined" && chrome.tabs && activeTab?.id) {
         try {
-          const response = await new Promise((resolve) => {
-            chrome.tabs.sendMessage(activeTab.id, { action: "CAPTURE_CONVERSATION" }, (res) => {
-              if (chrome.runtime.lastError) resolve(null);
-              else resolve(res);
-            });
-          });
-
-          if (response && response.success && response.conversationFound && response.rawTranscript) {
-            transcript = response.rawTranscript;
-            sessionTitle = response.title || sessionTitle;
+          const freshRes = await queryContentScriptWithFallback(activeTab);
+          if (freshRes.success && freshRes.conversation && freshRes.conversation.messages?.length > 0) {
+            convData = freshRes.conversation;
+            currentConversation = convData;
           }
         } catch (e) {
-          console.warn("Content script capture failed:", e);
+          console.warn("Fresh content script capture failed, using cached:", e);
         }
+      }
+
+      if (convData && convData.messages && convData.messages.length > 0) {
+        const turns = convData.messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`);
+        transcript = turns.join("\n\n");
+        sessionTitle = convData.title || sessionTitle;
       }
 
       // HONEST BEHAVIOR: If no conversation was detected, do not fabricate fake captures

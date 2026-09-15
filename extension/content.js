@@ -4,37 +4,28 @@
  * Modular adapters for ChatGPT, Claude, and Gemini with normalized data output.
  */
 
-// --- 1. DEBUG INSTRUMENTATION ---
-function debugLog(event, metadata = {}) {
+// --- 1. SAFE METADATA DIAGNOSTICS ---
+function safeLog(label, val = "") {
   try {
-    const isDebug = Boolean(
-      (typeof window !== "undefined" && window.__CONTINUO_DEBUG__) ||
-      (typeof localStorage !== "undefined" && localStorage.getItem("CONTINUO_DEBUG") === "true")
-    );
-    if (isDebug) {
-      const entry = {
-        event,
-        timestamp: new Date().toISOString(),
-        metadata: { ...metadata }
-      };
-      if (typeof window !== "undefined") {
-        window.__CONTINUO_DEBUG_LOGS__ = window.__CONTINUO_DEBUG_LOGS__ || [];
-        window.__CONTINUO_DEBUG_LOGS__.push(entry);
-        if (window.__CONTINUO_DEBUG_LOGS__.length > 100) {
-          window.__CONTINUO_DEBUG_LOGS__.shift();
-        }
-      }
-      console.log(`[Continuo Debug] ${event}:`, metadata);
+    if (val !== undefined && val !== null && val !== "") {
+      console.log(`[Continuo] ${label}: ${val}`);
+    } else {
+      console.log(`[Continuo] ${label}`);
     }
   } catch (e) {
     // Suppress logging errors
   }
 }
 
+// Diagnostic: content loaded
+safeLog("content loaded");
+safeLog("URL", window.location.href);
+
 // --- 2. TEXT CLEANING UTILITY ---
 function cleanTurnText(str) {
   if (!str) return "";
   return str
+    .replace(/^(?:You said|ChatGPT said|User said|Claude said):\s*/i, "")
     .replace(/\b(Copy code|Copy to clipboard|Copy|Edit|Share|Regenerate response|Regenerate|Read aloud|Was this response better or worse\?|Retry|Thumbs up|Thumbs down|Show thinking|Hide thinking)\b/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -46,19 +37,22 @@ class BaseAdapter {
     this.provider = provider;
   }
   detect() { return false; }
+  isConversationPage() { return false; }
   getConversationId() { return null; }
-  getConversationTitle() { return document.title || `${this.provider.toUpperCase()} Conversation`; }
-  isConversationReady() { return this.extractMessages().length > 0; }
-  extractMessages() { return []; }
+  getTitle() { return document.title || `${this.provider.toUpperCase()} Conversation`; }
+  getConversationTitle() { return this.getTitle(); }
+  isConversationReady() { return this.getMessages().length > 0; }
+  getMessages() { return []; }
+  extractMessages() { return this.getMessages(); }
   getInputElement() { return null; }
 
   getNormalizedData() {
     return {
       provider: this.provider,
       conversation_id: this.getConversationId(),
-      title: this.getConversationTitle(),
+      title: this.getTitle(),
       url: window.location.href,
-      messages: this.extractMessages()
+      messages: this.getMessages()
     };
   }
 }
@@ -74,13 +68,21 @@ class ChatGPTAdapter extends BaseAdapter {
     return host.includes("chatgpt.com") || host.includes("chat.openai.com");
   }
 
+  isConversationPage() {
+    if (this.getConversationId()) return true;
+    const mainEl = document.querySelector("main");
+    if (!mainEl) return false;
+    const turns = mainEl.querySelectorAll("article, [data-testid^='conversation-turn'], [data-message-author-role]");
+    return turns.length > 0;
+  }
+
   getConversationId() {
     const path = window.location.pathname;
     const match = path.match(/\/(?:c|share|g\/[^/]+\/c)\/([a-zA-Z0-9-]+)/);
     return match ? match[1] : null;
   }
 
-  getConversationTitle() {
+  getTitle() {
     let title = document.title ? document.title.replace(/\s*[-–|]\s*ChatGPT.*$/i, "").trim() : "";
     if (!title || title.toLowerCase() === "chatgpt") {
       const headerTitle = document.querySelector("#conversation-header h1, header h1, nav a[aria-current='page']");
@@ -91,40 +93,117 @@ class ChatGPTAdapter extends BaseAdapter {
     return title || "ChatGPT Conversation";
   }
 
-  extractMessages() {
+  getMessages() {
     const messages = [];
+    const mainEl = document.querySelector("main") || document.body;
 
-    // Strategy 1: Data attributes (Standard across all modern ChatGPT versions)
-    const roleNodes = document.querySelectorAll("[data-message-author-role]");
-    if (roleNodes.length > 0) {
-      roleNodes.forEach((node) => {
-        const rawRole = node.getAttribute("data-message-author-role");
-        const role = rawRole === "user" ? "user" : "assistant";
-        const contentEl = node.querySelector(".markdown, .whitespace-pre-wrap, div[dir='auto']") || node;
-        const text = cleanTurnText(contentEl.innerText);
-        if (text && text.length > 1) {
+    // Strategy 1: Article turn containers with accessibility and author indicators
+    const turnArticles = mainEl.querySelectorAll("article, [data-testid^='conversation-turn']");
+    if (turnArticles.length > 0) {
+      turnArticles.forEach((art, index) => {
+        if (art.tagName === "MAIN") return;
+
+        // Determine role via multiple heuristics
+        let role = null;
+
+        // A. Accessibility screen-reader headings (e.g. <h5>You said:</h5> or <h5>ChatGPT said:</h5>)
+        const srNodes = art.querySelectorAll(".sr-only, [class*='sr-only'], h5, h6");
+        for (const sr of srNodes) {
+          const txt = sr.textContent.toLowerCase();
+          if (txt.includes("you said")) {
+            role = "user";
+            break;
+          } else if (txt.includes("chatgpt said") || txt.includes("chatgpt")) {
+            role = "assistant";
+            break;
+          }
+        }
+
+        // B. Explicit author role attribute on article or children
+        if (!role) {
+          const roleEl = art.querySelector("[data-message-author-role]") || ((art.hasAttribute && art.hasAttribute("data-message-author-role")) ? art : (art.getAttribute && art.getAttribute("data-message-author-role") ? art : null));
+          if (roleEl) {
+            const rawRole = roleEl.getAttribute("data-message-author-role");
+            role = rawRole === "user" ? "user" : "assistant";
+          }
+        }
+
+        // C. Structural indicators (User bubble vs Markdown response)
+        if (!role) {
+          if (art.querySelector("[data-user='true'], .whitespace-pre-wrap:not(.markdown *)") && !art.querySelector(".markdown, .prose")) {
+            role = "user";
+          } else if (art.querySelector(".markdown, .prose, [data-message-id]")) {
+            role = "assistant";
+          } else {
+            // Sequence alternation fallback
+            role = index % 2 === 0 ? "user" : "assistant";
+          }
+        }
+
+        // Content extraction
+        let contentEl = null;
+        if (role === "user") {
+          contentEl = art.querySelector("[data-message-author-role='user'] .whitespace-pre-wrap, [data-message-author-role='user'], .whitespace-pre-wrap, div[dir='auto']") || art;
+        } else {
+          contentEl = art.querySelector("[data-message-author-role='assistant'] .markdown, .markdown, .prose, [data-message-author-role='assistant']") || art;
+        }
+
+        // Clone or extract text without screen reader headers or action buttons
+        let text = "";
+        if (contentEl) {
+          if (typeof contentEl.cloneNode === "function") {
+            const clone = contentEl.cloneNode(true);
+            if (clone.querySelectorAll) {
+              const removeSelectors = [
+                ".sr-only",
+                "[class*='sr-only']",
+                "button",
+                "nav",
+                "[aria-label*='Copy']",
+                "[aria-label*='Read aloud']",
+                "[aria-label*='Good response']",
+                "[aria-label*='Bad response']"
+              ];
+              clone.querySelectorAll(removeSelectors.join(",")).forEach(el => {
+                if (el.remove) el.remove();
+              });
+            }
+            text = cleanTurnText(clone.innerText || clone.textContent);
+          } else {
+            text = cleanTurnText(contentEl.innerText || contentEl.textContent);
+          }
+        }
+
+        if (text && text.length > 0) {
           messages.push({ role, content: text });
         }
       });
+
       if (messages.length > 0) return messages;
     }
 
-    // Strategy 2: Article turn containers
-    const turnArticles = document.querySelectorAll("article, [data-testid^='conversation-turn']");
-    if (turnArticles.length > 0) {
-      turnArticles.forEach((art) => {
-        if (art.tagName === "MAIN") return;
-        let role = "assistant";
-        if (
-          art.querySelector("[data-message-author-role='user']") ||
-          art.querySelector("[data-user='true']") ||
-          (art.querySelector(".whitespace-pre-wrap") && !art.querySelector(".markdown, .prose"))
-        ) {
-          role = "user";
+    // Strategy 2: Direct query of [data-message-author-role] inside main
+    const roleNodes = mainEl.querySelectorAll("[data-message-author-role]");
+    if (roleNodes.length > 0) {
+      roleNodes.forEach((node) => {
+        // Exclude sidebar or navigation elements
+        if (node.closest && node.closest("nav, aside, header, footer")) return;
+        const rawRole = node.getAttribute("data-message-author-role");
+        const role = rawRole === "user" ? "user" : "assistant";
+        const contentEl = node.querySelector(".markdown, .whitespace-pre-wrap, div[dir='auto']") || node;
+        let text = "";
+        if (typeof contentEl.cloneNode === "function") {
+          const clone = contentEl.cloneNode(true);
+          if (clone.querySelectorAll) {
+            clone.querySelectorAll(".sr-only, [class*='sr-only'], button").forEach(el => {
+              if (el.remove) el.remove();
+            });
+          }
+          text = cleanTurnText(clone.innerText || clone.textContent);
+        } else {
+          text = cleanTurnText(contentEl.innerText || contentEl.textContent);
         }
-        const contentEl = art.querySelector(".markdown, .prose, .whitespace-pre-wrap, div[dir='auto']") || art;
-        const text = cleanTurnText(contentEl.innerText);
-        if (text && text.length > 1) {
+        if (text && text.length > 0) {
           messages.push({ role, content: text });
         }
       });
@@ -132,13 +211,25 @@ class ChatGPTAdapter extends BaseAdapter {
     }
 
     // Strategy 3: Elements with data-message-id
-    const msgIdNodes = document.querySelectorAll("[data-message-id]");
+    const msgIdNodes = mainEl.querySelectorAll("[data-message-id]");
     if (msgIdNodes.length > 0) {
       msgIdNodes.forEach((node) => {
+        if (node.closest && node.closest("nav, aside, header, footer")) return;
         const role = node.getAttribute("data-message-author-role") ||
-                     (node.querySelector(".markdown") ? "assistant" : "user");
-        const text = cleanTurnText(node.innerText);
-        if (text && text.length > 1) {
+                     (node.querySelector(".markdown, .prose") ? "assistant" : "user");
+        let text = "";
+        if (typeof node.cloneNode === "function") {
+          const clone = node.cloneNode(true);
+          if (clone.querySelectorAll) {
+            clone.querySelectorAll(".sr-only, [class*='sr-only'], button").forEach(el => {
+              if (el.remove) el.remove();
+            });
+          }
+          text = cleanTurnText(clone.innerText || clone.textContent);
+        } else {
+          text = cleanTurnText(node.innerText || node.textContent);
+        }
+        if (text && text.length > 0) {
           messages.push({ role, content: text });
         }
       });
@@ -169,13 +260,21 @@ class ClaudeAdapter extends BaseAdapter {
     return window.location.hostname.includes("claude.ai");
   }
 
+  isConversationPage() {
+    if (this.getConversationId()) return true;
+    const mainEl = document.querySelector("main");
+    if (!mainEl) return false;
+    const turns = mainEl.querySelectorAll("[data-testid='user-message'], .font-claude-response, .standard-markdown, div[class*='font-claude']");
+    return turns.length > 0;
+  }
+
   getConversationId() {
     const path = window.location.pathname;
-    const match = path.match(/\/chat\/([0-9a-fA-F-]+)/);
+    const match = path.match(/\/chat\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
   }
 
-  getConversationTitle() {
+  getTitle() {
     let title = document.title ? document.title.replace(/\s*[-–|]\s*Claude.*$/i, "").trim() : "";
     if (!title || title.toLowerCase() === "claude") {
       const headerTitle = document.querySelector("button[data-testid='chat-title-button'], header h1, nav [aria-current='page']");
@@ -186,50 +285,93 @@ class ClaudeAdapter extends BaseAdapter {
     return title || "Claude Conversation";
   }
 
-  extractMessages() {
+  getMessages() {
     const messages = [];
+    const mainEl = document.querySelector("main") || document.body;
 
-    // Strategy 1: Data test IDs and message font classes
-    const turnNodes = document.querySelectorAll(
-      "[data-testid='user-message'], [data-testid='assistant-message'], .font-user-message, .font-claude-message, div[class*='font-user'], div[class*='font-claude'], div[class*='UserMessage'], div[class*='AssistantMessage']"
+    // Strategy 1: Data test IDs and message font/response classes (Document order sorting)
+    const turnCandidates = mainEl.querySelectorAll(
+      "[data-testid='user-message'], [data-testid='assistant-message'], .font-user-message, .font-claude-message, .font-claude-response, div[class*='font-user'], div[class*='font-claude'], div[class*='UserMessage'], div[class*='AssistantMessage'], div[data-is-streaming], div.standard-markdown"
     );
-    if (turnNodes.length > 0) {
-      turnNodes.forEach((node) => {
+
+    if (turnCandidates.length > 0) {
+      // Filter out nested candidate elements
+      const topLevelTurns = [];
+      turnCandidates.forEach((node) => {
+        if (node.closest && node.closest("nav, aside, header, fieldset, .ProseMirror")) return;
+        let isNested = false;
+        for (const parent of turnCandidates) {
+          if (parent !== node && parent.contains && parent.contains(node)) {
+            isNested = true;
+            break;
+          }
+        }
+        if (!isNested) {
+          topLevelTurns.push(node);
+        }
+      });
+
+      // Sort by DOM tree order
+      if (typeof Node !== "undefined" && Node.DOCUMENT_POSITION_FOLLOWING) {
+        topLevelTurns.sort((a, b) => {
+          const position = a.compareDocumentPosition ? a.compareDocumentPosition(b) : 0;
+          if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+          if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+          return 0;
+        });
+      }
+
+      topLevelTurns.forEach((node) => {
         const isUser = node.matches(
           "[data-testid='user-message'], .font-user-message, div[class*='font-user'], div[class*='UserMessage'], [data-author='human']"
         );
         const role = isUser ? "user" : "assistant";
-        const text = cleanTurnText(node.innerText);
-        if (text && text.length > 1) {
+
+        let text = "";
+        if (typeof node.cloneNode === "function") {
+          const clone = node.cloneNode(true);
+          if (clone.querySelectorAll) {
+            clone.querySelectorAll("button, nav, [aria-label*='Copy'], [aria-label*='Retry'], [data-testid*='action']").forEach(el => {
+              if (el.remove) el.remove();
+            });
+          }
+          text = cleanTurnText(clone.innerText || clone.textContent);
+        } else {
+          text = cleanTurnText(node.innerText || node.textContent);
+        }
+
+        if (text && text.length > 0 && !text.includes("What can I help you with today?")) {
           messages.push({ role, content: text });
         }
       });
+
       if (messages.length > 0) return messages;
     }
 
-    // Strategy 2: Claude streaming & markdown containers
-    const rows = document.querySelectorAll("main div[data-is-streaming], main .grid-cols-1 > div, main div[class*='message']");
+    // Strategy 2: Conversation row flow in main scroll container
+    const rows = mainEl.querySelectorAll(".grid-cols-1 > div, div[data-test-render-count] > div, div[class*='conversation'] > div");
     if (rows.length > 0) {
       rows.forEach((row) => {
-        const text = cleanTurnText(row.innerText);
+        if (row.closest && row.closest("nav, aside, header, fieldset, .ProseMirror")) return;
+        const text = cleanTurnText(row.innerText || row.textContent);
         if (text && text.length > 5 && !text.includes("What can I help you with today?")) {
-          const isUser = row.querySelector(".font-user-message") ||
+          const isUser = row.querySelector(".font-user-message, [data-testid='user-message']") ||
                          row.matches("div[class*='user']") ||
-                         (!row.querySelector(".standard-markdown, .prose") && text.length < 500);
+                         (!row.querySelector(".standard-markdown, .prose, .font-claude-response") && text.length < 500);
           messages.push({ role: isUser ? "user" : "assistant", content: text });
         }
       });
       if (messages.length > 0) return messages;
     }
 
-    // Strategy 3: Chat scroll container paragraphs
-    const proseNodes = document.querySelectorAll("main .prose, main .standard-markdown, main div.whitespace-pre-wrap");
+    // Strategy 3: Markdown response nodes paired with preceding query containers
+    const proseNodes = mainEl.querySelectorAll(".standard-markdown, .font-claude-response, .prose");
     if (proseNodes.length > 0) {
       proseNodes.forEach((p) => {
-        const text = cleanTurnText(p.innerText);
+        if (p.closest && p.closest("nav, aside, header, fieldset, .ProseMirror")) return;
+        const text = cleanTurnText(p.innerText || p.textContent);
         if (text && text.length > 5 && !text.includes("What can I help you with today?")) {
-          const isAssistant = p.matches(".prose, .standard-markdown") || p.closest(".prose");
-          messages.push({ role: isAssistant ? "assistant" : "user", content: text });
+          messages.push({ role: "assistant", content: text });
         }
       });
     }
@@ -249,7 +391,7 @@ class ClaudeAdapter extends BaseAdapter {
   }
 }
 
-// --- 6. GEMINI ADAPTER (REFERENCE IMPLEMENTATION) ---
+// --- 6. GEMINI ADAPTER (PRESERVED REFERENCE IMPLEMENTATION) ---
 class GeminiAdapter extends BaseAdapter {
   constructor() {
     super("gemini");
@@ -259,18 +401,25 @@ class GeminiAdapter extends BaseAdapter {
     return window.location.hostname.includes("gemini.google.com");
   }
 
+  isConversationPage() {
+    if (this.getConversationId()) return true;
+    const queryNodes = document.querySelectorAll(".user-query, .query-text, user-query-content, .query-content");
+    const responseNodes = document.querySelectorAll(".model-response, .response-content, message-content, .model-response-text");
+    return queryNodes.length > 0 || responseNodes.length > 0;
+  }
+
   getConversationId() {
     const path = window.location.pathname;
     const match = path.match(/\/app\/([a-zA-Z0-9_-]+)/);
     return match ? match[1] : null;
   }
 
-  getConversationTitle() {
+  getTitle() {
     const title = document.title ? document.title.replace(/\s*[-–|]\s*Google Gemini.*$/i, "").replace(/\s*[-–|]\s*Gemini.*$/i, "").trim() : "";
     return title || "Google Gemini Conversation";
   }
 
-  extractMessages() {
+  getMessages() {
     const messages = [];
     const queryNodes = document.querySelectorAll(".user-query, .query-text, user-query-content, .query-content");
     const responseNodes = document.querySelectorAll(".model-response, .response-content, message-content, .model-response-text");
@@ -317,23 +466,83 @@ function getActiveAdapter() {
   return null;
 }
 
-// --- 8. STATE INSPECTION & EXTRACTION HANDLERS ---
-function inspectConversationState() {
+const activeAdapter = getActiveAdapter();
+if (activeAdapter) {
+  safeLog("provider", activeAdapter.provider);
+  safeLog("adapter", activeAdapter.constructor.name);
+}
+
+// --- 8. EXTRACTION HANDLER ---
+function handleExtractionRequest() {
+  safeLog("extraction requested");
   const adapter = getActiveAdapter();
+
   if (!adapter) {
+    safeLog("result sent", "failed: no adapter");
     return {
-      success: true,
-      provider: null,
-      conversationFound: false,
-      conversationId: null,
-      messageCount: 0,
-      snippet: "",
-      title: document.title || "Unknown Page"
+      success: false,
+      error: "ADAPTER_NOT_FOUND",
+      conversation: {
+        provider: null,
+        conversation_id: null,
+        title: document.title || "Unknown Page",
+        url: window.location.href,
+        messages: []
+      }
     };
   }
 
-  const normalized = adapter.getNormalizedData();
-  const messages = normalized.messages;
+  safeLog("provider", adapter.provider);
+  safeLog("adapter", adapter.constructor.name);
+
+  const isConvPage = adapter.isConversationPage();
+  const convId = adapter.getConversationId();
+  if (convId) {
+    safeLog("conversation id detected", convId);
+  }
+
+  const rawMessages = adapter.getMessages();
+  const candidateCount = (function() {
+    try {
+      const mainEl = document.querySelector("main") || document.body;
+      return mainEl.querySelectorAll("article, [data-testid*='message'], [data-message-author-role], .user-query, .model-response, .standard-markdown").length;
+    } catch (e) {
+      return rawMessages.length;
+    }
+  })();
+
+  safeLog("candidate count", candidateCount);
+  safeLog("extracted message count", rawMessages.length);
+
+  const normalized = {
+    provider: adapter.provider,
+    conversation_id: convId,
+    title: adapter.getTitle(),
+    url: window.location.href,
+    messages: rawMessages
+  };
+
+  if (rawMessages.length === 0) {
+    const errCode = isConvPage ? "NO_MESSAGES" : "CONVERSATION_NOT_FOUND";
+    safeLog("result sent", `failed: ${errCode}`);
+    return {
+      success: false,
+      error: errCode,
+      conversation: normalized
+    };
+  }
+
+  safeLog("result sent", "success");
+  return {
+    success: true,
+    conversation: normalized
+  };
+}
+
+function inspectConversationState() {
+  const res = handleExtractionRequest();
+  const conv = res.conversation;
+  const messages = conv ? conv.messages : [];
   let snippet = "";
   if (messages.length > 0) {
     const latest = messages[messages.length - 1];
@@ -341,81 +550,50 @@ function inspectConversationState() {
     const fullText = prefix + latest.content;
     snippet = fullText.length > 130 ? fullText.substring(0, 127) + "..." : fullText;
   }
-
-  const isReady = adapter.isConversationReady();
-
-  debugLog("conversationDetected", {
-    provider: normalized.provider,
-    conversationDetected: isReady,
-    messageCount: messages.length
-  });
-
   return {
-    success: true,
-    provider: normalized.provider,
-    conversationFound: isReady,
-    conversationId: normalized.conversation_id,
+    success: res.success,
+    provider: conv ? conv.provider : null,
+    conversationFound: res.success && messages.length > 0,
+    conversationId: conv ? conv.conversation_id : null,
     messageCount: messages.length,
     snippet,
-    title: normalized.title
+    title: conv ? conv.title : (document.title || "Unknown Page"),
+    error: res.error || null
   };
 }
 
 function extractActiveConversation() {
-  const adapter = getActiveAdapter();
-  if (!adapter) {
-    return {
-      success: false,
-      conversationFound: false,
-      provider: null,
-      title: document.title,
-      rawTranscript: "",
-      messages: [],
-      messageCount: 0,
-      charCount: 0,
-      error: "No supported AI provider detected on this page."
-    };
-  }
-
-  const normalized = adapter.getNormalizedData();
-  const messages = normalized.messages;
-
-  if (messages.length === 0) {
-    return {
-      success: false,
-      conversationFound: false,
-      provider: normalized.provider,
-      conversationId: normalized.conversation_id,
-      title: normalized.title,
-      rawTranscript: "",
-      messages: [],
-      messageCount: 0,
-      charCount: 0,
-      error: "No conversation turns detected on this page."
-    };
-  }
-
+  const res = handleExtractionRequest();
+  const conv = res.conversation;
+  const messages = conv ? conv.messages : [];
   const turns = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`);
   const rawTranscript = turns.join("\n\n");
-
-  debugLog("extractionReady", {
-    provider: normalized.provider,
-    conversationDetected: true,
-    messageCount: messages.length,
-    charCount: rawTranscript.length
-  });
-
   return {
-    success: true,
-    conversationFound: true,
-    provider: normalized.provider,
-    conversationId: normalized.conversation_id,
-    title: normalized.title,
+    success: res.success,
+    conversationFound: res.success && messages.length > 0,
+    provider: conv ? conv.provider : null,
+    conversationId: conv ? conv.conversation_id : null,
+    title: conv ? conv.title : document.title,
     rawTranscript,
     messages,
     messageCount: messages.length,
-    charCount: rawTranscript.length
+    charCount: rawTranscript.length,
+    error: res.error || null
   };
+}
+
+// Expose on window/global for test harness
+if (typeof window !== "undefined") {
+  window.handleExtractionRequest = handleExtractionRequest;
+  window.inspectConversationState = inspectConversationState;
+  window.extractActiveConversation = extractActiveConversation;
+  window.getActiveAdapter = getActiveAdapter;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.handleExtractionRequest = handleExtractionRequest;
+  globalThis.inspectConversationState = inspectConversationState;
+  globalThis.extractActiveConversation = extractActiveConversation;
+  globalThis.getActiveAdapter = getActiveAdapter;
 }
 
 // --- 9. CROSS-AI DESTINATION HANDOFF RECEIVER ---
@@ -436,11 +614,6 @@ function initHandoffReceiver() {
       return;
     }
 
-    debugLog("destinationOpened", {
-      provider: adapter.provider,
-      sourceProvider: pending.sourceProvider
-    });
-
     // Poll for the destination input element to become available
     let attempts = 0;
     const maxAttempts = 30; // 30 x 300ms = 9 seconds
@@ -453,10 +626,6 @@ function initHandoffReceiver() {
         attemptPromptInsertion(inputEl, pending, adapter);
       } else if (attempts >= maxAttempts) {
         clearInterval(pollTimer);
-        debugLog("pasteFailed", {
-          provider: adapter.provider,
-          reason: "input_element_not_found"
-        });
         showHandoffFallbackBanner(pending, adapter, null);
       }
     }, 300);
@@ -464,7 +633,6 @@ function initHandoffReceiver() {
 }
 
 function attemptPromptInsertion(inputEl, pending, adapter) {
-  debugLog("pasteAttempted", { provider: adapter.provider });
   const payload = pending.payload;
   let inserted = false;
 
@@ -510,24 +678,12 @@ function attemptPromptInsertion(inputEl, pending, adapter) {
     const verified = currentVal.includes("PROJECT:") || currentVal.length >= Math.min(payload.length * 0.5, 60);
 
     if (verified) {
-      debugLog("pasteSucceeded", {
-        provider: adapter.provider,
-        sourceProvider: pending.sourceProvider
-      });
       showHandoffSuccessToast(pending.sourceProvider);
       chrome.storage.local.remove(["continuo_pending_handoff"]);
     } else {
-      debugLog("pasteFailed", {
-        provider: adapter.provider,
-        reason: "framework_blocked_direct_mutation"
-      });
       showHandoffFallbackBanner(pending, adapter, inputEl);
     }
   } catch (err) {
-    debugLog("pasteFailed", {
-      provider: adapter.provider,
-      error: err.message
-    });
     showHandoffFallbackBanner(pending, adapter, inputEl);
   }
 }
@@ -555,7 +711,6 @@ function showHandoffSuccessToast(sourceProvider) {
     align-items: center;
     gap: 10px;
     z-index: 9999999;
-    animation: continuoFadeIn 0.25s ease-out;
   `;
   const srcName = sourceProvider ? sourceProvider.toUpperCase() : "previous AI";
   toast.innerHTML = `<span style="color: #10b981; font-weight: bold; font-size: 15px;">✓</span> Context transferred from ${srcName}. Ready to send.`;
@@ -635,10 +790,44 @@ function showHandoffFallbackBanner(pending, adapter, inputEl) {
 
 // --- 10. MESSAGE LISTENER & RUNTIME ENTRY ---
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Primary protocol requested by specification
+  if (request.type === "CONTINUO_EXTRACT_CONVERSATION") {
+    try {
+      const result = handleExtractionRequest();
+      sendResponse(result);
+    } catch (err) {
+      sendResponse({
+        success: false,
+        error: "EXTRACTION_FAILED",
+        details: err.message
+      });
+    }
+    return true;
+  }
+
+  // Backward-compatible handlers for CHECK_CONVERSATION_STATE & CAPTURE_CONVERSATION
   if (request.action === "CHECK_CONVERSATION_STATE") {
     try {
-      const state = inspectConversationState();
-      sendResponse(state);
+      const res = handleExtractionRequest();
+      const conv = res.conversation;
+      const messages = conv ? conv.messages : [];
+      let snippet = "";
+      if (messages.length > 0) {
+        const latest = messages[messages.length - 1];
+        const prefix = latest.role === "user" ? "User: " : "Assistant: ";
+        const fullText = prefix + latest.content;
+        snippet = fullText.length > 130 ? fullText.substring(0, 127) + "..." : fullText;
+      }
+      sendResponse({
+        success: res.success,
+        provider: conv ? conv.provider : null,
+        conversationFound: res.success && messages.length > 0,
+        conversationId: conv ? conv.conversation_id : null,
+        messageCount: messages.length,
+        snippet,
+        title: conv ? conv.title : (document.title || "Unknown Page"),
+        error: res.error || null
+      });
     } catch (err) {
       sendResponse({ success: false, conversationFound: false, error: err.message });
     }
@@ -647,8 +836,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "CAPTURE_CONVERSATION") {
     try {
-      const result = extractActiveConversation();
-      sendResponse(result);
+      const res = handleExtractionRequest();
+      const conv = res.conversation;
+      const messages = conv ? conv.messages : [];
+      const turns = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`);
+      const rawTranscript = turns.join("\n\n");
+      sendResponse({
+        success: res.success,
+        conversationFound: res.success && messages.length > 0,
+        provider: conv ? conv.provider : null,
+        conversationId: conv ? conv.conversation_id : null,
+        title: conv ? conv.title : document.title,
+        rawTranscript,
+        messages,
+        messageCount: messages.length,
+        charCount: rawTranscript.length,
+        error: res.error || null
+      });
     } catch (err) {
       sendResponse({ success: false, conversationFound: false, error: err.message });
     }

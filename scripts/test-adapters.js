@@ -64,16 +64,55 @@ function createMockElement(tag, attrs = {}, text = "", children = []) {
   const el = {
     tagName: tag.toUpperCase(),
     nodeType: 1,
-    attributes: attrs,
-    innerText: text,
-    textContent: text,
+    attributes: { ...attrs },
+    _text: text,
+    get innerText() {
+      if (this._text) return this._text;
+      if (!this.children || this.children.length === 0) return "";
+      return this.children.map(c => c.innerText).join(" ").trim();
+    },
+    set innerText(val) { this._text = val; },
+    get textContent() { return this.innerText; },
+    set textContent(val) { this._text = val; },
     value: text,
     isContentEditable: attrs.contenteditable === "true",
     children: [...children],
     parent: null,
-    getAttribute(name) { return this.attributes[name] || null; },
+    getAttribute(name) { return this.attributes[name] !== undefined ? this.attributes[name] : null; },
+    hasAttribute(name) { return this.attributes[name] !== undefined; },
     setAttribute(name, val) { this.attributes[name] = val; },
     removeAttribute(name) { delete this.attributes[name]; },
+    contains(other) {
+      if (!other) return false;
+      if (other === this) return true;
+      let curr = other.parent;
+      while (curr) {
+        if (curr === this) return true;
+        curr = curr.parent;
+      }
+      return false;
+    },
+    closest(selector) {
+      let curr = this;
+      while (curr) {
+        if (curr.matches && curr.matches(selector)) return curr;
+        curr = curr.parent;
+      }
+      return null;
+    },
+    remove() {
+      if (this.parent && this.parent.children) {
+        const idx = this.parent.children.indexOf(this);
+        if (idx !== -1) this.parent.children.splice(idx, 1);
+      }
+    },
+    cloneNode(deep = true) {
+      const clonedChildren = deep ? this.children.map(c => (c.cloneNode ? c.cloneNode(true) : c)) : [];
+      return createMockElement(this.tagName.toLowerCase(), { ...this.attributes }, this.innerText, clonedChildren);
+    },
+    compareDocumentPosition(other) {
+      return 4; // Node.DOCUMENT_POSITION_FOLLOWING
+    },
     matches(selector) {
       const branches = selector.split(",").map(s => s.trim());
       for (const branch of branches) {
@@ -167,13 +206,27 @@ function createDOMContext(url, rootChildren = []) {
     },
     document: doc,
     chrome: {
-      runtime: { onMessage: { addListener() {} } },
+      runtime: {
+        _listeners: [],
+        onMessage: {
+          addListener(fn) {
+            sandbox.chrome.runtime._listeners.push(fn);
+          }
+        }
+      },
       storage: { local: { get() {}, set() {}, remove() {} } }
     },
     localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
     console
   };
   sandbox.window.document = doc;
+  sandbox.dispatchMessage = (msg) => {
+    let result = null;
+    for (const l of sandbox.chrome.runtime._listeners) {
+      l(msg, {}, (r) => { result = r; });
+    }
+    return result;
+  };
   return sandbox;
 }
 
@@ -390,6 +443,102 @@ console.log("============================================================\n");
   console.log("  [PASS] Destination input prompt detection verified for ChatGPT, Claude, and Gemini.");
 }
 
+// --- TEST 9: ChatGPT Modern Accessibility DOM (Screen reader headings + action buttons) ---
+{
+  const chatGptModernDom = [
+    createMockElement("main", {}, "", [
+      createMockElement("article", {}, "", [
+        createMockElement("h5", { class: "sr-only" }, "You said:"),
+        createMockElement("div", { class: "whitespace-pre-wrap" }, "Can you optimize this Python loop?"),
+        createMockElement("button", { "aria-label": "Edit message" }, "Edit")
+      ]),
+      createMockElement("article", {}, "", [
+        createMockElement("h5", { class: "sr-only" }, "ChatGPT said:"),
+        createMockElement("div", { class: "markdown prose" }, "Use list comprehensions or vectorized NumPy operations."),
+        createMockElement("button", { "aria-label": "Copy" }, "Copy"),
+        createMockElement("button", { "aria-label": "Read aloud" }, "Read aloud")
+      ])
+    ]),
+    createMockElement("div", { id: "prompt-textarea", contenteditable: "true" }, "")
+  ];
+
+  const ctx = createDOMContext("https://chatgpt.com/c/opt-loop-uuid", chatGptModernDom);
+  vm.runInNewContext(contentCode, ctx);
+
+  const state = ctx.inspectConversationState();
+  assert.strictEqual(state.provider, "chatgpt");
+  assert.strictEqual(state.conversationFound, true);
+  assert.strictEqual(state.messageCount, 2);
+
+  const capture = ctx.extractActiveConversation();
+  assert.strictEqual(capture.success, true);
+  assert.strictEqual(capture.messages[0].role, "user");
+  assert.strictEqual(capture.messages[0].content, "Can you optimize this Python loop?");
+  assert.strictEqual(capture.messages[1].role, "assistant");
+  assert.strictEqual(capture.messages[1].content, "Use list comprehensions or vectorized NumPy operations.");
+  console.log("  [PASS] ChatGPT Strategy 3 (Accessibility screen-reader headings + clean action buttons): Verified.");
+}
+
+// --- TEST 10: Claude Modern DOM (.font-claude-response + .standard-markdown + action buttons) ---
+{
+  const claudeModernDom = [
+    createMockElement("main", {}, "", [
+      createMockElement("div", { "data-testid": "user-message" }, "", [
+        createMockElement("div", {}, "What is the capital of Iceland?"),
+        createMockElement("button", { "aria-label": "Copy" }, "Copy")
+      ]),
+      createMockElement("div", { class: "font-claude-response" }, "", [
+        createMockElement("div", { class: "standard-markdown" }, "The capital of Iceland is Reykjavik."),
+        createMockElement("button", { "aria-label": "Copy" }, "Copy"),
+        createMockElement("button", { "aria-label": "Retry" }, "Retry")
+      ])
+    ]),
+    createMockElement("div", { class: "ProseMirror", contenteditable: "true" }, "")
+  ];
+
+  const ctx = createDOMContext("https://claude.ai/chat/iceland-chat-id", claudeModernDom);
+  vm.runInNewContext(contentCode, ctx);
+
+  const state = ctx.inspectConversationState();
+  assert.strictEqual(state.provider, "claude");
+  assert.strictEqual(state.conversationFound, true);
+  assert.strictEqual(state.conversationId, "iceland-chat-id");
+  assert.strictEqual(state.messageCount, 2);
+
+  const capture = ctx.extractActiveConversation();
+  assert.strictEqual(capture.messages[0].role, "user");
+  assert.strictEqual(capture.messages[0].content, "What is the capital of Iceland?");
+  assert.strictEqual(capture.messages[1].role, "assistant");
+  assert.strictEqual(capture.messages[1].content, "The capital of Iceland is Reykjavik.");
+  console.log("  [PASS] Claude Strategy 3 (Modern .font-claude-response + .standard-markdown): Verified.");
+}
+
+// --- TEST 11: Message Protocol (CONTINUO_EXTRACT_CONVERSATION) ---
+{
+  const testDom = [
+    createMockElement("main", {}, "", [
+      createMockElement("article", { "data-message-author-role": "user" }, "Hello"),
+      createMockElement("article", { "data-message-author-role": "assistant" }, "World")
+    ]),
+    createMockElement("div", { id: "prompt-textarea", contenteditable: "true" }, "")
+  ];
+
+  const ctx = createDOMContext("https://chatgpt.com/c/protocol-test-id", testDom);
+  vm.runInNewContext(contentCode, ctx);
+
+  const reply = ctx.dispatchMessage({ type: "CONTINUO_EXTRACT_CONVERSATION" });
+  assert.ok(reply, "Reply received from content script listener");
+  assert.strictEqual(reply.success, true);
+  assert.strictEqual(reply.conversation.provider, "chatgpt");
+  assert.strictEqual(reply.conversation.conversation_id, "protocol-test-id");
+  assert.strictEqual(reply.conversation.messages.length, 2);
+  assert.strictEqual(reply.conversation.messages[0].role, "user");
+  assert.strictEqual(reply.conversation.messages[0].content, "Hello");
+  assert.strictEqual(reply.conversation.messages[1].role, "assistant");
+  assert.strictEqual(reply.conversation.messages[1].content, "World");
+  console.log("  [PASS] Protocol CONTINUO_EXTRACT_CONVERSATION: Verified end-to-end.");
+}
+
 console.log("\n============================================================");
-console.log("ALL PROVIDER ADAPTER TESTS PASSED (8/8)");
+console.log("ALL PROVIDER ADAPTER TESTS PASSED (11/11)");
 console.log("============================================================\n");
