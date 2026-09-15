@@ -16,11 +16,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY alembic.ini .
+COPY alembic ./alembic
 COPY backend ./backend
+COPY scripts ./scripts
+
+RUN chmod +x ./scripts/start.sh
 
 EXPOSE 8008
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8008/health || exit 1
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8008", "--workers", "2"]
+CMD ["/app/scripts/start.sh"]

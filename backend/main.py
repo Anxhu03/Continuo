@@ -61,8 +61,21 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": str(exc)}
     )
 
+@app.get("/", tags=["System"])
+@app.head("/", tags=["System"])
+def root():
+    """Root endpoint for pingers, uptime checks, and service info."""
+    return {
+        "status": "operational",
+        "platform": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT,
+        "health_check": "/health"
+    }
+
 @app.get("/health", tags=["System"])
 @app.get("/api/v1/health", tags=["System"])
+@app.head("/health", tags=["System"])
 def health_check():
     """System health check and status."""
     return {
