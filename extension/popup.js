@@ -9,6 +9,32 @@ const DEFAULT_API_BASE = "https://continuo-api.onrender.com/api/v1";
 const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 const WORKSPACE_URL = "https://continuo-one.vercel.app/";
 
+function debugLog(event, metadata = {}) {
+  try {
+    const isDebug = Boolean(
+      (typeof window !== "undefined" && window.__CONTINUO_DEBUG__) ||
+      (typeof localStorage !== "undefined" && localStorage.getItem("CONTINUO_DEBUG") === "true")
+    );
+    if (isDebug) {
+      const entry = {
+        event,
+        timestamp: new Date().toISOString(),
+        metadata: { ...metadata }
+      };
+      if (typeof window !== "undefined") {
+        window.__CONTINUO_DEBUG_LOGS__ = window.__CONTINUO_DEBUG_LOGS__ || [];
+        window.__CONTINUO_DEBUG_LOGS__.push(entry);
+        if (window.__CONTINUO_DEBUG_LOGS__.length > 100) {
+          window.__CONTINUO_DEBUG_LOGS__.shift();
+        }
+      }
+      console.log(`[Continuo Popup Debug] ${event}:`, metadata);
+    }
+  } catch (e) {
+    // Suppress debug logging errors
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   // Global / Header Elements
   const statusIndicator = document.getElementById("status-indicator");
@@ -571,6 +597,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       advVersion.textContent = capturedPackage.version || "v1.1";
       advLog.textContent = `Saved ${capturedPackage.version} to Project Memory (${capturedPackage.decisions?.length || 0} decisions).`;
 
+      debugLog("contextSaved", {
+        provider: detectedProvider,
+        version: capturedPackage.version,
+        decisionsCount: capturedPackage.decisions?.length || 0,
+        qualityScore: capturedPackage.quality_score
+      });
+
       captureBtn.disabled = false;
       captureBtnSpinner.style.display = "none";
       captureBtnText.textContent = "Save Context";
@@ -672,6 +705,24 @@ NEXT STEPS:
 Continue from this state without asking the user to repeat previously established context.`;
     }
 
+    // Store pending handoff for destination tab content script
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({
+        continuo_pending_handoff: {
+          provider: targetProvider,
+          payload: payloadText,
+          sourceProvider: detectedProvider || "ai",
+          timestamp: Date.now()
+        }
+      });
+    }
+
+    debugLog("handoffCreated", {
+      sourceProvider: detectedProvider || "ai",
+      destinationProvider: targetProvider,
+      payloadLength: payloadText.length
+    });
+
     // 1. Copy to clipboard
     let copySuccess = false;
     try {
@@ -698,7 +749,7 @@ Continue from this state without asking the user to repeat previously establishe
       if (clipboardFallbackBox) clipboardFallbackBox.style.display = "none";
       showToast(`Context copied ✓ Opening ${humanName}...`);
       if (destinationHintText) {
-        destinationHintText.textContent = `${humanName} opened in a new tab. Paste your context (Ctrl+V / Cmd+V) to continue.`;
+        destinationHintText.textContent = `${humanName} opened in a new tab. Continuo is preparing your prompt. Paste (Ctrl+V) if needed.`;
       }
       setTimeout(() => {
         openExternal(destinationUrl);
