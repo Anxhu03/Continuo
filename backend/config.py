@@ -11,7 +11,7 @@ class Settings(BaseModel):
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://continuo.run.place")
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://continuo-one.vercel.app")
     
     # Secret Key for JWT Token Generation
     SECRET_KEY: str = os.getenv("SECRET_KEY", "continuo_dev_secret_key_9f8e7d6c5b4a3b2a1")
@@ -31,14 +31,20 @@ class Settings(BaseModel):
         if not self.CORS_ORIGINS:
             env_cors = os.getenv("CORS_ORIGINS", "")
             if env_cors.strip():
-                self.CORS_ORIGINS = [o.strip() for o in env_cors.split(",") if o.strip()]
+                origins = [o.strip() for o in env_cors.split(",") if o.strip()]
+                if "https://continuo-one.vercel.app" not in origins:
+                    origins.append("https://continuo-one.vercel.app")
+                self.CORS_ORIGINS = origins
             elif self.ENVIRONMENT == "production":
                 self.CORS_ORIGINS = [
+                    "https://continuo-one.vercel.app",
+                    "https://continuo-api.onrender.com",
                     "https://continuo.run.place",
                     "https://api.continuo.run.place"
                 ]
             else:
                 self.CORS_ORIGINS = [
+                    "https://continuo-one.vercel.app",
                     "http://localhost:8008",
                     "http://127.0.0.1:8008",
                     "http://localhost:8000",

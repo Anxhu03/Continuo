@@ -14,9 +14,9 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: FRONTEND_URL
-        value: https://continuo.run.place
+        value: https://continuo-one.vercel.app
       - key: CORS_ORIGINS
-        value: https://continuo.run.place,https://api.continuo.run.place
+        value: https://continuo-one.vercel.app,https://continuo-api.onrender.com,https://continuo.run.place,https://api.continuo.run.place
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
@@ -24,4 +24,4 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: 1440
       - key: CONTINUO_API_URL
-        value: https://api.continuo.run.place/api/v1
+        value: https://continuo-api.onrender.com/api/v1

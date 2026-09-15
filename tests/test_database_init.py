@@ -68,3 +68,14 @@ def test_index_exists_helper(db_session):
     bind = db_session.get_bind()
     assert index_exists(bind, "users", "ix_users_email") is True
     assert index_exists(bind, "users", "non_existent_index_xyz") is False
+
+def test_cors_preflight_vercel_origin(client):
+    """Verify CORS preflight allows https://continuo-one.vercel.app."""
+    headers = {
+        "Origin": "https://continuo-one.vercel.app",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Content-Type, Authorization",
+    }
+    response = client.options("/api/v1/auth/login", headers=headers)
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "https://continuo-one.vercel.app"

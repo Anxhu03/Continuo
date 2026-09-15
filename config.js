@@ -20,13 +20,10 @@ const CHROME_EXTENSION_STORE_URL = null;
 
 /**
  * BACKEND API GATEWAY CONFIGURATION
- * Set this to your production backend API gateway URL:
- * e.g. const CONTINUO_API_URL = "https://api.continuo.run.place/api/v1";
- * When null, the application dynamically resolves the API:
- * - Localhost dev: uses http://127.0.0.1:8008/api/v1
- * - Live production: uses https://api.continuo.run.place/api/v1 (or origin /api/v1)
+ * Production backend API gateway hosted on Render:
+ * https://continuo-api.onrender.com/api/v1
  */
-const CONTINUO_API_URL = null;
+const CONTINUO_API_URL = "https://continuo-api.onrender.com/api/v1";
 
 // Expose globally for browser environments
 if (typeof window !== "undefined") {

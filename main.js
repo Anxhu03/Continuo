@@ -1605,13 +1605,17 @@ function initMobileMenu() {
    context engine, quality scoring, version diff, and handoffs.
    ========================================================================== */
 function initContinuoWorkspaceApp() {
-  let API_BASE = (typeof window !== "undefined" && window.CONTINUO_API_URL)
-    ? window.CONTINUO_API_URL
-    : (typeof window !== "undefined" && window.location && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
-      ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
-      : (typeof window !== "undefined" && window.location && window.location.origin && !window.location.origin.startsWith("file://"))
-        ? ((window.location.hostname.endsWith("continuo.run.place") || window.location.hostname.endsWith("continuo.ai")) ? "https://api.continuo.run.place/api/v1" : `${window.location.origin}/api/v1`)
-        : "http://127.0.0.1:8008/api/v1";
+  const isLocalDev = typeof window !== "undefined" && window.location && (
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "0.0.0.0"
+  );
+
+  let API_BASE = isLocalDev
+    ? `${window.location.protocol}//${window.location.hostname}:8008/api/v1`
+    : (typeof window !== "undefined" && window.CONTINUO_API_URL)
+      ? window.CONTINUO_API_URL
+      : "https://continuo-api.onrender.com/api/v1";
   const FALLBACK_API_BASE = "http://127.0.0.1:8000/api/v1";
 
   // App State
@@ -1796,10 +1800,33 @@ function initContinuoWorkspaceApp() {
         updateUserUI();
       }
 
-      const data = await resp.json();
-      if (!resp.ok) {
-        throw new Error(data.detail || `Server error (${resp.status})`);
+      // Safely check Content-Type before blindly parsing JSON
+      const contentType = resp.headers.get("content-type") || "";
+      let data = null;
+
+      if (contentType.includes("application/json")) {
+        try {
+          data = await resp.json();
+        } catch (jsonErr) {
+          const rawText = await resp.text().catch(() => "");
+          throw new Error(
+            `Invalid JSON response from server (${resp.status}): ${rawText.slice(0, 120)}`
+          );
+        }
+      } else {
+        const rawText = await resp.text().catch(() => "");
+        const errorSnippet = rawText.trim().slice(0, 160) || resp.statusText || "Unknown response";
+        if (!resp.ok) {
+          throw new Error(`Server returned HTTP ${resp.status} (${errorSnippet})`);
+        }
+        throw new Error(`Expected JSON but received ${contentType || "plain text"}: ${errorSnippet}`);
       }
+
+      if (!resp.ok) {
+        const errorDetail = data && (data.detail || data.message || data.error);
+        throw new Error(errorDetail || `Server error (${resp.status})`);
+      }
+
       return data;
     } catch (err) {
       console.warn(`[Continuo API Error] ${method} ${endpoint}:`, err);
@@ -1884,6 +1911,10 @@ function initContinuoWorkspaceApp() {
           return true;
         }
       } catch (e) {
+        if (!authToken) {
+          if (allowPrompt) openAuthModal("login");
+          return false;
+        }
         return true;
       }
     }
@@ -1893,6 +1924,20 @@ function initContinuoWorkspaceApp() {
       authToken = savedToken;
       currentUser = JSON.parse(localStorage.getItem("continuo_user") || "null");
       updateUserUI();
+      try {
+        const me = await apiRequest("/auth/me");
+        if (me && me.id) {
+          currentUser = me;
+          localStorage.setItem("continuo_user", JSON.stringify(currentUser));
+          updateUserUI();
+          return true;
+        }
+      } catch (e) {
+        if (!authToken) {
+          if (allowPrompt) openAuthModal("login");
+          return false;
+        }
+      }
       return true;
     }
 
@@ -2787,16 +2832,21 @@ Next step: Connect frontend auth modal and verify cross-domain CORS tokens with 
       history.replaceState(null, document.title, window.location.pathname + window.location.search + "#workspace");
     }
 
-    const isAuthed = await ensureAuthenticated(false);
-    if (!isAuthed) {
-      openAuthModal();
-      return;
-    }
-
     try {
+      const isAuthed = await ensureAuthenticated(false);
+      if (!isAuthed) {
+        openAuthModal();
+        return;
+      }
+
       await loadProjects();
     } catch (err) {
-      console.warn("Continuo: Background sync failed:", err);
+      console.warn("Continuo: Workspace initialization issue:", err);
+      if (!authToken) {
+        openAuthModal();
+      } else {
+        showToast("Connected to workspace.");
+      }
     }
   }
 
