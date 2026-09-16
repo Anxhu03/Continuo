@@ -85,7 +85,7 @@ def test_full_api_workflow(client):
     handoff_data = handoff_resp.json()
     assert "You are continuing an existing project." in handoff_data["formatted_payload"]
     assert "Continue from the current state." in handoff_data["formatted_payload"]
-    assert "https://claude.ai/new" in handoff_data["destination_url"]
+    assert "https://claude.ai/" in handoff_data["destination_url"]
 
     # 9. Verify Strict Security: User B cannot access User A's project, context, versions, or handoffs
     reg_b = client.post("/api/v1/auth/register", json={
@@ -427,21 +427,22 @@ def test_handoff_11_part_structured_payload(client):
         "PROJECT:",
         "OBJECTIVE:",
         "CURRENT STATE:",
-        "COMPLETED WORK:",
-        "STILL WORKING ON:",
+        "COMPLETED:",
+        "CURRENTLY WORKING ON:",
         "IMPORTANT DECISIONS:",
         "CONSTRAINTS:",
-        "OPEN PROBLEMS:",
+        "KNOWN ISSUES:",
         "FILES / CODE CONTEXT:",
         "FAILED ATTEMPTS:",
-        "NEXT STEPS:"
+        "NEXT STEPS:",
+        "CONTINUE FROM HERE:"
     ]
 
     for section in required_sections:
         assert section in payload, f"Missing section in handoff payload: {section}"
 
     assert "Continue from the current state" in payload
-    assert "https://claude.ai/new" == ho_resp.json()["destination_url"]
+    assert "https://claude.ai/" == ho_resp.json()["destination_url"]
 
 
 def test_multi_project_consecutive_captures_isolation(client):

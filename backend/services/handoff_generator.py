@@ -4,14 +4,29 @@ Generates provider-tailored context continuation packages for ChatGPT, Claude, G
 Includes honest destination links and clipboard-ready continuation packages.
 """
 
+import re
 from typing import Dict, Any, Optional
 
 PROVIDER_URLS = {
     "chatgpt": "https://chatgpt.com/",
-    "claude": "https://claude.ai/new",
-    "gemini": "https://gemini.google.com/app",
+    "claude": "https://claude.ai/",
+    "gemini": "https://gemini.google.com/",
     "cursor": "https://www.cursor.com/"
 }
+
+def sanitize_secrets(text: str) -> str:
+    """Scrub potential credentials, tokens, and sensitive connection strings."""
+    if not text:
+        return ""
+    # Redact JWT tokens
+    sanitized = re.sub(r'ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]+', '[REDACTED_TOKEN]', text)
+    # Redact API keys (e.g. sk-..., Bearer ...)
+    sanitized = re.sub(r'\b(?:sk-[a-zA-Z0-9_-]{20,}|Bearer\s+[a-zA-Z0-9-_\.]+)\b', '[REDACTED_API_KEY]', sanitized)
+    # Redact Passwords
+    sanitized = re.sub(r'(?i)\b(password|secret|pwd)\s*[:=]\s*[^\s,]+', r'\1: [REDACTED]', sanitized)
+    # Redact Database connection URLs
+    sanitized = re.sub(r'(?i)\b(?:postgres|postgresql|mysql|sqlite|mongodb):\/\/[^\s]+', '[REDACTED_DATABASE_URL]', sanitized)
+    return sanitized
 
 class BaseProviderAdapter:
     """Base class for AI Model Prompt Formatters."""
@@ -45,7 +60,7 @@ class UniversalHandoffFormatter:
         consts = context.get("constraints", [])
         consts_md = "\n".join(f"- {c}" for c in consts) if consts else "- Standard engineering quality and security guidelines."
 
-        # Open Problems
+        # Known Issues / Open Problems
         problems = context.get("open_problems", []) + context.get("errors", [])
         problems_md = "\n".join(f"- {p}" for p in problems) if problems else "- None recorded."
 
@@ -63,7 +78,7 @@ class UniversalHandoffFormatter:
 
         custom_directive = f"\nDIRECTIVE:\n{custom_instructions}\n" if custom_instructions else ""
 
-        return f"""You are continuing an existing project.
+        raw_payload = f"""You are continuing an existing project.
 
 PROJECT:
 {project_name} ({version})
@@ -74,10 +89,10 @@ OBJECTIVE:
 CURRENT STATE:
 {current_state}
 
-COMPLETED WORK:
+COMPLETED:
 {completed_md}
 
-STILL WORKING ON:
+CURRENTLY WORKING ON:
 {pending_md}
 
 IMPORTANT DECISIONS:
@@ -86,7 +101,7 @@ IMPORTANT DECISIONS:
 CONSTRAINTS:
 {consts_md}
 
-OPEN PROBLEMS:
+KNOWN ISSUES:
 {problems_md}
 
 FILES / CODE CONTEXT:
@@ -98,10 +113,13 @@ FAILED ATTEMPTS:
 NEXT STEPS:
 {next_steps_md}
 {custom_directive}
+CONTINUE FROM HERE:
 Continue from the current state. Continue from this project state.
 Do not restart the project.
 Do not repeat completed work.
 Preserve the existing decisions and constraints."""
+
+        return sanitize_secrets(raw_payload)
 
 class ClaudeProviderAdapter(BaseProviderAdapter):
     """Formats context for Anthropic Claude models."""
@@ -134,7 +152,7 @@ class CursorProviderAdapter(BaseProviderAdapter):
         consts = "\n".join(f"- {c}" for c in context.get("constraints", []))
         next_s = "\n".join(f"{i+1}. {s}" for i, s in enumerate(context.get("next_steps", [])))
 
-        return f"""/* CONTINUO CURSOR AGENT SPEC: {project_name} */
+        raw = f"""/* CONTINUO CURSOR AGENT SPEC: {project_name} */
 // Current State: {context.get('current_state', '')}
 // Goal: {context.get('objective', '')}
 
@@ -151,6 +169,7 @@ class CursorProviderAdapter(BaseProviderAdapter):
 {next_s}
 {f"// Directive: {custom_instructions}" if custom_instructions else ""}
 """
+        return sanitize_secrets(raw)
 
 class HandoffService:
     """Universal dispatcher for generating cross-AI continuation payloads."""
@@ -173,10 +192,11 @@ class HandoffService:
         adapter = cls.adapters.get(dest_key, cls.adapters["claude"])
 
         payload = adapter.format(context_data, project_name, custom_instructions)
-        dest_url = PROVIDER_URLS.get(dest_key, "https://claude.ai/new")
+        dest_url = PROVIDER_URLS.get(dest_key, "https://claude.ai/")
 
         return {
             "formatted_payload": payload,
             "destination_url": dest_url,
             "provider": dest_key
         }
+

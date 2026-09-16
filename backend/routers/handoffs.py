@@ -117,7 +117,7 @@ def list_project_handoffs(
     responses = []
     for h in handoffs:
         from backend.services.handoff_generator import PROVIDER_URLS
-        dest_url = PROVIDER_URLS.get(h.destination_provider.lower(), "https://claude.ai/new")
+        dest_url = PROVIDER_URLS.get(h.destination_provider.lower(), "https://claude.ai/")
         responses.append(
             HandoffResponse(
                 id=h.id,
