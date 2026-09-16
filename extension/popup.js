@@ -611,7 +611,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const selectedProjectId = projectSelect.value;
     if (!selectedProjectId) {
-      alert("Please select or create a project first.");
+      errorMessage.textContent = "Please select or create a project first.";
+      errorHint.textContent = "A project is required to organize and store your saved context.";
+      showPanel("error");
       return;
     }
 
@@ -672,6 +674,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         })
       });
 
+      if (captureRes.status === 401) {
+        if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.remove(["continuo_jwt", "continuo_user"]);
+        }
+        activeToken = null;
+        currentUser = null;
+        if (sessionExpiredNotice) sessionExpiredNotice.style.display = "flex";
+        showPanel("auth");
+        return;
+      }
+
       if (!captureRes.ok) {
         const errorData = await captureRes.json().catch(() => ({}));
         throw new Error(errorData.detail || "Unable to save context.");
@@ -683,6 +696,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       advFidelity.textContent = `${Math.round(capturedPackage.quality_score || 94)}%`;
       advVersion.textContent = capturedPackage.version || "v1.1";
       advLog.textContent = `Saved ${capturedPackage.version} to Project Memory (${capturedPackage.decisions?.length || 0} decisions).`;
+
+      // Update success banner with project name
+      const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+      const fullProjName = selectedOption ? selectedOption.text : "Active Project";
+      const cleanProjName = fullProjName.split(" (v")[0].trim();
+      const successTitle = document.getElementById("success-title");
+      const successSubtitle = document.getElementById("success-subtitle");
+      if (successTitle) successTitle.textContent = "Conversation saved";
+      if (successSubtitle) successSubtitle.textContent = `Project:\n${cleanProjName}`;
 
       debugLog("contextSaved", {
         provider: detectedProvider,
@@ -721,6 +743,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     showPanel("active-ai");
     performCapture();
   });
+
+  // Client-side secret sanitization helper
+  function sanitizeSecrets(str) {
+    if (!str) return "";
+    return str
+      .replace(/ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.[A-Za-z0-9-_.+/=]+/g, "[REDACTED_TOKEN]")
+      .replace(/\b(?:sk-[a-zA-Z0-9_-]{20,}|Bearer\s+[a-zA-Z0-9-_\.]+)\b/g, "[REDACTED_API_KEY]")
+      .replace(/\b(password|secret|pwd)\s*[:=]\s*[^\s,]+/gi, "$1: [REDACTED]")
+      .replace(/\b(?:postgres|postgresql|mysql|sqlite|mongodb):\/\/[^\s]+/gi, "[REDACTED_DATABASE_URL]");
+  }
 
   // --- 7. HONEST CROSS-AI HANDOFF ---
   async function triggerContinuation(targetProvider, destinationUrl, humanName) {
@@ -765,10 +797,10 @@ Continue development from established project state without repetition.
 CURRENT STATE:
 Working context captured by Continuo extension.
 
-COMPLETED WORK:
+COMPLETED:
 - Baseline architecture and project state recorded.
 
-STILL WORKING ON:
+CURRENTLY WORKING ON:
 - Seamless cross-AI session continuation.
 
 IMPORTANT DECISIONS:
@@ -777,7 +809,7 @@ IMPORTANT DECISIONS:
 CONSTRAINTS:
 - Preserve architectural fidelity and existing styling tokens.
 
-OPEN PROBLEMS:
+KNOWN ISSUES:
 - None reported in active session.
 
 FILES / CODE CONTEXT:
@@ -789,8 +821,12 @@ FAILED ATTEMPTS:
 NEXT STEPS:
 - Continue implementation seamlessly in ${humanName}.
 
+CONTINUE FROM HERE:
 Continue from this state without asking the user to repeat previously established context.`;
     }
+
+    // Clean any sensitive credentials or tokens
+    payloadText = sanitizeSecrets(payloadText);
 
     // Store pending handoff for destination tab content script
     if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
@@ -836,10 +872,16 @@ Continue from this state without asking the user to repeat previously establishe
       if (clipboardFallbackBox) clipboardFallbackBox.style.display = "none";
       showToast(`Context copied ✓ Opening ${humanName}...`);
       if (destinationHintText) {
-        destinationHintText.textContent = `${humanName} opened in a new tab. Continuo is preparing your prompt. Paste (Ctrl+V) if needed.`;
+        destinationHintText.textContent = `${humanName} opened in a new tab. Your project context is copied to your clipboard — press Ctrl+V to paste and continue.`;
       }
       setTimeout(() => {
-        openExternal(destinationUrl);
+        try {
+          openExternal(destinationUrl);
+        } catch (e) {
+          errorMessage.textContent = `Could not open ${humanName}.`;
+          errorHint.textContent = "Please allow popups or open the destination tab manually.";
+          showPanel("error");
+        }
       }, 650);
     } else {
       // Show recovery option, never silently fail
@@ -856,8 +898,8 @@ Continue from this state without asking the user to repeat previously establishe
   }
 
   btnContChatGPT.addEventListener("click", () => triggerContinuation("chatgpt", "https://chatgpt.com/", "ChatGPT"));
-  btnContClaude.addEventListener("click", () => triggerContinuation("claude", "https://claude.ai/new", "Claude"));
-  btnContGemini.addEventListener("click", () => triggerContinuation("gemini", "https://gemini.google.com/app", "Gemini"));
+  btnContClaude.addEventListener("click", () => triggerContinuation("claude", "https://claude.ai/", "Claude"));
+  btnContGemini.addEventListener("click", () => triggerContinuation("gemini", "https://gemini.google.com/", "Gemini"));
 
   btnViewMemory.addEventListener("click", () => openExternal(`${WORKSPACE_URL}#workspace`));
 
@@ -881,8 +923,8 @@ Continue from this state without asking the user to repeat previously establishe
 
   // Quick launch buttons
   if (launchChatgptBtn) launchChatgptBtn.addEventListener("click", () => openExternal("https://chatgpt.com/"));
-  if (launchClaudeBtn) launchClaudeBtn.addEventListener("click", () => openExternal("https://claude.ai/new"));
-  if (launchGeminiBtn) launchGeminiBtn.addEventListener("click", () => openExternal("https://gemini.google.com/app"));
+  if (launchClaudeBtn) launchClaudeBtn.addEventListener("click", () => openExternal("https://claude.ai/"));
+  if (launchGeminiBtn) launchGeminiBtn.addEventListener("click", () => openExternal("https://gemini.google.com/"));
 
   // Auth Panel Actions
   if (btnOpenLogin) {
