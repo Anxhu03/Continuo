@@ -703,7 +703,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const cleanProjName = fullProjName.split(" (v")[0].trim();
       const successTitle = document.getElementById("success-title");
       const successSubtitle = document.getElementById("success-subtitle");
-      if (successTitle) successTitle.textContent = "Conversation saved";
+      if (successTitle) successTitle.textContent = "Context saved";
       if (successSubtitle) successSubtitle.textContent = `Project:\n${cleanProjName}`;
 
       debugLog("contextSaved", {
