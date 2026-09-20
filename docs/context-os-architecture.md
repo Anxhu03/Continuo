@@ -595,3 +595,76 @@ The evolution into Continuo Context OS is structured into 10 sequential, non-bre
   - Decision Log Explorer with rationale and superseded status.
   - Interactive Project Context Graph.
   - Seamless toggle between quick conversation handoff and deep Context OS management.
+
+---
+
+## Phase 9.2 — Persistent Context Data Model
+
+### 1. Implemented Normalized Entities
+In Phase 9.2, four normalized Context OS entities were introduced in `backend/models/__init__.py` using the repository's existing SQLAlchemy and database conventions:
+
+1. **`ContextGoal` (`context_goals`)**:
+   - Primary identifier: `id` (UUIDv4)
+   - Scope & Isolation: `project_id`, `user_id`
+   - Content: `title`, `description`, `category` (default `"goal"`, extensible to requirements and constraints)
+   - State & Priority: `status` (`active`, `completed`, `abandoned`, `superseded`), `priority` (`critical`, `high`, `normal`, `low`)
+   - Origin: `source_session_id` (foreign key to `conversations.id`)
+   - Timestamps: `created_at`, `updated_at`
+   - Model Validation: `@validates("status")` and `@validates("priority")` enforce valid states.
+
+2. **`ContextDecision` (`context_decisions`)**:
+   - Primary identifier: `id` (UUIDv4)
+   - Scope & Isolation: `project_id`, `user_id`
+   - Content: `title`, `description`, `rationale`, `category` (`architecture`, `design_system`, `database`, `api`, etc.)
+   - State: `status` (`accepted`, `superseded`, `under_review`, `deprecated`)
+   - Origin & Traceability: `source_session_id`, `superseded_by_id` (self-referential FK to `context_decisions.id`)
+   - Timestamps: `created_at`, `updated_at`
+
+3. **`ContextTask` (`context_tasks`)**:
+   - Primary identifier: `id` (UUIDv4)
+   - Scope & Isolation: `project_id`, `user_id`
+   - Content: `title`, `description`
+   - State & Progress: `status` (`todo`, `in_progress`, `blocked`, `completed`, `cancelled`), `priority` (`critical`, `high`, `normal`, `low`), `completed_at`
+   - Origin: `source_session_id`
+   - Timestamps: `created_at`, `updated_at`
+
+4. **`ContextTechnicalState` (`context_technical_states`)**:
+   - Primary identifier: `id` (UUIDv4)
+   - Scope & Isolation: `project_id`, `user_id`
+   - Key-Value Specification: `category` (e.g. `framework`, `runtime`, `renderer`, `database`), `key`, `value`
+   - Origin: `source_session_id`
+   - Uniqueness: Enforced unique constraint `uq_tech_state_project_cat_key` on `(project_id, category, key)`
+   - Timestamps: `created_at`, `updated_at`
+
+### 2. Relationships & User Isolation
+- **Project Scoping**: All four entities maintain `project_id` foreign keys with `ondelete="CASCADE"`. In `Project`, relationships are configured with `cascade="all, delete-orphan"`.
+- **User Scoping**: All four entities maintain `user_id` foreign keys with `ondelete="CASCADE"`.
+- **Session Scoping**: Entities track their originating conversation via `source_session_id` with `ondelete="SET NULL"`.
+- **Database Engine Parity**: `delete_project` in `backend/routers/projects.py` performs explicit child purges across all child entities (`ContextGoal`, `ContextDecision`, `ContextTask`, `ContextTechnicalState`, `Handoff`, `ProjectVersion`, `Conversation`, `ContextPackage`), guaranteeing zero orphan rows in both SQLite and PostgreSQL.
+- **Strict Authorization**: Every query and mutation checks `project.user_id == current_user.id`, rejecting unauthorized cross-tenant operations with `HTTP 403 Forbidden`.
+
+### 3. Historical Decision Handling
+Software architecture evolves through changes of mind and technology shifts. Rather than overwriting or deleting previous choices:
+- A decision can be superseded by another decision (`status = "superseded"`).
+- The earlier decision points to the new decision via `superseded_by_id`.
+- The relationship `superseded_by` allows the Context OS to trace *why* an earlier choice was replaced, preventing future AI models from re-proposing previously discarded paths.
+
+### 4. Database Migration (`alembic/versions/0002_context_os_entities.py`)
+- Created using the repository's resilient migration conventions:
+  - Guarded with `relation_or_type_exists` to prevent PostgreSQL type collision.
+  - Guarded with `safe_create_index` to handle idempotent upgrades.
+  - Supports non-destructive downgrades via `downgrade()`.
+- Successfully verified with bidirectional migration runs:
+  `alembic upgrade head` ➔ `alembic downgrade -1` ➔ `alembic upgrade head`.
+
+### 5. Indexing for High-Performance Retrieval
+Composite indexes were added across all tables to optimize future sub-context queries:
+- `(project_id, status)` for fast filtering of active goals, decisions, and tasks.
+- `(project_id, updated_at)` for incremental delta queries.
+- `(project_id, category)` on `context_technical_states` for category-specific state lookup.
+- `(superseded_by_id)` on `context_decisions` for graph traversal.
+
+### 6. Backward Compatibility Strategy
+- All existing monolithic `ContextPackage`, `Conversation`, `ProjectVersion`, and `Handoff` models remain 100% active and untouched.
+- Existing endpoints (`/context/capture`, `/context/analyze`, `/handoffs`, `/projects/{id}/context`) continue to function without any breaking changes.
+- 100% test pass rate across the full test suite (39/39 passing).

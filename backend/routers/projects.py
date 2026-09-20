@@ -128,7 +128,20 @@ def delete_project(
         raise HTTPException(status_code=403, detail="Forbidden: You do not own this project.")
 
     # Explicit child purge ensures clean cleanup across all database engines
-    from backend.models import Handoff, Conversation
+    from backend.models import (
+        Handoff,
+        Conversation,
+        ProjectVersion,
+        ContextPackage,
+        ContextGoal,
+        ContextDecision,
+        ContextTask,
+        ContextTechnicalState,
+    )
+    db.query(ContextGoal).filter(ContextGoal.project_id == project.id).delete(synchronize_session=False)
+    db.query(ContextDecision).filter(ContextDecision.project_id == project.id).delete(synchronize_session=False)
+    db.query(ContextTask).filter(ContextTask.project_id == project.id).delete(synchronize_session=False)
+    db.query(ContextTechnicalState).filter(ContextTechnicalState.project_id == project.id).delete(synchronize_session=False)
     db.query(Handoff).filter(Handoff.project_id == project.id).delete(synchronize_session=False)
     db.query(ProjectVersion).filter(ProjectVersion.project_id == project.id).delete(synchronize_session=False)
     db.query(Conversation).filter(Conversation.project_id == project.id).delete(synchronize_session=False)

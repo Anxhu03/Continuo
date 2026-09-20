@@ -2,7 +2,7 @@
 CONTINUO — Pydantic Schemas Package
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
@@ -197,3 +197,136 @@ class HandoffResponse(BaseModel):
     destination_url: str
     status: str
     created_at: datetime
+
+# -----------------------------------------------------------------------------
+# Context OS Schemas (Phase 9.2)
+# -----------------------------------------------------------------------------
+
+# Context Goal Schemas
+class ContextGoalCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    category: Optional[str] = Field("goal", max_length=64)
+    status: Optional[Literal["active", "completed", "abandoned", "superseded"]] = "active"
+    priority: Optional[Literal["critical", "high", "normal", "low"]] = "normal"
+    source_session_id: Optional[str] = None
+
+class ContextGoalUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=64)
+    status: Optional[Literal["active", "completed", "abandoned", "superseded"]] = None
+    priority: Optional[Literal["critical", "high", "normal", "low"]] = None
+    source_session_id: Optional[str] = None
+
+class ContextGoalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    user_id: str
+    title: str
+    description: Optional[str] = None
+    category: str
+    status: str
+    priority: str
+    source_session_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# Context Decision Schemas
+class ContextDecisionCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    rationale: Optional[str] = None
+    category: Optional[str] = Field("architecture", max_length=64)
+    status: Optional[Literal["accepted", "superseded", "under_review", "deprecated"]] = "accepted"
+    source_session_id: Optional[str] = None
+    superseded_by_id: Optional[str] = None
+
+class ContextDecisionUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    rationale: Optional[str] = None
+    category: Optional[str] = Field(None, max_length=64)
+    status: Optional[Literal["accepted", "superseded", "under_review", "deprecated"]] = None
+    source_session_id: Optional[str] = None
+    superseded_by_id: Optional[str] = None
+
+class ContextDecisionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    user_id: str
+    title: str
+    description: Optional[str] = None
+    rationale: Optional[str] = None
+    category: str
+    status: str
+    source_session_id: Optional[str] = None
+    superseded_by_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# Context Task Schemas
+class ContextTaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    status: Optional[Literal["todo", "in_progress", "blocked", "completed", "cancelled"]] = "todo"
+    priority: Optional[Literal["critical", "high", "normal", "low"]] = "normal"
+    source_session_id: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
+class ContextTaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    status: Optional[Literal["todo", "in_progress", "blocked", "completed", "cancelled"]] = None
+    priority: Optional[Literal["critical", "high", "normal", "low"]] = None
+    source_session_id: Optional[str] = None
+    completed_at: Optional[datetime] = None
+
+class ContextTaskResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    user_id: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    priority: str
+    source_session_id: Optional[str] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+# Context Technical State Schemas
+class ContextTechnicalStateCreate(BaseModel):
+    category: str = Field(..., min_length=1, max_length=64)
+    key: str = Field(..., min_length=1, max_length=128)
+    value: str
+    source_session_id: Optional[str] = None
+
+class ContextTechnicalStateUpdate(BaseModel):
+    category: Optional[str] = Field(None, min_length=1, max_length=64)
+    key: Optional[str] = Field(None, min_length=1, max_length=128)
+    value: Optional[str] = None
+    source_session_id: Optional[str] = None
+
+class ContextTechnicalStateResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    user_id: str
+    category: str
+    key: str
+    value: str
+    source_session_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
