@@ -51,11 +51,12 @@ yarn-error.log*
 .next/
 out/
 
-# Database
+# Database & Storage
 *.sqlite
 *.sqlite3
 *.db
 backend/data/*.db
+data/
 
 # IDE & OS
 .idea/

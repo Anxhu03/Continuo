@@ -20,6 +20,7 @@ from backend.routers import (
     context_decisions,
     context_tasks,
     context_technical_state,
+    context_images,
 )
 
 @asynccontextmanager
@@ -56,6 +57,7 @@ app.include_router(context_goals.router, prefix=settings.API_V1_PREFIX)
 app.include_router(context_decisions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(context_tasks.router, prefix=settings.API_V1_PREFIX)
 app.include_router(context_technical_state.router, prefix=settings.API_V1_PREFIX)
+app.include_router(context_images.router, prefix=settings.API_V1_PREFIX)
 
 import logging
 from fastapi import Request

@@ -137,7 +137,14 @@ def delete_project(
         ContextDecision,
         ContextTask,
         ContextTechnicalState,
+        ContextImage,
     )
+    from backend.services.storage import get_storage_provider
+
+    # Clean up physical storage assets for the project
+    get_storage_provider().delete_project_storage(project.id)
+
+    db.query(ContextImage).filter(ContextImage.project_id == project.id).delete(synchronize_session=False)
     db.query(ContextGoal).filter(ContextGoal.project_id == project.id).delete(synchronize_session=False)
     db.query(ContextDecision).filter(ContextDecision.project_id == project.id).delete(synchronize_session=False)
     db.query(ContextTask).filter(ContextTask.project_id == project.id).delete(synchronize_session=False)

@@ -42,6 +42,7 @@ class User(Base):
     decisions = relationship("ContextDecision", back_populates="user", cascade="all, delete-orphan")
     tasks = relationship("ContextTask", back_populates="user", cascade="all, delete-orphan")
     technical_states = relationship("ContextTechnicalState", back_populates="user", cascade="all, delete-orphan")
+    images = relationship("ContextImage", back_populates="user", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -65,6 +66,7 @@ class Project(Base):
     decisions = relationship("ContextDecision", back_populates="project", cascade="all, delete-orphan")
     tasks = relationship("ContextTask", back_populates="project", cascade="all, delete-orphan")
     technical_states = relationship("ContextTechnicalState", back_populates="project", cascade="all, delete-orphan")
+    images = relationship("ContextImage", back_populates="project", cascade="all, delete-orphan")
 
 
 class ContextPackage(Base):
@@ -277,4 +279,59 @@ class ContextTechnicalState(Base):
     project = relationship("Project", back_populates="technical_states")
     user = relationship("User", back_populates="technical_states")
     source_session = relationship("Conversation", foreign_keys=[source_session_id])
+
+
+class ContextImage(Base):
+    __tablename__ = "context_images"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    original_filename = Column(String(255), nullable=False)
+    storage_key = Column(String(512), nullable=False, unique=True, index=True)
+    mime_type = Column(String(64), nullable=False)
+    image_format = Column(String(32), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    checksum_sha256 = Column(String(64), nullable=False, index=True)
+    image_type = Column(String(64), default="other", nullable=False)
+    description = Column(Text, nullable=True)
+    visual_tags_json = Column(Text, default="[]")
+    associated_context_ids_json = Column(Text, default="[]")
+    associated_decision_ids_json = Column(Text, default="[]")
+    associated_session_id = Column(String(36), ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    project = relationship("Project", back_populates="images")
+    user = relationship("User", back_populates="images")
+    associated_session = relationship("Conversation", foreign_keys=[associated_session_id])
+
+    def get_list(self, field_name: str) -> list:
+        val = getattr(self, f"{field_name}_json", "[]")
+        try:
+            return json.loads(val) if val else []
+        except Exception:
+            return []
+
+    def set_list(self, field_name: str, items: list) -> None:
+        setattr(self, f"{field_name}_json", json.dumps(items or []))
+
+    @validates("image_type")
+    def validate_image_type(self, key, val):
+        allowed = {
+            "ui_screenshot",
+            "design_reference",
+            "character_reference",
+            "blender_render",
+            "moodboard",
+            "diagram",
+            "before_after",
+            "ai_conversation_capture",
+            "other"
+        }
+        if val not in allowed:
+            raise ValueError(f"Invalid image_type '{val}'. Must be one of {allowed}.")
+        return val
 

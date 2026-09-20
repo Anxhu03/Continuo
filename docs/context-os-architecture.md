@@ -774,3 +774,99 @@ A dedicated test suite in `tests/test_context_os_api.py` verifies all 30 core op
 - `verify_cta.py`: 100% passed.
 - `scripts/test-adapters.js`: 11/11 passed (100%).
 
+---
+
+## Phase 9.4 — Visual / Image Context
+
+### 1. Architectural Philosophy: Visual Assets as First-Class Context
+In modern software engineering and generative AI workflows, visual assets (UI mockups, architecture diagrams, color palettes, Blender renders, screenshots, and visual bugs) carry critical context that cannot be reduced to simple text. Continuo elevates images from anonymous file attachments to **first-class relational context entities**.
+
+> [!NOTE]
+> **Scope Boundary**: Phase 9.4 establishes the persistent storage layer, cryptographic hashing, format auditing, and association graphs for images. It does **not** perform semantic AI vision model inference (e.g. GPT-4V or Gemini multimodal analysis), which will be layered on top in subsequent phases.
+
+### 2. ContextImage Data Model
+The `ContextImage` entity (`backend/models/__init__.py`, table `context_images`) captures both physical asset metadata and relational links into the Continuo context graph:
+
+- **Identifiers & Ownership**:
+  - `id`: UUIDv4 primary key.
+  - `project_id`: Foreign key to `projects.id` with `ondelete="CASCADE"`.
+  - `user_id`: Foreign key to `users.id` with `ondelete="CASCADE"`.
+- **Physical Metadata (Server-Generated & Audited)**:
+  - `storage_key`: Path within the storage abstraction (`projects/{project_id}/assets/{image_id}.{safe_extension}`).
+  - `original_filename`: Client filename sanitized with path-stripping and truncated.
+  - `mime_type`: Deterministically verified via header magic bytes (e.g. `image/png`, `image/jpeg`, `image/webp`).
+  - `image_format`: Normalized format (`png`, `jpeg`, `webp`).
+  - `file_size`: Size in bytes.
+  - `width` & `height`: Pixel dimensions safely extracted via Pillow header inspection.
+  - `checksum_sha256`: Cryptographic digest of file contents for deduplication and integrity auditing.
+- **Context Categorization & Semantic Tags**:
+  - `image_type`: Controlled vocabulary: `ui_screenshot`, `design_reference`, `character_reference`, `blender_render`, `moodboard`, `diagram`, `before_after`, `ai_conversation_capture`, `other`.
+  - `description`: Optional developer notes or context explanation.
+  - `visual_tags`: JSON array of tag strings (e.g. `["dark_mode", "navigation", "v2"]`).
+- **Context OS Associations**:
+  - `associated_context_ids`: References to `ContextGoal` or `ContextPackage` records in the same project.
+  - `associated_decision_ids`: References to `ContextDecision` records in the same project.
+  - `associated_session_id`: Reference to originating `Conversation` session.
+- **Timestamps**: `created_at`, `updated_at`.
+
+### 3. Storage Abstraction & LocalStorageProvider
+Storage operations are decoupled behind a pluggable `StorageProvider` interface (`backend/services/storage.py`):
+- `save(project_id, file_id, safe_extension, stream) -> str`: Writes binary stream to `{root_dir}/projects/{project_id}/assets/{file_id}.{safe_extension}`.
+- `get_path(storage_key) -> Path`: Resolves local path, enforcing strict containment inside `root_dir`.
+- `open(storage_key) -> BinaryIO`: Returns readable stream.
+- `exists(storage_key) -> bool`: Verifies file presence.
+- `delete(storage_key) -> bool`: Unlinks file safely.
+- `delete_project_storage(project_id) -> bool`: Recursively purges project asset directories during project deletion.
+
+#### Security & Traversal Protection:
+- Any storage key containing `..`, absolute paths, leading slashes, drive letters, or resolving outside `settings.STORAGE_LOCAL_DIR` raises `ValueError` immediately.
+- Client filenames are never used in storage paths; filenames are strictly generated UUIDs.
+- Ready for seamless cloud integration (S3-compatible bucket provider or Supabase Storage) by implementing `StorageProvider`.
+
+### 4. Format Verification & Upload Security
+`process_and_validate_upload` (`backend/services/image_validator.py`) enforces strict validation prior to saving:
+1. **Magic Bytes Inspection**:
+   - PNG: `\x89PNG\r\n\x1a\n`
+   - JPEG: `\xff\xd8\xff`
+   - WebP: `RIFF....WEBP`
+   - Unrecognized signatures trigger `HTTP 422 Unprocessable Content`.
+2. **MIME Spoofing Prevention**:
+   - Compares client-reported `Content-Type` against the detected binary format.
+   - Files with conflicting client types are rejected with `HTTP 422`.
+3. **Upload Size Bounds**:
+   - Files are read in bounded 64 KB chunks up to `settings.MAX_UPLOAD_SIZE_BYTES` (default: 15 MB).
+   - Exceeding the size limit triggers `HTTP 413 Content Too Large` without buffering unbounded data in memory.
+4. **Dimensions Extraction without Server Execution**:
+   - Pillow (`PIL.Image.open`) inspects headers with `img.verify()`. No server-side code execution or rasterization occurs.
+
+### 5. API Endpoints
+
+| Method | Endpoint | Description | Status Code |
+|---|---|---|---|
+| **POST** | `/api/v1/projects/{project_id}/images` | Multipart upload of image and context metadata | `201 Created` |
+| **GET** | `/api/v1/projects/{project_id}/images` | List project images (supports `?image_type=` filter) | `200 OK` |
+| **GET** | `/api/v1/projects/{project_id}/images/{image_id}` | Retrieve image metadata and associations | `200 OK` |
+| **GET** | `/api/v1/projects/{project_id}/images/{image_id}/file` | Stream protected image file with verified MIME | `200 OK` |
+| **PATCH** | `/api/v1/projects/{project_id}/images/{image_id}` | Update metadata, tags, and context associations | `200 OK` |
+| **DELETE** | `/api/v1/projects/{project_id}/images/{image_id}` | Delete database record and physical storage file | `204 No Content` |
+
+### 6. Protected File Delivery
+- Endpoints require valid JWT Bearer authentication (`get_current_user`).
+- Access is strictly project-scoped (`project.user_id == current_user.id`).
+- File streaming returns `FileResponse` with verified media type and safe disposition headers.
+- If a file is missing from disk, returns clean `HTTP 404 Not Found` without stack trace leakage.
+
+### 7. Association Validation
+When linking an image to a session, decision, or context goal:
+- `associated_session_id`: Must exist in `conversations` and belong to `project_id`.
+- `associated_decision_ids`: Each ID must exist in `context_decisions` and belong to `project_id`.
+- `associated_context_ids`: Each ID must exist in `context_goals` or `context_packages` and belong to `project_id`.
+- Cross-project or non-existent references return `HTTP 400 Bad Request`.
+
+### 8. Project Cascade Cleanup
+- Deleting a project via `DELETE /api/v1/projects/{project_id}` cleans up:
+  1. Physical asset files from disk via `storage.delete_project_storage(project_id)`.
+  2. Database records for `context_images`.
+  3. All other relational Context OS child entities.
+
+

@@ -330,3 +330,51 @@ class ContextTechnicalStateResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
+# -----------------------------------------------------------------------------
+# Context Image Schemas (Phase 9.4)
+# -----------------------------------------------------------------------------
+ContextImageType = Literal[
+    "ui_screenshot",
+    "design_reference",
+    "character_reference",
+    "blender_render",
+    "moodboard",
+    "diagram",
+    "before_after",
+    "ai_conversation_capture",
+    "other"
+]
+
+class ContextImageUpdate(BaseModel):
+    image_type: Optional[ContextImageType] = None
+    description: Optional[str] = None
+    visual_tags: Optional[List[str]] = None
+    associated_context_ids: Optional[List[str]] = None
+    associated_decision_ids: Optional[List[str]] = None
+    associated_session_id: Optional[str] = None
+
+class ContextImageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    project_id: str
+    user_id: str
+    original_filename: str
+    storage_key: str
+    mime_type: str
+    image_format: str
+    file_size: int
+    width: Optional[int] = None
+    height: Optional[int] = None
+    checksum_sha256: str
+    image_type: str
+    description: Optional[str] = None
+    visual_tags: List[str] = []
+    associated_context_ids: List[str] = []
+    associated_decision_ids: List[str] = []
+    associated_session_id: Optional[str] = None
+    file_url: str
+    created_at: datetime
+    updated_at: datetime
+

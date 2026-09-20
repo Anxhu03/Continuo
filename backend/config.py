@@ -23,6 +23,10 @@ class Settings(BaseModel):
     DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
     DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "20"))
     
+    # Visual & File Storage Configuration
+    STORAGE_LOCAL_DIR: str = os.getenv("STORAGE_LOCAL_DIR", "data/storage")
+    MAX_UPLOAD_SIZE_BYTES: int = int(os.getenv("MAX_UPLOAD_SIZE_BYTES", str(15 * 1024 * 1024))) # 15 MB default
+    
     # CORS Origins (configurable via environment variable or auto-detected based on ENVIRONMENT)
     CORS_ORIGINS: list[str] = Field(default_factory=list)
 
