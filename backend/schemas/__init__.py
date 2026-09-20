@@ -378,3 +378,79 @@ class ContextImageResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+
+# -----------------------------------------------------------------------------
+# Context Extraction Intelligence Schemas (Phase 9.5)
+# -----------------------------------------------------------------------------
+
+class ExtractedGoalCandidate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    category: str = "goal"  # 'goal', 'requirement', 'constraint', 'instruction'
+    priority: Literal["critical", "high", "normal", "low"] = "normal"
+    confidence: float = 0.9
+    explicit: bool = True
+
+
+class ExtractedDecisionCandidate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    rationale: Optional[str] = None
+    category: str = "architecture"
+    status: Literal["accepted", "superseded", "under_review", "deprecated"] = "accepted"
+    confidence: float = 0.9
+    explicit: bool = True
+
+
+class ExtractedTaskCandidate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    status: Literal["todo", "in_progress", "blocked", "completed", "cancelled"] = "todo"
+    priority: Literal["critical", "high", "normal", "low"] = "normal"
+    confidence: float = 0.9
+    explicit: bool = True
+
+
+class ExtractedTechStateCandidate(BaseModel):
+    category: str
+    key: str
+    value: str
+    confidence: float = 0.9
+    explicit: bool = True
+
+
+class ExtractedVisualReferenceCandidate(BaseModel):
+    detected_image_id: Optional[str] = None
+    original_filename: Optional[str] = None
+    detected_role: str = "other"  # ContextImageType
+    description: Optional[str] = None
+    visual_tags: List[str] = []
+    associated_goal_titles: List[str] = []
+    associated_decision_titles: List[str] = []
+    associated_task_titles: List[str] = []
+    confidence: float = 0.85
+    explicit: bool = True
+
+
+class StructuredExtractionResult(BaseModel):
+    goals: List[ExtractedGoalCandidate] = []
+    decisions: List[ExtractedDecisionCandidate] = []
+    tasks: List[ExtractedTaskCandidate] = []
+    technical_states: List[ExtractedTechStateCandidate] = []
+    visual_references: List[ExtractedVisualReferenceCandidate] = []
+    design_context: List[str] = []
+    project_state: Optional[str] = None
+    confidence_summary: Dict[str, float] = {}
+    contradictions: List[ContradictionItem] = []
+
+
+class ExtractContextOSRequest(BaseModel):
+    raw_transcript: str = Field(..., min_length=1, max_length=500000)
+    auto_persist: bool = False
+    session_id: Optional[str] = None
+
+
+class ExtractContextOSResponse(BaseModel):
+    extracted: StructuredExtractionResult
+    persisted_counts: Dict[str, int] = {}
+

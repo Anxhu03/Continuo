@@ -307,3 +307,27 @@ class ContextEngine:
                 "Execute test suite to confirm operational parity"
             ]
         return next_steps[:5]
+
+    @classmethod
+    def extract_context_os(
+        cls,
+        raw_text: str,
+        project_name: Optional[str] = None,
+        project_id: Optional[str] = None,
+        current_user_id: Optional[str] = None,
+        db: Optional[Any] = None,
+        session_id: Optional[str] = None,
+    ):
+        """
+        Phase 9.5: Extract structured Context OS entities (Goals, Decisions, Tasks,
+        Technical States, Design Context, Visual References) from raw transcript.
+        """
+        from backend.services.context_extraction import ContextExtractionService
+        return ContextExtractionService.extract(
+            raw_text=raw_text,
+            project_name=project_name,
+            project_id=project_id,
+            current_user_id=current_user_id,
+            db=db,
+            session_id=session_id,
+        )

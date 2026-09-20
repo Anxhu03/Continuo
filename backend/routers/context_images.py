@@ -16,6 +16,8 @@ from backend.models import (
     Project,
     ContextImage,
     ContextGoal,
+    ContextTask,
+    ContextTechnicalState,
     ContextPackage,
     ContextDecision,
     Conversation,
@@ -94,8 +96,10 @@ def _validate_image_associations(
     if context_ids:
         for ctx_id in context_ids:
             goal = db.query(ContextGoal).filter(ContextGoal.id == ctx_id, ContextGoal.project_id == project_id).first()
+            task = db.query(ContextTask).filter(ContextTask.id == ctx_id, ContextTask.project_id == project_id).first()
+            tech = db.query(ContextTechnicalState).filter(ContextTechnicalState.id == ctx_id, ContextTechnicalState.project_id == project_id).first()
             pkg = db.query(ContextPackage).filter(ContextPackage.id == ctx_id, ContextPackage.project_id == project_id).first()
-            if not goal and not pkg:
+            if not goal and not task and not tech and not pkg:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid associated_context_id '{ctx_id}': Context does not exist or does not belong to this project."

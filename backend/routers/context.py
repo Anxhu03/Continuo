@@ -14,9 +14,13 @@ from backend.schemas import (
     ContextPackageResponse,
     ContextPackageUpdate,
     QualityScoreResponse,
+    ExtractContextOSRequest,
+    ExtractContextOSResponse,
+    StructuredExtractionResult,
 )
 from backend.services.auth import get_current_user, get_optional_user
 from backend.services.context_engine import ContextEngine
+from backend.services.context_extraction import ContextExtractionService
 from backend.services.quality_scorer import QualityScorer
 from backend.services.contradiction import ContradictionDetector
 
@@ -63,6 +67,65 @@ def analyze_context(request: ContextAnalyzeRequest):
         "provider": request.provider
     }
 
+@router.post("/extract-os", response_model=ExtractContextOSResponse)
+def extract_stateless_context_os(
+    request: ExtractContextOSRequest,
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """
+    Phase 9.5: Stateless extraction of Context OS entities (Goals, Decisions, Tasks,
+    Technical States, Design Context, Visual References) without persistence.
+    """
+    extracted_os = ContextExtractionService.extract(
+        raw_text=request.raw_transcript,
+        session_id=request.session_id
+    )
+    return ExtractContextOSResponse(
+        extracted=extracted_os,
+        persisted_counts={}
+    )
+
+@router.post("/projects/{project_id}/extract-os", response_model=ExtractContextOSResponse)
+def extract_project_context_os(
+    project_id: str,
+    request: ExtractContextOSRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Phase 9.5: Project-scoped extraction of Context OS entities with visual asset linking.
+    If auto_persist=True, persists validated, deduplicated entities to project memory.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    if project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not own this project.")
+
+    extracted_os = ContextExtractionService.extract(
+        raw_text=request.raw_transcript,
+        project_name=project.name,
+        project_id=project.id,
+        current_user_id=current_user.id,
+        db=db,
+        session_id=request.session_id
+    )
+
+    persisted_counts = {}
+    if request.auto_persist:
+        persisted_counts = ContextExtractionService.persist_extracted_context(
+            extracted=extracted_os,
+            project=project,
+            user=current_user,
+            db=db,
+            session_id=request.session_id
+        )
+
+    return ExtractContextOSResponse(
+        extracted=extracted_os,
+        persisted_counts=persisted_counts
+    )
+
 @router.post("/capture", response_model=ContextPackageResponse, status_code=status.HTTP_201_CREATED)
 def capture_context(
     capture_in: ContextCaptureRequest,
@@ -71,7 +134,8 @@ def capture_context(
 ):
     """
     Ingest a raw AI conversation transcript, execute the Context Engine pipeline,
-    evaluate quality, persist the structured ContextPackage, and advance project memory.
+    evaluate quality, persist the structured ContextPackage, advance project memory,
+    and synthesize persistent Context OS entities (Phase 9.5).
     """
     project = db.query(Project).filter(Project.id == capture_in.project_id).first()
     if not project:
@@ -124,6 +188,28 @@ def capture_context(
         raw_transcript=capture_in.raw_transcript
     )
     db.add(conv)
+    db.flush()
+
+    # 5b. Phase 9.5: Extract and persist structured Context OS entities (Goals, Decisions, Tasks, Technical States, Visual Links)
+    try:
+        extracted_os = ContextExtractionService.extract(
+            raw_text=capture_in.raw_transcript,
+            project_name=project.name,
+            project_id=project.id,
+            current_user_id=current_user.id,
+            db=db,
+            session_id=conv.id
+        )
+        ContextExtractionService.persist_extracted_context(
+            extracted=extracted_os,
+            project=project,
+            user=current_user,
+            db=db,
+            session_id=conv.id
+        )
+    except Exception:
+        # Fallback safeguard: extraction failure should not break legacy capture flow
+        pass
 
     # 6. Update Project record state
     project.current_version = next_ver

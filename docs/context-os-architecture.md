@@ -869,4 +869,123 @@ When linking an image to a session, decision, or context goal:
   2. Database records for `context_images`.
   3. All other relational Context OS child entities.
 
+---
+
+## Phase 9.5 — Context Extraction Intelligence
+
+### 1. Overview
+Phase 9.5 upgrades Continuo's extraction layer from a conversational packaging utility into an intelligent context extraction engine capable of synthesizing normalized, persistent Context OS entities:
+- **Goals** (`ContextGoal` candidates with priority, category, confidence)
+- **Decisions** (`ContextDecision` candidates with status: `accepted` vs `under_review`, category, rationale)
+- **Tasks** (`ContextTask` candidates with status: `todo`, `completed`, priority)
+- **Technical State** (`ContextTechnicalState` key-value pairs categorized by framework, renderer, database, runtime, styling)
+- **Design Context** (captured as structured items and categorized as `ContextDecision(category='design_system')` or `ContextGoal(category='requirement')`)
+- **Project State** (extracted progress, completed work, and milestone summaries)
+- **Visual References** (identifying screenshots, renders, characters, diagrams, and linking to existing `ContextImage` assets in the project without requiring external vision APIs)
+- **Entity Relationships & Associations** (linking visual references with goals, decisions, tasks, and conversation sessions with strict tenant isolation)
+
+```
+Raw Conversation Transcript
+           │
+           ▼
+[ Secret Sanitization & Sentence Normalization ]
+           │
+           ▼
+[ ContextExtractionService.extract() ]
+ ├── Goals Parser (Objectives, Requirements, Constraints)
+ ├── Decisions Parser (Explicit vs Tentative Classification)
+ ├── Tasks Parser (Todos, In-Progress, Completed)
+ ├── Technical State Extractor (Frameworks, DBs, 3D Engine)
+ ├── Design Context Extractor (Glassmorphism, Layouts, Aesthetics)
+ ├── Project State Extractor (Current Progress & Milestones)
+ ├── Visual Reference Identifier (Roles: design_ref, char_ref, bug_screenshot)
+ ├── Contradiction Detector (Cross-referencing DB decisions)
+ └── Deterministic Confidence Scorer
+           │
+           ▼
+StructuredExtractionResult
+           │
+           ├── (Optional Inspection) ──► POST /api/v1/context/extract-os
+           │
+           ▼
+[ ContextExtractionService.persist_extracted_context() ]
+ ├── Deduplication against existing active project records
+ ├── Decision Superseding & History Linking (superseded_by_id)
+ ├── Cross-Tenant Security Audit (IDOR prevention)
+ └── Visual Asset Linking (associated_context_ids, associated_decision_ids)
+```
+
+### 2. Structured Extraction Entities
+Extraction candidates are modeled with strict Pydantic validation:
+- `ExtractedGoalCandidate`: `title`, `description`, `category` (`goal`, `requirement`, `constraint`, `instruction`), `priority` (`critical`, `high`, `normal`, `low`), `confidence` (0.0 - 1.0), `explicit` (bool).
+- `ExtractedDecisionCandidate`: `title`, `description`, `rationale`, `category` (`architecture`, `database`, `design_system`, `renderer`, `frontend`, `backend`), `status` (`accepted`, `under_review`), `confidence`, `explicit`.
+- `ExtractedTaskCandidate`: `title`, `description`, `status` (`todo`, `in_progress`, `completed`), `priority`, `confidence`, `explicit`.
+- `ExtractedTechStateCandidate`: `category` (`framework`, `renderer`, `database`, `runtime`, `styling`), `key`, `value`, `confidence`, `explicit`.
+- `ExtractedVisualReferenceCandidate`: `detected_image_id`, `original_filename`, `detected_role` (`design_reference`, `character_reference`, `ui_screenshot`, `blender_render`, `diagram`, `before_after`, `moodboard`, `other`), `description`, `visual_tags`, `associated_goal_titles`, `associated_decision_titles`, `associated_task_titles`, `confidence`, `explicit`.
+
+### 3. Confidence & Ambiguity Handling
+- **Deterministic Confidence Model**:
+  - `explicit = True`, `confidence >= 0.85` (e.g. "We will use Three.js", "We decided to...", "Objective: ...", "Fix the animation")
+  - `explicit = False`, `confidence = 0.65 - 0.80` (strongly implied statements)
+  - `explicit = False`, `confidence = 0.35 - 0.50` (tentative / ambiguous statements like "Maybe we should use Three.js", "Could we try...", "I think we might...")
+- **Decision Status Rules**:
+  - Explicit decision -> `status = "accepted"`
+  - Tentative / ambiguous decision -> `status = "under_review"`
+
+### 4. Design Context Representation
+Continuo intentionally does not add unnecessary table churn when existing normalized tables safely model the domain:
+- In the extraction output: `"design_context": [...]` contains explicit design directives (e.g., "dark glass aesthetic", "minimal layout", "large 3D visual").
+- When persisting to Context OS entities:
+  - Design directives -> `ContextDecision` with `category = "design_system"`
+  - Visual constraints/requirements -> `ContextGoal` with `category = "requirement"`
+  - Theme/styling properties -> `ContextTechnicalState` with `category = "styling"`
+
+### 5. Visual Reference Intelligence (Zero Vision API Dependency)
+Visual context is treated as first-class without relying on external vision APIs:
+- **Role Detection**:
+  - "look like this", "design reference", "aesthetic" -> `design_reference`
+  - "character", "mascot", "3d model", "avatar" -> `character_reference`
+  - "bug", "issue", "error screenshot", "broken" -> `ui_screenshot` (associated with a Task)
+  - "render", "blender" -> `blender_render`
+  - "diagram", "architecture", "flowchart" -> `diagram`
+  - "before and after", "comparison" -> `before_after`
+  - "moodboard", "inspiration" -> `moodboard`
+- **Grounded Description Construction**:
+  Descriptions are synthesized strictly from user conversation text and metadata (e.g. "User-provided character reference for project character implementation"); the system never invents or hallucinates visual contents.
+- **Secure Image Linking**:
+  Matches existing project `ContextImage` assets by filename, UUID, or latest session upload. Enforces strict tenant isolation: foreign image IDs belonging to another user or project are immediately rejected.
+  Updates `image.associated_context_ids`, `image.associated_decision_ids`, `image.associated_session_id`, `image.visual_tags`, and `image.image_type`.
+
+### 6. Contradiction Detection & Decision Superseding
+- Leverages `ContradictionDetector` to identify conflicting technology choices across both conversational candidates and existing database records (e.g. Three.js vs Babylon.js, PostgreSQL vs MongoDB).
+- Flags contradictions with actionable explanations in the extraction response.
+- When a decision replacement is ingested (e.g. "Switched to Babylon.js"):
+  - The previous active decision is updated to `status = "superseded"`.
+  - Its `superseded_by_id` foreign key points to the new decision.
+  - The new decision is created as `status = "accepted"`.
+  - Full architectural decision history is preserved without data loss.
+
+### 7. Deduplication & Idempotency
+- Normalizes titles (stripping punctuation, trimming whitespace, folding case).
+- Skips duplicate creation if an active goal, decision, or task with the same normalized title already exists for the project.
+- Technical states are upserted against unique constraint `(project_id, category, key)`.
+
+### 8. API Endpoints
+
+| Method | Endpoint | Description | Status Code |
+|---|---|---|---|
+| **POST** | `/api/v1/context/extract-os` | Stateless Context OS extraction (pure preview) | `200 OK` |
+| **POST** | `/api/v1/context/projects/{project_id}/extract-os` | Project-scoped extraction with visual linking and optional persistence | `200 OK` |
+| **POST** | `/api/v1/context/capture` | Legacy capture endpoint, augmented to automatically synthesize Context OS entities | `201 Created` |
+
+### 9. Future Vision-Provider Extension Point
+The architecture is intentionally designed for multimodal extension:
+```python
+class VisionUnderstandingProvider(ABC):
+    @abstractmethod
+    def analyze_image(self, image_stream: BinaryIO, context_hints: List[str]) -> ImageAnalysisResult:
+        pass
+```
+When vision models (Gemini Vision, Claude Vision, or OpenAI Vision) are introduced in future phases, they can be plugged in to enrich `visual_tags` and `description` without changing database models, router interfaces, or storage security guarantees.
+
 
