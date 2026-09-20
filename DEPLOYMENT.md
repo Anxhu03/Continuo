@@ -49,7 +49,10 @@ Configure the following DNS records in your domain control panel:
 3. Set connection pooling parameters:
    - `DB_POOL_SIZE=10`
    - `DB_MAX_OVERFLOW=20`
-4. On startup, Continuo executes `Base.metadata.create_all()`, automatically provisioning all required tables (`users`, `projects`, `context_packages`, `context_versions`, `handoff_logs`).
+4. On startup, Continuo executes `Base.metadata.create_all()`, automatically provisioning all required tables (`users`, `projects`, `context_packages`, `context_versions`, `handoff_logs`). Alternatively, run Alembic migrations to apply or verify schema revisions:
+   ```bash
+   alembic upgrade head
+   ```
 
 ---
 

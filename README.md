@@ -253,39 +253,54 @@ This script audits `extension/manifest.json`, excludes all repo/test/backend/sec
 
 ## 7. Universal Handoff Prompt Schema
 
-Continuo formats cross-AI continuation packages into a concise, token-efficient schema that downstream models ingest without conversational confusion or token waste:
+Continuo formats cross-AI continuation packages into a concise, token-efficient 11-part schema that downstream models ingest without conversational confusion or token waste:
 
 ```markdown
 You are continuing an existing project.
 
-Project:
+PROJECT:
 Nexora Autonomous Agent (v1.1)
 
-Goal:
+OBJECTIVE:
 Build high-throughput context continuity layer across multiple AI models.
 
-Current state:
+CURRENT STATE:
 Working context captured by Continuo and formatted for continuation.
 
-Completed:
+COMPLETED:
 - Setup database migrations for refresh_tokens table
 - Verified password hashing with PBKDF2
 
-Important decisions:
+CURRENTLY WORKING ON:
+- Connecting frontend auth modal and verifying cross-domain CORS tokens
+
+IMPORTANT DECISIONS:
 - Selected FastAPI with SQLAlchemy and PyJWT for stateless verification
 - Implemented clean token-efficient handoff schema
 
-Constraints:
+CONSTRAINTS:
 - Never store plaintext secrets or refresh tokens in insecure cookies
 - Support Google and GitHub OAuth providers
 
-Known problems:
+KNOWN ISSUES:
 - Avoid asyncpg raw connection pool conflicts with sub-task loops
 
-Next task:
-1. Connect frontend auth modal and verify cross-domain CORS tokens
+FILES / CODE CONTEXT:
+- backend/routers/handoffs.py
+- backend/services/handoff_generator.py
 
-Continue from the current state. Do not restart the project or repeat completed work.
+FAILED ATTEMPTS:
+- None recorded.
+
+NEXT STEPS:
+1. Connect frontend auth modal and verify cross-domain CORS tokens
+2. Run end-to-end multi-provider browser handoff verification
+
+CONTINUE FROM HERE:
+Continue from the current state. Continue from this project state.
+Do not restart the project.
+Do not repeat completed work.
+Preserve the existing decisions and constraints.
 ```
 
 ---
@@ -331,6 +346,8 @@ All protected routes require an `Authorization: Bearer <token>` header.
 Run the full pytest suite:
 ```bash
 .\.venv\Scripts\python -m pytest -v
+# Or on Linux / macOS:
+# pytest -v
 ```
 
 Test coverage includes:
@@ -342,6 +359,16 @@ Test coverage includes:
 Run the CTA and distribution verification suite:
 ```bash
 python verify_cta.py
+```
+
+Run the DOM provider adapters test (ChatGPT, Claude, Gemini extraction strategies):
+```bash
+node scripts/test-adapters.js
+```
+
+Run the end-to-end browser handoff flow verification (requires backend running on port 8008):
+```bash
+node scripts/verify-browser-handoff.js
 ```
 
 ---
