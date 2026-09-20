@@ -668,3 +668,109 @@ Composite indexes were added across all tables to optimize future sub-context qu
 - All existing monolithic `ContextPackage`, `Conversation`, `ProjectVersion`, and `Handoff` models remain 100% active and untouched.
 - Existing endpoints (`/context/capture`, `/context/analyze`, `/handoffs`, `/projects/{id}/context`) continue to function without any breaking changes.
 - 100% test pass rate across the full test suite (39/39 passing).
+
+---
+
+## Phase 9.3 — Persistent Context APIs
+
+### 1. Overview & Architecture
+Phase 9.3 introduces project-scoped, user-isolated REST APIs exposing normalized Context OS entities under the `/api/v1/projects/{project_id}/...` route hierarchy:
+
+1. **Context Goals** (`backend/routers/context_goals.py`)
+2. **Context Decisions** (`backend/routers/context_decisions.py`)
+3. **Context Tasks** (`backend/routers/context_tasks.py`)
+4. **Context Technical State** (`backend/routers/context_technical_state.py`)
+
+All endpoints build upon Continuo's existing router patterns, SQLAlchemy session lifecycle (`get_db`), JWT bearer authentication (`get_current_user`), and Pydantic validation schemas (`backend/schemas/__init__.py`).
+
+### 2. Endpoint Matrix
+
+| Method | Endpoint | Description | Status Code | Query Filters |
+|---|---|---|---|---|
+| **POST** | `/api/v1/projects/{project_id}/goals` | Create a context goal/requirement/constraint | `201 Created` | — |
+| **GET** | `/api/v1/projects/{project_id}/goals` | List project goals (ordered by `updated_at DESC`) | `200 OK` | `status`, `priority`, `category` |
+| **GET** | `/api/v1/projects/{project_id}/goals/{goal_id}` | Retrieve single goal by ID | `200 OK` | — |
+| **PATCH** | `/api/v1/projects/{project_id}/goals/{goal_id}` | Update goal attributes | `200 OK` | — |
+| **DELETE** | `/api/v1/projects/{project_id}/goals/{goal_id}` | Delete goal from project | `204 No Content` | — |
+| **POST** | `/api/v1/projects/{project_id}/decisions` | Record architectural/design decision | `201 Created` | — |
+| **GET** | `/api/v1/projects/{project_id}/decisions` | List project decisions (`updated_at DESC`) | `200 OK` | `status`, `category` |
+| **GET** | `/api/v1/projects/{project_id}/decisions/{decision_id}` | Retrieve single decision by ID | `200 OK` | — |
+| **PATCH** | `/api/v1/projects/{project_id}/decisions/{decision_id}` | Update decision & validate supersession | `200 OK` | — |
+| **DELETE** | `/api/v1/projects/{project_id}/decisions/{decision_id}` | Delete decision from project | `204 No Content` | — |
+| **POST** | `/api/v1/projects/{project_id}/tasks` | Create work task with optional completed timestamp | `201 Created` | — |
+| **GET** | `/api/v1/projects/{project_id}/tasks` | List project tasks (`updated_at DESC`) | `200 OK` | `status`, `priority` |
+| **GET** | `/api/v1/projects/{project_id}/tasks/{task_id}` | Retrieve single task by ID | `200 OK` | — |
+| **PATCH** | `/api/v1/projects/{project_id}/tasks/{task_id}` | Update task & automate lifecycle timestamps | `200 OK` | — |
+| **DELETE** | `/api/v1/projects/{project_id}/tasks/{task_id}` | Delete task from project | `204 No Content` | — |
+| **POST** | `/api/v1/projects/{project_id}/technical-state` | Create key-value state record | `201 Created` | — |
+| **GET** | `/api/v1/projects/{project_id}/technical-state` | List technical state records (`updated_at DESC`) | `200 OK` | `category` |
+| **GET** | `/api/v1/projects/{project_id}/technical-state/{state_id}` | Retrieve single state record by ID | `200 OK` | — |
+| **PATCH** | `/api/v1/projects/{project_id}/technical-state/{state_id}` | Update state record (conflict-guarded) | `200 OK` | — |
+| **DELETE** | `/api/v1/projects/{project_id}/technical-state/{state_id}` | Delete state record from project | `204 No Content` | — |
+
+### 3. Security, Authorization & IDOR Defense
+
+- **Mandatory Authentication**: All routes require valid JWT authorization via `current_user: User = Depends(get_current_user)`. Unauthenticated requests immediately yield `401 Unauthorized`.
+- **Server-Enforced Ownership**:
+  - Every endpoint executes `_verify_project_ownership(project_id, db, current_user)`, asserting `project.user_id == current_user.id`.
+  - Non-existent projects yield `404 Not Found`.
+  - Unauthorized access attempts yield `403 Forbidden` (`Forbidden: You do not own this project.`).
+- **No Client Mass Assignment**:
+  - The server explicitly assigns `project_id = project.id` and `user_id = current_user.id`.
+  - Clients cannot supply arbitrary `user_id` or override `created_at` or `project_id`.
+- **Strict Cross-Project IDOR Protection**:
+  - When querying child objects (`goals`, `decisions`, `tasks`, `technical_states`), lookups filter by both `id == entity_id` AND `project_id == project.id`.
+  - If User A or User B attempts to access Object A through `/projects/{project_B}/.../{object_A}`, the API returns `404 Not Found`, ensuring zero information leakage regarding whether foreign objects exist.
+
+### 4. Decision History & Supersession Preservation
+
+Architecture decisions must never be silently wiped out when superseded.
+- When an existing decision is superseded (`status = "superseded"`), the client references `superseded_by_id`.
+- **Supersession Validation**:
+  - The replacement decision referenced by `superseded_by_id` must exist.
+  - The replacement decision must belong to the exact same `project_id` and same user.
+  - A decision cannot be superseded by itself (`HTTP 400 Bad Request`).
+  - Attempting cross-project supersession (`Project A Decision → Project B Decision`) is strictly rejected with `HTTP 400 Bad Request`.
+- **History Kept Intact**: Superseded decisions remain in the database and in list responses, preserving full architectural rationale and context evolution for AI models.
+
+### 5. Task Lifecycle Automation
+
+- **Creation**: Creating a task with `status = "completed"` populates `completed_at` (using either supplied timestamp or server `utc_now()`).
+- **Transitions**:
+  - Transitioning from any status to `completed` automatically populates `completed_at` with `utc_now()` if not already set.
+  - Reopening a task (`todo`, `in_progress`, `blocked`, `cancelled`) automatically resets `completed_at = None`.
+- **Consistency**: Timestamps align with UTC standard (`utc_now`).
+
+### 6. Technical State Uniqueness & Conflict Resolution
+
+- The database enforces `uq_tech_state_project_cat_key` across `(project_id, category, key)`.
+- **Graceful Conflict Handling**:
+  - Proactive check query prior to insertion/update detects collisions.
+  - `try...except IntegrityError` catches race conditions, automatically executes `db.rollback()`, and returns a clean `HTTP 409 Conflict` with JSON detail:
+    `{"detail": "Technical state for category '...' and key '...' already exists in this project."}`
+  - Under no circumstances are raw SQL statements, database traces, or engine errors leaked to the client.
+
+### 7. Source Session Validation
+
+- Context OS entities can reference `source_session_id`.
+- When provided, `_validate_source_session(source_session_id, project.id, db)` verifies:
+  1. The conversation session exists in the database.
+  2. The conversation belongs to the same `project_id` and user.
+- Invalid or cross-project/cross-user conversation references are rejected with `HTTP 400 Bad Request`.
+
+### 8. Test Coverage & Verification
+
+A dedicated test suite in `tests/test_context_os_api.py` verifies all 30 core operational scenarios plus source session integration:
+- Goals CRUD, filtering, ordering, 422 validations, cross-user 403, and cross-project 404 IDOR defenses.
+- Decisions CRUD, rationale tracking, valid supersession, history preservation, cross-project supersession rejection (400), and cross-user 403.
+- Tasks CRUD, lifecycle transitions (`todo` ➔ `in_progress` ➔ `completed` ➔ `in_progress`), automated `completed_at` population and clearing, and cross-user 403.
+- Technical state CRUD, category filtering, unique constraint 409 conflict handling without SQL leakage, and cross-user 403.
+- Source session validation (valid link succeeds, foreign session rejected with 400).
+- General security (401 unauthenticated, 404 invalid project, 422 payload errors).
+
+**Verification Results**:
+- `tests/test_context_os_api.py`: 31/31 passed (100%).
+- Full Pytest Suite: 70/70 passed (100%).
+- `verify_cta.py`: 100% passed.
+- `scripts/test-adapters.js`: 11/11 passed (100%).
+

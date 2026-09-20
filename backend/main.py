@@ -9,7 +9,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.database import init_db
-from backend.routers import auth, projects, context, versions, handoffs, admin
+from backend.routers import (
+    auth,
+    projects,
+    context,
+    versions,
+    handoffs,
+    admin,
+    context_goals,
+    context_decisions,
+    context_tasks,
+    context_technical_state,
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,6 +52,10 @@ app.include_router(context.router, prefix=settings.API_V1_PREFIX)
 app.include_router(versions.router, prefix=settings.API_V1_PREFIX)
 app.include_router(handoffs.router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin.router, prefix=settings.API_V1_PREFIX)
+app.include_router(context_goals.router, prefix=settings.API_V1_PREFIX)
+app.include_router(context_decisions.router, prefix=settings.API_V1_PREFIX)
+app.include_router(context_tasks.router, prefix=settings.API_V1_PREFIX)
+app.include_router(context_technical_state.router, prefix=settings.API_V1_PREFIX)
 
 import logging
 from fastapi import Request
