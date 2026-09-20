@@ -1,0 +1,597 @@
+# Continuo Context OS Architecture
+
+## Executive Summary
+
+Continuo is evolving from an **inter-model conversation handoff utility** into a **Persistent Context Operating System (Context OS)**. 
+
+The original Continuo pipeline addressed a discrete pain point: moving a working conversation from one AI model (e.g., ChatGPT) to another (e.g., Claude) without re-explaining context. The next evolution elevates Continuo to an ongoing, persistent memory layer that anchors all project context—decisions, goals, tasks, technical boundaries, session history, and crucially, **first-class visual references**—across multi-day, multi-tool AI engineering lifecycles.
+
+```
+Conversation Continuity  ──►  Project Continuity  ──►  Persistent Context OS
+   (Single Dialogue)           (Versioned Memory)       (Multi-Modal Memory Layer)
+```
+
+This document presents a comprehensive architecture and safety audit of the existing Continuo repository, analyzes existing components, and specifies the complete data, visual, relational, retrieval, and security architectures for Context OS without breaking existing production behavior.
+
+---
+
+## 1. Current Architecture
+
+The existing Continuo system is structured as an extension-first companion application backed by a modular FastAPI service and a static responsive frontend.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             CLIENT INTERFACES                               │
+├─────────────────────────────────────────┬───────────────────────────────────┤
+│          CHROME EXTENSION (MV3)         │        CONTINUO WEB FRONTEND      │
+│  - popup.html / popup.js (7 UX states)  │  - index.html (Responsive landing)│
+│  - content.js (DOM scraping adapters)   │  - main.js (Workspace memory app) │
+│  - background.js (Service worker)       │  - styles.css (Glassmorphic theme)│
+└─────────────────────────────────────────┴───────────────────────────────────┘
+                                     │
+                             HTTPS / JSON REST
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FASTAPI GATEWAY (v1)                              │
+│                          (backend/main.py : 8008)                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Middleware:                                                                │
+│  - CORS Middleware (Allowing Vercel, Render, Localhost, & Chrome Extensions)│
+│  - Global Exception Handler (Sanitized 500 responses in production)         │
+│                                                                             │
+│  Routers:                                                                   │
+│  - /api/v1/auth       (Registration, login, logout, profile introspection) │
+│  - /api/v1/projects   (Project lifecycle and ownership verification)        │
+│  - /api/v1/context    (Dialogue capture, stateless analysis, curation)     │
+│  - /api/v1/versions   (Version history and granular structural diffs)       │
+│  - /api/v1/handoffs   (Provider continuation generation & secret scrubbing) │
+│  - /api/v1/admin      (Protected system diagnostics via role-based access)  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                     SQLAlchemy 2.0 ORM Engine & Models
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              PERSISTENCE LAYER                              │
+├──────────────────────────────────────┬──────────────────────────────────────┤
+│      DEVELOPMENT & LOCAL TESTING     │        PRODUCTION DEPLOYMENT         │
+│     SQLite (continuo.db)             │     PostgreSQL 15+ (Supabase / Neon) │
+│     Auto Base.metadata.create_all()  │     Alembic Migrations (0001_initial)│
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+### 1.1 Repository Structure
+```
+continuo/
+├── backend/
+│   ├── config.py                 # Pydantic Settings & dynamic CORS validation
+│   ├── database.py               # SQLAlchemy engine, session maker, migration hook
+│   ├── main.py                   # FastAPI application entrypoint & middleware
+│   ├── models/
+│   │   └── __init__.py           # User, Project, ContextPackage, Conversation, Version, Handoff
+│   ├── routers/
+│   │   ├── admin.py              # Protected diagnostics (/admin)
+│   │   ├── auth.py               # Authentication & token issuing (/auth)
+│   │   ├── context.py            # Transcript ingestion & context curation (/context)
+│   │   ├── handoffs.py           # Universal handoff generation (/handoffs)
+│   │   ├── projects.py           # Project CRUD & baseline initialization (/projects)
+│   │   └── versions.py           # Version history & diff computation (/versions)
+│   ├── schemas/
+│   │   └── __init__.py           # Pydantic v2 schemas for all payloads & responses
+│   └── services/
+│       ├── auth.py               # PBKDF2 hashing, JWT signing, role checking
+│       ├── context_engine.py     # Deterministic 15-attribute regex extraction engine
+│       ├── contradiction.py      # Architectural decision conflict detector
+│       ├── handoff_generator.py  # Standardized 11-part markdown handoff & secret sanitizer
+│       ├── quality_scorer.py     # 4-factor dynamic mathematical quality scorer (0-100)
+│       └── version_diff.py       # Semantic delta calculator (added, modified, removed)
+├── extension/
+│   ├── manifest.json             # Chrome MV3 schema with minimal host permissions
+│   ├── popup.html / popup.js     # 7-state companion popup controller
+│   ├── content.js                # Multi-strategy DOM extractors for ChatGPT/Claude/Gemini
+│   └── background.js             # Background service worker
+├── alembic/                      # Database schema revision tracking
+├── dist/                         # Release archives (continuo-extension.zip)
+├── docs/                         # Submission guides & privacy commitments
+├── scripts/                      # Packaging, adapter tests, and verification scripts
+├── tests/                        # 30 automated Pytest test cases (100% pass)
+├── index.html / main.js          # Interactive web application and Project Workspace UI
+├── verify_cta.py                 # Comprehensive CTA & distribution flow verification
+└── continuo.db                   # Local SQLite database
+```
+
+### 1.2 Frontend Architecture
+- **Web Client**: Plain HTML5, Vanilla JavaScript (`main.js`), and Vanilla CSS (`styles.css`). Employs Lenis smooth scrolling, canvas context flow background, and an integrated `#workspace` application.
+- **Workspace UI**: Enables users to log in, register, create/select projects, paste raw dialogue transcripts to synthesize context packages, manually edit context fields in a Memory Editor, inspect semantic version diffs, and generate cross-AI handoff packages.
+
+### 1.3 Backend & Storage Architecture
+- **Framework**: FastAPI with Python 3.12+ type hints and Pydantic v2.
+- **Database Engine**: SQLAlchemy 2.0 with engine abstraction:
+  - Local/Dev: SQLite (`continuo.db`) with `check_same_thread=False`.
+  - Production: PostgreSQL with connection pooling (`pool_size=10`, `max_overflow=20`, `pool_pre_ping=True`, `pool_recycle=300`).
+- **Database Migrations**: Alembic manages production schemas to prevent DDL race conditions across concurrent application workers.
+
+---
+
+## 2. Existing Context Pipeline
+
+The existing context pipeline is a unidirectional ingestion and formatting loop:
+
+```
+[ Active AI Tab ]
+ (ChatGPT / Claude / Gemini)
+       │
+       ▼ (DOM Extraction via content.js)
+[ Raw Message Turns ]
+       │
+       ▼ (POST /api/v1/context/capture)
+[ ContextEngine.extract() ]  ──►  Regex Heuristic Extraction (15 fields)
+       │
+       ▼
+[ QualityScorer.evaluate() ] ──►  Mathematical scoring & Contradiction detection
+       │
+       ▼
+[ ContextPackage Record ]    ──►  Stored in SQLite / PostgreSQL (JSON text blobs)
+       │
+       ▼ (POST /api/v1/handoffs)
+[ HandoffService.generate() ]──►  11-part standardized continuation payload
+       │
+       ▼
+[ Clipboard Copy & Provider Open ]
+```
+
+### 2.1 Extraction Flow (`ContextEngine`)
+`backend/services/context_engine.py` processes raw conversational dialogue using regular expressions and keyword pattern matching across 15 structured attributes:
+1. `objective`: Regex patterns targeting goals, purposes, or initial user requests.
+2. `requirements`: Matches modal verbs ("must", "need to", "feature:").
+3. `constraints`: Matches negation constraints ("do not", "never", "cannot").
+4. `instructions`: Matches operational guidance ("always", "keep in mind").
+5. `decisions`: Identifies architectural conclusions ("decided", "switched to").
+6. `current_state`: Synthesizes current development phase.
+7. `completed_work`: Extracts marked progress and completed tasks.
+8. `pending_work`: Extracts pending action items.
+9. `open_problems`: Identifies unresolved bugs or bottlenecks.
+10. `errors`: Captures stack traces or error snippets.
+11. `failed_attempts`: Logs discarded paths to prevent loops.
+12. `files_context`: Regex extraction of code paths (`.py`, `.ts`, `.json`, etc.).
+13. `design_decisions`: Identifies UI/UX choices (glassmorphism, typography, colors).
+14. `dependencies`: Identifies framework and library mentions.
+15. `next_steps`: Gathers immediate sequential actions.
+
+### 2.2 Storage Model (`ContextPackage`)
+Extracted context is stored in `context_packages`. The table serializes lists as JSON strings (`requirements_json`, `constraints_json`, `decisions_json`, etc.) with helper methods `get_list()` and `set_list()`. Each capture triggers a version bump (e.g., `v1.0` -> `v1.1`), creates a `Conversation` record storing the raw transcript, and adds a `ProjectVersion` record.
+
+### 2.3 Quality Scoring & Contradiction Guard
+- `QualityScorer`: Computes a 0–100 score across Completeness (30%), Structural Clarity (25%), Actionability (25%), and Consistency (20%).
+- `ContradictionDetector`: Scans for mutual exclusivity in decisions (e.g., SQLite vs PostgreSQL, Tailwind vs Vanilla CSS, Auth0 vs Custom JWT).
+
+### 2.4 Handoff Generation (`HandoffService`)
+`backend/services/handoff_generator.py` dispatches context to provider adapters (`ClaudeProviderAdapter`, `ChatGPTProviderAdapter`, `GeminiProviderAdapter`, `CursorProviderAdapter`).
+- Formats context into a standardized 11-part markdown continuation payload:
+  `PROJECT:`, `OBJECTIVE:`, `CURRENT STATE:`, `COMPLETED:`, `CURRENTLY WORKING ON:`, `IMPORTANT DECISIONS:`, `CONSTRAINTS:`, `KNOWN ISSUES:`, `FILES / CODE CONTEXT:`, `FAILED ATTEMPTS:`, `NEXT STEPS:`, `CONTINUE FROM HERE:`.
+- `sanitize_secrets()` redacts JWT tokens, API keys (`sk-...`, `Bearer ...`), passwords, and database connection strings before delivery.
+
+---
+
+## 3. Existing Project Model
+
+In the current schema (`backend/models/__init__.py`), `Project` serves as the primary organizational container:
+
+```python
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    current_version = Column(String(32), default="v1.0")
+    health_score = Column(Float, default=85.0)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    user = relationship("User", back_populates="projects")
+    context_packages = relationship("ContextPackage", back_populates="project", cascade="all, delete-orphan")
+    conversations = relationship("Conversation", back_populates="project", cascade="all, delete-orphan")
+    versions = relationship("ProjectVersion", back_populates="project", cascade="all, delete-orphan")
+    handoffs = relationship("Handoff", back_populates="project", cascade="all, delete-orphan")
+```
+
+### Lifecycle & Cascades:
+- **Creation**: When a project is created via `POST /api/v1/projects`, an initial `ContextPackage` (`v1.0`) and initial `ProjectVersion` (`v1.0`) are automatically populated.
+- **Cascading Deletion**: Deleting a project explicitly deletes associated `Handoff`, `ProjectVersion`, `Conversation`, and `ContextPackage` records, preventing orphan rows across both SQLite and PostgreSQL.
+
+---
+
+## 4. Existing User Isolation
+
+Continuo enforces strict multi-tenant isolation at the application and query layers:
+
+1. **Token Authentication**: Every protected request must provide a valid JWT Bearer token signed with the server's `SECRET_KEY`.
+2. **User Identity Injection**: `get_current_user` extracts `sub` (the user UUID) and queries the active user record.
+3. **Ownership Enforced on Every Operation**:
+   - `/projects/{id}`: Asserts `project.user_id == current_user.id`.
+   - `/context/capture`: Resolves `project_id`, asserts `project.user_id == current_user.id`.
+   - `/context/projects/{id}/context`: Asserts `project.user_id == current_user.id`.
+   - `/versions/projects/{id}`: Asserts `project.user_id == current_user.id`.
+   - `/handoffs`: Asserts `project.user_id == current_user.id`.
+   - Any foreign access attempt immediately raises `HTTP 403 Forbidden`.
+4. **Role-Based Diagnostics**: Diagnostic endpoints (`/api/v1/admin/diagnostics`) require explicit role membership (`admin` or `developer`).
+5. **Automated Test Coverage**: Verified by `test_comprehensive_cross_user_data_isolation` in `tests/test_api_endpoints.py` with 15 separate 403/401 assertions across all endpoints.
+
+---
+
+## 5. Reusable Components
+
+The following components are robust and can be directly reused as the foundation for Context OS:
+
+| Component | File Path | Capability & Reusability |
+|---|---|---|
+| **PBKDF2 & JWT Auth** | `backend/services/auth.py` | Secure authentication with zero native C-compilation dependencies. Reusable for all new endpoints. |
+| **User & Project Models** | `backend/models/__init__.py` | Core tenant and project models; new Context OS entities can anchor directly to `projects.id`. |
+| **Database & Session Management** | `backend/database.py` | Handles SQLite and PostgreSQL connection pooling, Alembic hooks, and transactional session lifecycle. |
+| **Secret Sanitization Engine** | `backend/services/handoff_generator.py` | Regex scrubber for keys, tokens, credentials, and connection strings. Crucial for visual metadata and prompts. |
+| **Quality Scorer** | `backend/services/quality_scorer.py` | Can be expanded from text scoring to evaluate completeness of visual assets and decision records. |
+| **Contradiction Detector** | `backend/services/contradiction.py` | Rule-based conflict detection engine. Can be extended to detect design and technical requirement contradictions. |
+| **Version Diff Engine** | `backend/services/version_diff.py` | Granular diff calculation across list and scalar attributes. Reusable for tracking context evolution. |
+| **DOM Provider Adapters** | `extension/content.js` | Modular ChatGPT, Claude, and Gemini extractors. Reusable for extracting visual references and chat screenshots. |
+| **Handoff Dispatcher** | `backend/services/handoff_generator.py` | Clean provider abstraction for ChatGPT, Claude, Gemini, and Cursor. |
+| **Automated Packaging** | `scripts/package-extension.py` | Deterministic build and security audit script for releasing extension updates. |
+
+---
+
+## 6. Required Changes for Context OS
+
+To evolve from single-dialogue capture into a Persistent Context OS, the following architectural upgrades are required:
+
+1. **From Monolithic Snapshot to Granular Relational Context**:
+   Currently, a `ContextPackage` stores entire sets of requirements and decisions as serialized JSON strings inside a single row. Context OS requires individual, identifiable context entities (Goals, Requirements, Decisions, Tasks, Visual References) that can be queried, tagged, linked, and independently updated.
+2. **First-Class Visual References**:
+   The current schema has no table or attribute for image assets, screenshots, or design references. Images must become first-class relational entities with visual semantic metadata and bi-directional links to decisions and technical context.
+3. **Session Concept**:
+   Currently, `Conversation` stores raw transcripts per capture. This must evolve into `AISession`, recording interaction turns, model identity, source prompts, and extracted learnings.
+4. **Context Association & Graph Links**:
+   Entities must cross-reference each other (e.g., an architectural decision links to a visual diagram and a specific session).
+5. **Intelligent Sub-Context Retrieval**:
+   Instead of dumping all project facts into every continuation prompt, Context OS requires an intent-aware retrieval engine that pulls only relevant decisions, assets, and images for the task at hand.
+6. **Multi-Modal Continuation Payloads**:
+   The handoff generator must format continuation packages containing both structured text context and referenced visual assets (URLs, thumbnails, or multi-modal attachment specifications).
+
+---
+
+## 7. Proposed Context Model
+
+The Context OS data model introduces dedicated, normalized entities linked to `projects.id`, while maintaining full backward compatibility with legacy `ContextPackage` snapshots.
+
+```
+                     ┌──────────────────────┐
+                     │        User          │
+                     └──────────┬───────────┘
+                                │ 1:N
+                     ┌──────────▼───────────┐
+                     │       Project        │
+                     └──────────┬───────────┘
+                                │
+        ┌───────────────┬───────┴───────┬───────────────┐
+        │ 1:N           │ 1:N           │ 1:N           │ 1:N
+┌───────▼───────┐┌──────▼───────┐┌──────▼───────┐┌──────▼───────┐
+│ ContextGoal   ││ ContextDecis.││ ContextImage ││  AISession   │
+│ - goals       ││ - title      ││ - visual ref ││ - provider   │
+│ - requirements││ - rationale  ││ - metadata   ││ - transcript │
+│ - constraints ││ - status     ││ - tags       ││ - model      │
+└───────┬───────┘└──────┬───────┘└──────┬───────┘└──────┬───────┘
+        │               │               │               │
+        └───────────────┼───────────────┴───────────────┘
+                        ▼
+            Context Associations / Graph Links
+```
+
+### Entity Specifications
+
+#### 1. `ContextGoal` & `ContextRequirement`
+- **Purpose**: Tracks project objectives, constraints, and acceptance criteria.
+- **Attributes**: `id`, `project_id`, `category` (`objective`, `functional_requirement`, `constraint`, `instruction`), `title`, `description`, `priority` (`critical`, `high`, `normal`), `status` (`active`, `satisfied`, `deprecated`), `created_at`, `updated_at`.
+
+#### 2. `ContextDecision`
+- **Purpose**: Explicitly preserves engineering and design decisions to prevent downstream models from questioning or reversing choices.
+- **Attributes**: `id`, `project_id`, `title`, `category` (`architecture`, `design_system`, `database`, `api`, `auth`), `rationale`, `alternatives_considered_json`, `constraints_created_json`, `status` (`accepted`, `superseded`, `under_review`), `created_at`.
+
+#### 3. `ContextTechnicalState`
+- **Purpose**: Real-time snapshot of runtime environment, tech stack, and file boundaries.
+- **Attributes**: `id`, `project_id`, `tech_stack_json`, `dependencies_json`, `files_in_scope_json`, `environment_variables_json` (sanitized), `known_issues_json`, `failed_attempts_json`.
+
+#### 4. `ContextTask` & `ContextMilestone`
+- **Purpose**: Tracks what work is complete, currently active, and queued next.
+- **Attributes**: `id`, `project_id`, `milestone_id`, `title`, `description`, `status` (`pending`, `in_progress`, `completed`, `blocked`), `blocked_by_json`, `order_index`.
+
+#### 5. `AISession` (Evolution of `Conversation`)
+- **Purpose**: Maintains the history of conversations across AI platforms.
+- **Attributes**: `id`, `project_id`, `provider` (`chatgpt`, `claude`, `gemini`, `cursor`), `model_name`, `session_title`, `source_url`, `turn_count`, `summary`, `raw_transcript`, `created_at`.
+
+#### 6. `ContextAsset`
+- **Purpose**: Tracks code snippets, config templates, and schema definitions associated with project state.
+- **Attributes**: `id`, `project_id`, `name`, `asset_type` (`code_snippet`, `schema`, `config`, `document`), `content`, `language`, `created_at`.
+
+---
+
+## 8. Visual Context Model (First-Class Citizen)
+
+In creative, frontend, and architectural engineering, visual context is as critical as written code. Images cannot be treated as generic unindexed binary blobs; they must be first-class semantic context.
+
+### 8.1 Database Entity: `ContextImage`
+
+```python
+class ContextImage(Base):
+    __tablename__ = "context_images"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    project_id = Column(String(36), ForeignKey("projects.id"), nullable=False, index=True)
+    
+    # Classification & Provenance
+    source = Column(String(64), nullable=False) 
+    # 'upload', 'chat_screenshot', 'url', 'blender_render', 'figma_export', 'clipboard'
+    
+    image_type = Column(String(64), nullable=False)
+    # 'ui_screenshot', 'design_inspiration', 'website_reference', 'character_reference', 
+    # '3d_render', 'moodboard', 'diagram', 'before_after', 'decision_evidence'
+    
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    
+    # Storage References (Local filesystem path or cloud object key)
+    storage_path = Column(String(512), nullable=False)
+    thumbnail_path = Column(String(512), nullable=True)
+    mime_type = Column(String(64), nullable=False)
+    file_size_bytes = Column(Integer, nullable=False)
+    image_hash = Column(String(64), nullable=False, index=True)  # SHA-256 deduplication
+    
+    # Visual & Semantic Metadata (JSON)
+    # e.g., {"width": 1920, "height": 1080, "aspect_ratio": "16:9", "color_palette": ["#0f172a", "#38bdf8"]}
+    dimensions_metadata_json = Column(Text, default="{}")
+    
+    # Structured Visual Tags (Extracted or Curated)
+    # e.g., ["dark glass UI", "large 3D character", "minimal typography", "cinematic lighting"]
+    visual_tags_json = Column(Text, default="[]")
+    
+    # Relational Context Links (Foreign ID arrays stored as JSON)
+    associated_context_ids_json = Column(Text, default="[]")
+    associated_decision_ids_json = Column(Text, default="[]")
+    associated_session_id = Column(String(36), ForeignKey("conversations.id"), nullable=True)
+    
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    project = relationship("Project", backref="visual_references")
+```
+
+### 8.2 Real-World Application Example
+
+```
+Project: Portfolio 2.0
+
+Visual Reference:
+- File: character_hero_render_v2.png
+- Type: character_reference
+- Source: blender_render
+- Description: "Full-body 3D humanoid avatar standing on a glass pedestal under volumetric blue rim lighting."
+- Visual Tags:
+  * "dark glass UI"
+  * "large 3D character"
+  * "minimal typography"
+  * "cinematic lighting"
+- Associated Decision:
+  * "DEC-004: Standardized on Three.js glTF character viewer with PBR materials and bloom effect."
+- Associated Session:
+  * Claude Session #4 (Discussing shader performance optimization).
+```
+
+When handing off to a visual or multimodal AI model (e.g., Claude 3.5 Sonnet, GPT-4o, or Gemini 1.5 Pro), Continuo provides both the structured architectural text AND links/descriptions/attachments of `character_hero_render_v2.png`.
+
+---
+
+## 9. Context Relationships
+
+Context OS models real software projects as an interconnected relationship graph rather than an isolated list of strings.
+
+```mermaid
+graph TD
+    Project["Project: Portfolio 2.0"] --> Goals["Goals & Requirements"]
+    Project --> Decisions["Architectural & Design Decisions"]
+    Project --> Visuals["Visual References (ContextImage)"]
+    Project --> Sessions["AI Sessions (Conversations)"]
+    Project --> Tasks["Tasks & Milestones"]
+    Project --> TechState["Technical State & Files"]
+
+    Decisions -.->|"justifies / inspires"| Visuals
+    Decisions -.->|"determines"| Tasks
+    Sessions -.->|"originates"| Decisions
+    Sessions -.->|"captures"| Visuals
+    Tasks -.->|"targets file"| TechState
+    Visuals -.->|"provides style guide for"| Tasks
+```
+
+### Relationship Rules:
+1. **Decision ➔ Visual Reference**:
+   A design decision (e.g., "Use glassmorphic cards with 12px blur") explicitly references one or more `ContextImage` entities (e.g., `moodboard_card_v1.png`).
+2. **Session ➔ Decision & Visual**:
+   When an AI session generates an architectural breakthrough or UI mockup, the session ID is stamped onto the newly created `ContextDecision` and `ContextImage`.
+3. **Task ➔ Decision**:
+   Tasks reference the decisions that justify their existence, preventing regressions.
+4. **Project ➔ Context Aggregation**:
+   The high-level project view provides instant access to current state, active tasks, approved decisions, and linked visuals.
+
+---
+
+## 10. Future Retrieval Architecture
+
+### 10.1 The Context Window Problem
+As projects evolve, they accumulate dozens of decisions, multiple conversations, numerous tasks, and dozens of visual references. Blindly dumping the entire project history into downstream model prompts causes:
+- Severe token waste and high API costs.
+- Context dilution and "lost in the middle" hallucinations.
+- Confusion when downstream models encounter obsolete early-stage brainstorming.
+
+### 10.2 Intent-Aware Semantic Retrieval
+Context OS introduces an **Intent-Aware Sub-Context Retrieval Engine**:
+
+```
+[ User Request ]
+"Continue Portfolio 2.0 and fix the character animation."
+                       │
+                       ▼
+[ Context Retrieval Engine ]
+  1. Parse intent & entities:
+     - Project: "Portfolio 2.0"
+     - Entity: "character animation"
+     - Domains: ["3D", "animation", "rigging", "character"]
+  2. Query Relational Graph:
+     - Fetch Project Anchor: Name, version, base objective, current state.
+     - Filter Decisions: Select decisions matching "character", "animation", or "3D".
+     - Filter Visual References: Select images tagged "character_reference" or "3d_render".
+     - Filter Tasks: Select active tasks where title/tag matches "animation".
+     - Filter Technical Context: Include 3D loader files (`characterViewer.ts`, `rigging.js`).
+     - Exclude: Unrelated backend database migrations, payment auth decisions.
+                       │
+                       ▼
+[ Smart Context Composer ]
+Synthesize tailored continuation prompt:
+- Baseline Project Objective
+- Focused Character Decisions & Constraints
+- Referenced Image Descriptions & Asset Links
+- Immediate Task: Fix animation stutter on character glTF
+```
+
+### 10.3 Token Budget Allocation
+The Composer enforces strict token budgeting:
+- **Project Identity & Current State**: 15% of budget.
+- **Relevant Decisions & Constraints**: 30% of budget.
+- **Active Task & Code Pointers**: 25% of budget.
+- **Visual References & Descriptions**: 20% of budget.
+- **User Custom Instructions**: 10% of budget.
+
+---
+
+## 11. Migration Strategy
+
+To ensure zero downtime and prevent breaking existing users and database structures:
+
+1. **Non-Destructive Schema Expansion**:
+   - Keep existing tables (`users`, `projects`, `context_packages`, `conversations`, `project_versions`, `handoffs`) completely intact.
+   - Introduce new Context OS tables via dedicated Alembic migration: `0002_context_os_entities.py`.
+2. **API Backward Compatibility**:
+   - Existing endpoints (`POST /api/v1/context/capture`, `POST /api/v1/handoffs`, `GET /api/v1/projects/{id}/context`) continue to function without alteration.
+   - New endpoints are introduced under `/api/v1/context-os/...` or namespaced routes (e.g., `/api/v1/projects/{id}/visuals`, `/api/v1/projects/{id}/decisions`).
+3. **Dual-Write / Lazy Migration**:
+   - When `/context/capture` is called, it continues creating the snapshot `ContextPackage` while optionally populating normalized `ContextDecision` and `ContextTask` rows in the background.
+4. **Environment Isolation**:
+   - Development continues to use `continuo.db` (SQLite).
+   - Production PostgreSQL databases apply migrations via `alembic upgrade head`.
+
+---
+
+## 12. Security Considerations
+
+A Persistent Context OS handling user code, architectural decisions, and visual assets requires rigorous security boundaries:
+
+### 12.1 User & Project Isolation
+- Every query for an image, decision, task, or session must enforce:
+  `project.user_id == current_user.id`.
+- Foreign key traversals must assert ownership at both the parent project and child entity levels.
+
+### 12.2 Visual Asset Access Control
+- **No Public Directories**: Images must never be dumped into a publicly indexed static web folder without authentication.
+- **Protected File Delivery**: Image binaries must be served via authenticated endpoints (e.g., `GET /api/v1/projects/{id}/visuals/{image_id}/file` requiring a valid Bearer token) or short-lived signed URLs (e.g., 15-minute expiration on cloud storage).
+
+### 12.3 File Upload Validation & Sanitization
+- **Strict MIME & Extension Whitelist**: Allow only `image/png`, `image/jpeg`, `image/webp`, `image/svg+xml`.
+- **Magic Byte Verification**: Inspect initial file bytes (e.g., `89 50 4E 47` for PNG) to prevent executable polyglots masquerading as images.
+- **File Size Caps**: Enforce a strict 10 MB limit per visual asset to prevent denial-of-service.
+- **Path Traversal Defense**: Generate storage file names using UUIDs (`generate_uuid() + extension`) rather than user-supplied filenames. Never store untrusted strings in server filesystem paths.
+
+### 12.4 Metadata & Secret Sanitization
+- Images often contain screenshots with visible API keys, Bearer tokens, or passwords.
+- Extracted visual text and image descriptions must pass through `sanitize_secrets()` before persistence or handoff generation.
+
+---
+
+## 13. Testing Strategy
+
+Before implementing new Context OS code, the following test suites must be defined:
+
+1. **Schema & Migration Verification**:
+   - Test that Alembic migrations upgrade cleanly on SQLite and PostgreSQL.
+   - Verify foreign key cascades (deleting a project cleanly removes its visual references and decisions).
+2. **Multi-Tenant Isolation Tests**:
+   - Assert User B receives `403 Forbidden` or `404 Not Found` when attempting to access, download, or associate images with User A's project.
+3. **File Upload Security Tests**:
+   - Uploading a disguised `.exe` or `.py` file with a `.png` extension must be rejected with `HTTP 400`.
+   - Path traversal filenames (`../../etc/passwd.png`) must be safely sanitized.
+4. **Visual Context Association Tests**:
+   - Verify that adding a visual reference correctly updates decision links and session associations.
+5. **Context Retrieval Tests**:
+   - Verify that an intent query (e.g., "fix character animation") returns only character/3D decisions and visuals, omitting unrelated backend tasks.
+6. **Handoff Output Tests**:
+   - Verify that generated handoffs correctly incorporate visual descriptions and formatting without exceeding token limits or leaking secrets.
+7. **Regression Guarantee**:
+   - All 30 existing Pytest tests, `verify_cta.py`, and `test-adapters.js` must maintain 100% pass rates.
+
+---
+
+## 14. Implementation Plan
+
+The evolution into Continuo Context OS is structured into 10 sequential, non-breaking phases:
+
+### Phase 9.1 — Audit (Current Phase)
+- Perform full codebase, architecture, and security audit.
+- Document current pipeline, reusable components, and required extensions.
+- Establish architectural blueprint in `docs/context-os-architecture.md`.
+- Validate zero test regressions across existing suite.
+
+### Phase 9.2 — Context Data Model
+- Define SQLAlchemy models for normalized Context OS entities: `ContextDecision`, `ContextGoal`, `ContextTask`, `ContextTechnicalState`.
+- Maintain full compatibility with `ContextPackage`.
+- Create Alembic migration script (`0002_context_os_entities.py`).
+
+### Phase 9.3 — Persistent Context APIs
+- Implement REST CRUD endpoints for individual decisions, goals, and tasks:
+  - `POST/GET/PATCH/DELETE /api/v1/projects/{id}/decisions`
+  - `POST/GET/PATCH/DELETE /api/v1/projects/{id}/goals`
+  - `POST/GET/PATCH/DELETE /api/v1/projects/{id}/tasks`
+- Enforce strict user-scoped project ownership.
+
+### Phase 9.4 — Visual / Image Context
+- Implement `ContextImage` persistence model.
+- Build secure upload and delivery pipeline (`/api/v1/projects/{id}/visuals`):
+  - Magic byte validation, UUID storage, automatic thumbnail generation.
+  - Metadata extraction (dimensions, format, color palette).
+- Associate visual references with decisions and sessions.
+
+### Phase 9.5 — Context Extraction Intelligence
+- Upgrade `ContextEngine` to extract structured decisions, goals, and visual cues from raw transcripts.
+- Enable automatic tagging of visual assets based on surrounding conversational context.
+
+### Phase 9.6 — Context Retrieval
+- Build the Intent-Aware Retrieval Engine:
+  - Keyword and entity extraction from user prompt.
+  - Sub-graph traversal retrieving only relevant decisions, tasks, and visual assets.
+  - Token budget governor.
+
+### Phase 9.7 — Smart Context Composer
+- Create the multi-modal continuation assembler:
+  - Generates token-efficient prompts with structured text + visual references.
+  - Embeds visual asset metadata, descriptions, and direct links for multimodal models.
+  - Passes all output through `sanitize_secrets()`.
+
+### Phase 9.8 — Continue Project
+- Implement the "Continue Anywhere" unified engine:
+  - One-click continuation tailored to ChatGPT, Claude, Gemini, or Cursor.
+  - Deep-link and clipboard payload generation incorporating visual context.
+
+### Phase 9.9 — AI Provider Integration
+- Update extension content script to detect and extract image attachments from ChatGPT, Claude, and Gemini message turns.
+- Provide seamless round-trip visual handoff into target AI chat inputs.
+
+### Phase 9.10 — Context OS UI
+- Expand the Continuo Workspace frontend:
+  - Visual Moodboard & Reference Gallery.
+  - Decision Log Explorer with rationale and superseded status.
+  - Interactive Project Context Graph.
+  - Seamless toggle between quick conversation handoff and deep Context OS management.
