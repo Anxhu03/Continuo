@@ -1,0 +1,71 @@
+name: 🐛 Bug Report
+description: Report a reproducible bug or unexpected behavior in Continuo
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much detail as possible to help us reproduce and resolve it quickly.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which part of Continuo is experiencing the issue?
+      options:
+        - "Backend (FastAPI, SQLite, Alembic)"
+        - "Browser Extension (Chrome MV3)"
+        - "Context OS Engine (Goals, Decisions, Tasks, State)"
+        - "Visual Context & Image Storage"
+        - "Provider Adapters (ChatGPT, Claude, Gemini)"
+        - "Documentation / Deployment"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "When calling POST /api/v1/projects/{id}/goals with invalid priority..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: What steps are needed to trigger this behavior?
+      placeholder: |
+        1. Start backend server: `uvicorn backend.main:app`
+        2. Execute request...
+        3. See error response...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Error Stack Traces
+      description: Please paste any console logs, terminal output, or browser devtools errors.
+      render: shell
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - "Windows"
+        - "macOS"
+        - "Linux"
+    validations:
+      required: true

@@ -1,0 +1,49 @@
+name: 🚀 Feature Request
+description: Propose a new feature, adapter, or enhancement for Continuo
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We welcome proposals to extend Continuo! Please describe your proposal clearly so the community can evaluate its architecture and benefits.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem or limitation?
+      placeholder: "Currently, transferring context to provider X requires..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution / Architecture
+      description: Describe the solution you'd like to see implemented.
+      placeholder: "Add an adapter under extension/adapters/... that handles..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Relevant Domain
+      options:
+        - "Context OS Architecture"
+        - "Visual / Multimodal Context"
+        - "New AI Provider Adapter"
+        - "Browser Extension UX"
+        - "Backend & Database Performance"
+        - "Developer Experience / CLI"
+    validations:
+      required: true
