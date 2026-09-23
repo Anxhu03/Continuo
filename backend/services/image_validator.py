@@ -42,7 +42,7 @@ def detect_image_format_from_bytes(header: bytes) -> Tuple[str, str, str]:
     """
     if len(header) < 12:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="File is too small to be a valid image or header is truncated."
         )
 
@@ -54,7 +54,7 @@ def detect_image_format_from_bytes(header: bytes) -> Tuple[str, str, str]:
         return "webp", "image/webp", "webp"
 
     raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         detail="Unsupported or invalid image format. Supported formats: PNG, JPEG, WebP."
     )
 
@@ -89,14 +89,14 @@ async def process_and_validate_upload(
         sha256.update(chunk)
         if len(buffer) > limit:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=f"Uploaded file exceeds maximum allowed size of {limit} bytes."
             )
 
     total_size = len(buffer)
     if total_size == 0:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Empty file uploaded. Please provide a valid image."
         )
 
@@ -109,7 +109,7 @@ async def process_and_validate_upload(
     client_content_type = (upload_file.content_type or "").lower().strip()
     if client_content_type and not client_content_type.startswith("image/"):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Content-Type '{client_content_type}' does not match detected image format."
         )
 
@@ -125,7 +125,7 @@ async def process_and_validate_upload(
                 width, height = dimension_img.size
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Image structure is corrupted or unreadable: {exc}"
         )
 

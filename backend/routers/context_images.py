@@ -144,7 +144,7 @@ def _parse_json_list(raw_val: Optional[str], field_name: str) -> List[str]:
                 return [str(x) for x in parsed]
         except Exception:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=f"Invalid JSON format for '{field_name}'."
             )
     return [x.strip() for x in val.split(",") if x.strip()]
@@ -173,7 +173,7 @@ async def upload_image(
     clean_type = (image_type or "other").strip().lower()
     if clean_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"Invalid image_type '{clean_type}'. Allowed: {sorted(ALLOWED_IMAGE_TYPES)}"
         )
 
