@@ -40,6 +40,7 @@ jobs:
           DATABASE_URL: "sqlite:///./test_ci.db"
           PYTHONPATH: "."
         run: |
+          alembic upgrade head
           python -m pytest -v --tb=short
 
       - name: Run Critical CTA Verification
